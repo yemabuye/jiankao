@@ -1,0 +1,3139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="本地运行的监考快速编排工具">
+  <title>监考编排台</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6f4;
+      --surface: #ffffff;
+      --surface-2: #f8faf8;
+      --ink: #17201c;
+      --muted: #66736c;
+      --line: #dce3de;
+      --line-strong: #bdc9c1;
+      --brand: #176b4d;
+      --brand-deep: #0e4e37;
+      --brand-soft: #e5f3ec;
+      --accent: #d9892b;
+      --accent-soft: #fff2df;
+      --danger: #b43b3b;
+      --danger-soft: #fff0ef;
+      --blue: #2d5f89;
+      --blue-soft: #e9f1f7;
+      --violet: #715586;
+      --violet-soft: #f2edf5;
+      --shadow: 0 8px 22px rgba(23, 32, 28, .07);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      letter-spacing: 0;
+    }
+    button, input, select, textarea { font: inherit; letter-spacing: 0; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 28px;
+      color: white;
+      background: #173d31;
+      border-bottom: 3px solid #d9943f;
+      box-shadow: 0 3px 16px rgba(14, 48, 36, .18);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      border: 1px solid rgba(255,255,255,.26); border-radius: 6px;
+      background: rgba(255,255,255,.09);
+    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .save-state { color: #dcebe4; font-size: 12px; margin-right: 6px; white-space: nowrap; }
+
+    .workspace {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 390px minmax(0, 1fr);
+      min-height: calc(100vh - 64px);
+    }
+    .setup {
+      padding: 22px;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: 6px 0 18px rgba(31, 49, 40, .035);
+    }
+    .results { min-width: 0; padding: 22px 26px 46px; }
+    .section + .section { margin-top: 28px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .section-heading, .result-heading {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 14px;
+    }
+    .section-heading { padding-bottom: 9px; border-bottom: 1px solid #edf1ee; }
+    .heading-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .step-number {
+      width: 25px; height: 25px; display: grid; place-items: center; flex: 0 0 auto;
+      border-radius: 50%; color: white; background: var(--brand); font-size: 12px; font-weight: 700;
+    }
+    h2 { margin: 0; font-size: 16px; }
+    h3 { margin: 0; font-size: 14px; }
+    .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 3px;
+      margin-bottom: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-2);
+    }
+    .segmented button {
+      min-height: 34px;
+      border: 0;
+      border-radius: 5px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 600;
+    }
+    .segmented button.active { color: var(--brand-deep); background: white; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .mode-panel[hidden] { display: none; }
+
+    label { display: block; margin-bottom: 5px; color: #445149; font-size: 12px; font-weight: 600; }
+    input, select, textarea {
+      width: 100%;
+      color: var(--ink);
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      outline: none;
+      background: white;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input, select { min-height: 38px; padding: 7px 10px; }
+    textarea { min-height: 112px; padding: 10px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(23,107,77,.12); }
+    input[type="checkbox"], input[type="radio"] { width: 16px; min-height: 16px; padding: 0; accent-color: var(--brand); }
+    input[type="file"] { min-height: 0; border: 0; padding: 0; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-row + .field-row, .field-row + .button-row, textarea + .button-row, .upload-zone + .button-row { margin-top: 10px; }
+    .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      min-height: 38px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 7px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      color: var(--ink);
+      background: white;
+      font-weight: 650;
+    }
+    .btn:hover { border-color: #8ea096; background: var(--surface-2); }
+    .btn-primary { color: white; border-color: var(--brand); background: var(--brand); box-shadow: 0 3px 9px rgba(23,107,77,.16); }
+    .btn-primary:hover { border-color: var(--brand-deep); background: var(--brand-deep); }
+    .btn-accent { color: #40280c; border-color: #e3a253; background: var(--accent-soft); }
+    .btn-danger { color: var(--danger); border-color: #e5bbbb; background: var(--danger-soft); }
+    .btn-block { width: 100%; }
+    .icon-btn {
+      width: 36px; height: 36px; display: inline-grid; place-items: center; flex: 0 0 auto;
+      padding: 0; border: 1px solid var(--line-strong); border-radius: 6px;
+      color: inherit; background: white;
+    }
+    .app-header .icon-btn { color: white; border-color: rgba(255,255,255,.28); background: rgba(255,255,255,.08); }
+    .icon-btn:hover { background: rgba(255,255,255,.16); }
+    .icon-btn.danger { color: var(--danger); }
+    .btn-sm { min-height: 30px; padding: 4px 10px; font-size: 12.5px; gap: 5px; }
+    svg { width: 17px; height: 17px; stroke-width: 2; }
+
+    .grade-rows { display: grid; gap: 8px; margin-top: 6px; }
+    .grade-row {
+      display: block;
+      padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfa;
+    }
+    .gr-top { display: grid; grid-template-columns: 88px 1fr 74px 30px; gap: 7px; align-items: start; }
+    .gr-top select, .gr-top .gr-subject-drop { min-height: 36px; }
+    .gr-subject-drop { position: relative; }
+    .gr-subj-toggle {
+      width: 100%; min-height: 36px; padding: 6px 8px; text-align: left;
+      border: 1px solid var(--line-strong); border-radius: 6px; background: white; color: var(--ink); font-size: 12.5px;
+    }
+    .gr-subj-panel {
+      position: absolute; z-index: 30; top: 100%; left: 0; width: 230px; max-height: 240px; overflow: auto;
+      margin-top: 3px; padding: 6px 8px;
+      border: 1px solid var(--line-strong); border-radius: 6px; background: white; box-shadow: 0 6px 18px rgba(0,0,0,.12);
+      display: none;
+    }
+    .gr-subj-panel.open { display: block; }
+    .gr-subj-panel label { display: flex; align-items: center; gap: 7px; padding: 4px 2px; font-size: 12.5px; cursor: pointer; }
+    .gr-times { margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line); display: grid; gap: 6px; }
+    .gr-time-item { display: grid; grid-template-columns: 118px 1fr; gap: 8px; align-items: center; font-size: 12.5px; }
+    .gr-time-item .gr-t-subj { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gr-time-item input { width: 100%; min-height: 34px; padding: 5px 9px; font-size: 13px; box-sizing: border-box; }
+    .gr-del { width: 30px; height: 30px; }
+    .gr-empty { color: var(--muted); font-size: 12px; padding: 8px 2px; }
+    .subject-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .subject-chips label { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border: 1px solid var(--line-strong); border-radius: 14px; font-size: 12px; cursor: pointer; background: white; color: var(--ink); }
+    .subject-chips input { accent-color: var(--brand); }
+
+    .upload-zone {
+      position: relative;
+      min-height: 116px;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      text-align: center;
+      border: 1px dashed #8fae9e;
+      border-radius: 7px;
+      color: var(--muted);
+      background: #f7fbf8;
+    }
+    .upload-zone.dragover { border-color: var(--brand); background: var(--brand-soft); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-zone svg { width: 25px; height: 25px; color: var(--brand); margin-bottom: 4px; }
+    .upload-zone strong { display: block; color: var(--ink); margin-bottom: 2px; }
+    .upload-zone span { font-size: 12px; }
+
+    .pool-toolbar { display: flex; gap: 8px; margin-top: 12px; }
+    .pool-toolbar input { flex: 1; }
+    .pool-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .selection-toolbar { display: grid; grid-template-columns: 1fr 1.25fr 38px; gap: 7px; margin-top: 8px; }
+    .teacher-pool {
+      max-height: 250px;
+      overflow: auto;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .pool-empty { padding: 24px 14px; color: var(--muted); text-align: center; }
+    .grade-group + .grade-group { border-top: 1px solid var(--line); }
+    .grade-title {
+      position: sticky; top: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 9px;
+      color: var(--brand-deep); background: #edf5f0;
+      font-size: 12px; font-weight: 700;
+    }
+    .teacher-row { display: grid; grid-template-columns: 18px minmax(0,1fr) 102px 28px; gap: 7px; align-items: center; padding: 7px 8px; }
+    .teacher-row + .teacher-row { border-top: 1px solid #edf0ee; }
+    .teacher-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .teacher-source { color: var(--muted); font-size: 11px; }
+    .teacher-row .icon-btn { width: 28px; height: 28px; border: 0; color: var(--muted); }
+    .teacher-row select { min-height: 30px; padding: 4px 5px; font-size: 11px; }
+    .teacher-row:not(.selected) select { opacity: .5; }
+
+    .choice-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .choice-card {
+      min-height: 68px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: white;
+      cursor: pointer;
+    }
+    .choice-card:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+    .choice-card strong { display: block; }
+    .choice-card small { display: block; color: var(--muted); margin-top: 1px; font-weight: 400; }
+    .rule-stack { display: grid; gap: 12px; }
+    .check-line { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; cursor: pointer; }
+    .generate-row { display: grid; grid-template-columns: 1fr 44px; gap: 8px; margin-top: 16px; }
+    .generate-row .btn { min-height: 44px; }
+
+    .result-topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      margin-bottom: 18px;
+    }
+    .result-title h2 { font-size: 20px; }
+    .result-title p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .result-actions { display: flex; gap: 7px; }
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(100px, 1fr));
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .metric { padding: 14px 16px; min-width: 0; }
+    .metric + .metric { border-left: 1px solid var(--line); }
+    .metric span { display: block; color: var(--muted); font-size: 11px; }
+    .metric strong { display: block; margin-top: 2px; font-size: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .metric strong.small { font-size: 15px; margin-top: 7px; }
+    .metric:nth-child(1) strong { color: var(--brand); }
+    .metric:nth-child(2) strong { color: var(--blue); }
+    .metric:nth-child(3) strong { color: #9a5a16; }
+    .metric:nth-child(4) strong { color: var(--violet); }
+
+    .notice {
+      display: none;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #efcf9b;
+      border-radius: 6px;
+      color: #70440f;
+      background: #fff7e8;
+    }
+    .notice.show { display: flex; }
+    .notice.error { color: #7d2525; border-color: #e5baba; background: var(--danger-soft); }
+    .notice.success { color: var(--brand-deep); border-color: #afd3be; background: var(--brand-soft); }
+    .notice div { flex: 1; }
+
+    .schedule-shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .schedule-empty {
+      min-height: 380px;
+      display: grid;
+      place-items: center;
+      padding: 40px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .schedule-empty svg { width: 42px; height: 42px; margin-bottom: 10px; color: #91a59a; }
+    .schedule-empty strong { display: block; color: #35433b; font-size: 16px; }
+    .schedule-scroll { overflow: auto; max-height: calc(100vh - 295px); }
+    .view-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .view-tabs button { min-height: 38px; padding: 6px 16px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-weight: 700; }
+    .view-tabs button.active { color: var(--brand-deep); border-bottom-color: var(--brand); }
+    .template-board { padding: 18px; background: #f8faf8; }
+    .template-title { margin: 2px 0 15px; text-align: center; font-size: 20px; }
+    .template-grade { margin-bottom: 18px; border: 1px solid var(--line-strong); background: white; }
+    .template-grade:last-child { margin-bottom: 0; }
+    .template-grade table { min-width: 720px; table-layout: fixed; }
+    .template-grade th { position: static; text-align: center; white-space: normal; background: #edf3ef; }
+    .template-grade td { text-align: center; white-space: normal; }
+    .template-grade .grade-vertical { width: 58px; color: var(--brand-deep); background: var(--brand-soft); font-size: 16px; font-weight: 800; }
+    .template-grade .room-column { width: 88px; font-weight: 700; }
+    .template-grade .exam-cell { min-width: 145px; padding: 8px; }
+    .template-grade .assignment-cell { cursor: pointer; font-weight: 650; }
+    .template-grade .assignment-cell:hover { outline: 2px solid var(--brand); outline-offset: -2px; background: #f0f8f3; }
+    .template-grade .assignment-cell.has-reserve { color: #8a5316; background: var(--accent-soft); }
+    .template-footer { margin-top: 10px; padding: 10px 12px; border: 1px solid #e2c692; color: #774811; background: var(--accent-soft); font-weight: 700; }
+    .template-empty { padding: 60px 20px; color: var(--muted); text-align: center; }
+    .stats-board { padding: 18px; }
+    .stats-section + .stats-section { margin-top: 22px; }
+    .stats-section h3 { margin-bottom: 9px; font-size: 15px; }
+    .status-good { color: var(--brand); font-weight: 800; }
+    .status-bad { color: var(--danger); font-weight: 800; }
+    .reserve-mark { color: #8a5316; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; white-space: nowrap; }
+    th { position: sticky; top: 0; z-index: 2; color: #435048; background: #eef2ef; font-size: 12px; }
+    tbody tr:hover { background: #fafcfb; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .date-cell { color: var(--brand-deep); font-weight: 700; }
+    .grade-badge {
+      display: inline-flex; align-items: center; min-height: 24px;
+      padding: 2px 7px; border-radius: 4px;
+      color: var(--brand-deep); background: var(--brand-soft); font-size: 12px; font-weight: 650;
+    }
+    .subject-badge {
+      display: inline-flex; align-items: center; min-height: 25px;
+      padding: 3px 8px; border: 1px solid #ead0a5; border-radius: 4px;
+      color: #7a4711; background: var(--accent-soft); font-size: 12px; font-weight: 700;
+    }
+    .subject-badge.merged { color: var(--violet); border-color: #d5c5dd; background: var(--violet-soft); }
+    .subject-badge.unset { color: var(--danger); border-color: #e5bbbb; background: var(--danger-soft); }
+    .teacher-cell { font-weight: 650; }
+    .teacher-cell + .teacher-cell { color: #7c4a0e; }
+    .row-delete { width: 29px; height: 29px; border: 0; }
+
+    .lower-grid { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 18px; margin-top: 18px; }
+    .workload, .history {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .workload-list { max-height: 275px; overflow: auto; padding: 4px 14px 10px; }
+    .load-row { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(90px, 2fr) 34px; gap: 9px; align-items: center; padding: 7px 0; }
+    .load-row + .load-row { border-top: 1px solid #edf0ee; }
+    .load-bar { height: 7px; overflow: hidden; border-radius: 4px; background: #e8edea; }
+    .load-fill { height: 100%; background: var(--brand); }
+    .load-count { text-align: right; font-weight: 700; }
+    .history-list { max-height: 275px; overflow: auto; }
+    .history-empty { padding: 26px 14px; color: var(--muted); text-align: center; }
+    .history-row { display: grid; grid-template-columns: minmax(0,1fr) 30px; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .history-row:last-child { border-bottom: 0; }
+    .history-row:hover { background: var(--surface-2); }
+    .history-row.active { background: var(--brand-soft); }
+    .history-name { font-weight: 700; }
+    .history-meta { color: var(--muted); font-size: 11px; }
+    .history-row .icon-btn { width: 28px; height: 28px; border: 0; }
+
+    dialog {
+      width: min(720px, calc(100% - 28px));
+      max-height: calc(100vh - 40px);
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.25);
+    }
+    dialog::backdrop { background: rgba(9, 22, 16, .55); }
+    #sessionDialog { width: min(980px, calc(100% - 28px)); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+    .dialog-body { padding: 18px; overflow: auto; }
+    .dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 18px; border-top: 1px solid var(--line); }
+    .session-list { max-height: 300px; overflow: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; }
+    .session-row { display: grid; grid-template-columns: .8fr 1.4fr 1.15fr 1fr 1fr 30px; gap: 7px; align-items: center; padding: 7px; }
+    .session-row + .session-row { border-top: 1px solid var(--line); }
+    .session-row input, .session-row select { min-height: 34px; }
+    .session-row .icon-btn { width: 28px; height: 28px; border: 0; color: var(--danger); }
+    .modal-table { max-height: 60vh; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+    .required-mark { color: var(--danger); }
+    .muted { color: var(--muted); }
+
+    .toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 80; display: grid; gap: 8px; width: min(360px, calc(100% - 36px)); }
+    .toast { display: flex; gap: 9px; align-items: flex-start; padding: 11px 13px; color: white; border-radius: 7px; background: #24352d; box-shadow: 0 10px 30px rgba(0,0,0,.2); animation: toast-in .2s ease-out; }
+    .toast.error { background: #8f3030; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+
+    @media (max-width: 1040px) {
+      .workspace { grid-template-columns: 340px minmax(0, 1fr); }
+      .setup { padding: 18px; }
+      .results { padding: 18px; }
+      .lower-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .app-header { position: static; height: auto; min-height: 60px; padding: 12px 14px; }
+      .save-state { display: none; }
+      .workspace { display: block; }
+      .setup { border-right: 0; border-bottom: 1px solid var(--line); }
+      .results { padding: 18px 12px 36px; }
+      .metric-strip { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+      .metric:nth-child(4) { border-top: 1px solid var(--line); }
+      .result-topbar { align-items: flex-start; }
+      .result-actions { flex-wrap: wrap; justify-content: flex-end; }
+      .schedule-scroll { max-height: 520px; }
+      .field-row { grid-template-columns: 1fr; }
+      .pool-filters, .selection-toolbar { grid-template-columns: 1fr; }
+      .teacher-row { grid-template-columns: 18px minmax(0,1fr) 94px 28px; }
+      .session-row { grid-template-columns: 1fr 1fr; }
+      .session-row .icon-btn { grid-column: 2; justify-self: end; }
+    }
+
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      body { background: white; font-size: 11px; }
+      .app-header, .setup, .result-actions, .notice, .lower-grid, .view-tabs { display: none !important; }
+      .workspace { display: block; width: 100%; }
+      .results { padding: 0; }
+      .schedule-shell { border: 0; box-shadow: none; }
+      .schedule-scroll { max-height: none; overflow: visible; }
+      .modal-table { max-height: none; overflow: visible; }
+      .template-board, .stats-board { padding: 0; background: white; }
+      .template-grade { break-inside: avoid; }
+      th { position: static; }
+      .row-action, .metric-strip { display: none; }
+      th, td { padding: 6px 8px; }
+    }
+
+    .readiness {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .readiness[hidden] { display: none; }
+    .readiness-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 700; font-size: 13px; }
+    .readiness-steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .ready-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--surface-2); border: 1px solid var(--line);
+      font-size: 12px; color: var(--ink);
+    }
+    .ready-chip.ok { background: var(--brand-soft); border-color: #afd3be; color: var(--brand-deep); }
+    .ready-chip.bad { background: var(--danger-soft); border-color: #e5bbbb; color: var(--danger); }
+    .ready-chip.warn { background: var(--accent-soft); border-color: #ead0a5; color: #7a4711; }
+    .readiness-issues { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #70440f; }
+    .readiness-issues .issue { display: flex; gap: 6px; align-items: flex-start; }
+    .readiness-good { color: var(--brand-deep); font-weight: 700; font-size: 12px; }
+    .chip-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip-check {
+      position: relative; display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: 999px;
+      background: white; font-size: 12.5px; cursor: pointer; user-select: none;
+    }
+    .chip-check input { width: 14px; min-height: 14px; margin: 0; }
+    .chip-check.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-deep); font-weight: 650; }
+    .plan-save-box { display: flex; gap: 8px; margin-bottom: 14px; }
+    .plan-list { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+    .plan-row {
+      display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; align-items: center;
+      padding: 10px 12px; border-bottom: 1px solid var(--line);
+    }
+    .plan-row:last-child { border-bottom: 0; }
+    .plan-name { font-weight: 700; }
+    .plan-meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .plan-row .icon-btn { width: 30px; height: 30px; border: 0; }
+    .plan-empty { padding: 26px 14px; color: var(--muted); text-align: center; }
+    .load-date-box { display: flex; flex-direction: column; gap: 10px; }
+    .backup-actions { display: flex; flex-direction: column; gap: 10px; }
+    .backup-hint { font-size: 12px; color: var(--muted); }
+    .swap-btn { flex: 0 0 auto; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark"><i data-lucide="calendar-check-2"></i></span>
+      <h1>监考编排台</h1>
+    </div>
+    <div class="header-actions">
+      <span class="save-state" id="saveState">数据已保存在本机</span>
+      <button class="icon-btn" id="newExamBtn" title="新建考试" aria-label="新建考试"><i data-lucide="file-plus-2"></i></button>
+      <button class="icon-btn" id="planBtn" title="考试方案（保存/复用）" aria-label="考试方案"><i data-lucide="archive"></i></button>
+      <button class="icon-btn" id="backupBtn" title="数据备份/恢复" aria-label="数据备份"><i data-lucide="database-backup"></i></button>
+      <button class="icon-btn" id="onlineBtn" title="在线版（发布链接给老师自助换班）" aria-label="在线版"><i data-lucide="cloud"></i></button>
+      <button class="icon-btn" id="settingsBtn" title="设置（排除名单等）" aria-label="设置"><i data-lucide="settings-2"></i></button>
+      <button class="icon-btn" id="sampleBtn" title="载入示例" aria-label="载入示例"><i data-lucide="flask-conical"></i></button>
+      <button class="icon-btn" id="clearBtn" title="清空场次与结果" aria-label="清空场次与结果"><i data-lucide="eraser"></i></button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="setup">
+      <section class="section" id="peopleSection">
+        <div class="section-heading">
+          <div class="heading-main"><span class="step-number">1</span><h2>人员库</h2></div>
+          <span class="count" id="teacherCount">0 人</span>
+          <button class="btn btn-sm" id="manageTeachersBtn" style="margin-left:auto"><i data-lucide="users"></i>人员管理</button>
+        </div>
+        <div class="segmented" role="tablist" aria-label="人员导入方式">
+          <button class="active" data-mode="paste" role="tab" aria-selected="true">复制粘贴</button>
+          <button data-mode="file" role="tab" aria-selected="false">上传岗位表</button>
+        </div>
+        <div class="mode-panel" id="pastePanel">
+          <label for="nameInput">教师姓名</label>
+          <textarea id="nameInput" placeholder="张 三&#10;李四、王五&#10;欧阳 修"></textarea>
+          <div class="field-row">
+            <div>
+              <label for="pasteGrade">归入年级</label>
+              <select id="pasteGrade"><option value="">请选择年级</option></select>
+            </div>
+            <div>
+              <label for="nameSeparator">内容格式</label>
+              <select id="nameSeparator">
+                <option value="auto">自动识别</option>
+                <option value="line">每行一人</option>
+                <option value="punctuation">逗号/顿号分隔</option>
+              </select>
+            </div>
+          </div>
+          <div class="button-row">
+            <button class="btn btn-primary btn-block" id="parseNamesBtn"><i data-lucide="user-plus"></i>识别并加入</button>
+          </div>
+        </div>
+        <div class="mode-panel" id="filePanel" hidden>
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" id="jobFile" accept=".xlsx,.xls,.csv" multiple>
+            <div><i data-lucide="sheet"></i><strong>选择或拖入岗位表</strong><span>Excel / CSV</span></div>
+          </div>
+          <div class="button-row">
+            <button class="btn btn-block" id="pasteTableBtn"><i data-lucide="clipboard-paste"></i>粘贴表格内容</button>
+          </div>
+        </div>
+        <div class="pool-toolbar">
+          <input id="teacherSearch" type="search" placeholder="搜索姓名或年级">
+          <button class="icon-btn" id="restoreTeachersBtn" title="恢复岗位表人员" aria-label="恢复岗位表人员"><i data-lucide="database-backup"></i></button>
+          <button class="icon-btn danger" id="clearTeachersBtn" title="清空人员库" aria-label="清空人员库"><i data-lucide="trash-2"></i></button>
+        </div>
+        <div class="pool-filters">
+          <select id="teacherDeptFilter" aria-label="按学部筛选"><option value="">全部学部</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select>
+          <select id="teacherGradeFilter" aria-label="按年级筛选"><option value="">全部任教年级</option></select>
+        </div>
+        <label class="check-line" style="margin-top:8px"><input type="checkbox" id="onlyExamGrade">只看本次考试涉及的年级</label>
+        <div class="selection-toolbar">
+          <button class="btn" id="selectVisibleBtn"><i data-lucide="list-checks"></i>勾选当前</button>
+          <select id="bulkMonitorGrade" aria-label="批量设置本次监考年级"><option value="">设置监考年级</option></select>
+          <button class="icon-btn" id="applyBulkGradeBtn" title="应用到已勾选教师" aria-label="应用到已勾选教师"><i data-lucide="check"></i></button>
+        </div>
+        <div class="teacher-pool" id="teacherPool"><div class="pool-empty">暂无人员</div></div>
+      </section>
+
+      <section class="section" id="sessionSection">
+        <div class="section-heading">
+          <div class="heading-main"><span class="step-number">2</span><h2>考试场次</h2></div>
+          <span class="count" id="sessionCount">0 场</span>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="examDate">考试起始日期 <span class="required-mark">*</span></label>
+            <input id="examDate" type="date">
+          </div>
+          <div>
+            <label for="timeTemplateInput">时间段模板</label>
+            <textarea id="timeTemplateInput" style="min-height:72px" placeholder="08:30-10:00&#10;10:30-12:00&#10;14:00-15:30">08:30-10:00&#10;10:30-12:00&#10;14:00-15:30</textarea>
+          </div>
+        </div>
+        <p class="muted" style="font-size:12px;margin:6px 2px 0">模板每行一个时段，可选前缀：<code>09-10 08:30-10:00</code>（日期）／<code>语文 08:30-10:00</code>（科目）／<code>五年级 语文 09:10-10:40</code>（年级+科目）。选科目后自动按此匹配时间。</p>
+        <div style="margin-top:10px">
+          <label>考试年级</label>
+          <div class="grade-rows" id="gradeRowsList"><div class="pool-empty">尚未添加考试年级</div></div>
+          <button class="btn" id="addGradeRowBtn" style="margin-top:8px"><i data-lucide="plus"></i>添加考试年级</button>
+        </div>
+        <div style="margin-top:10px">
+          <label for="customRoomsInput">自定义考场名（每行一个，可选；留空则用“第 N 考场”）</label>
+          <textarea id="customRoomsInput" style="min-height:52px" placeholder="第1考场&#10;第2考场&#10;第3考场"></textarea>
+        </div>
+        <div class="button-row">
+          <button class="btn btn-primary" id="genGradeRowsBtn"><i data-lucide="list-plus"></i>生成场次</button>
+          <button class="btn" id="timeMemoryBtn"><i data-lucide="clock"></i>时间记忆</button>
+          <button class="btn" id="editSessionsBtn"><i data-lucide="table-properties"></i>查看/编辑</button>
+          <button class="icon-btn danger" id="clearSessionsBtn" title="清空场次" aria-label="清空场次"><i data-lucide="trash-2"></i></button>
+        </div>
+      </section>
+
+      <section class="section" id="ruleSection">
+        <div class="section-heading">
+          <div class="heading-main"><span class="step-number">3</span><h2>编排规则</h2></div>
+          <span class="required-mark">必选</span>
+        </div>
+        <div class="rule-stack">
+          <div>
+            <label>每场监考人数 <span class="required-mark">*</span></label>
+            <div class="choice-group">
+              <label class="choice-card"><input type="radio" name="teacherPerRoom" value="1"><span><strong>1 位</strong><small>单人监考</small></span></label>
+              <label class="choice-card"><input type="radio" name="teacherPerRoom" value="2"><span><strong>2 位</strong><small>双人监考</small></span></label>
+            </div>
+          </div>
+          <label class="check-line"><input type="checkbox" id="balanceLoad" checked>优先均衡每位老师的场次</label>
+          <label class="check-line"><input type="checkbox" id="avoidConsecutive">尽量避免连续两个时段</label>
+          <label class="check-line"><input type="checkbox" id="crossGrade">允许跨年级调配（本年级教师不足时自动借调其他年级）</label>
+          <label class="check-line"><input type="checkbox" id="avoidOwnGrade">期末模式：本年级教师不监考本年级场次（按任教年级自动错开）</label>
+          <label class="check-line"><input type="checkbox" id="sameSubjectAvoid">同科目教师不监考同科目场次（需在“人员管理”里给教师设置任教科目）</label>
+        </div>
+        <div class="button-row" style="margin-top:8px">
+          <button class="btn btn-block" id="autoAssignBtn"><i data-lucide="wand-2"></i>按任教年级自动指派监考年级</button>
+          <p class="muted" style="font-size:12px;margin:6px 2px 0">最后一步：先确认考试场次，再让系统按教师的任教年级自动匹配监考年级。</p>
+        </div>
+        <div class="generate-row">
+          <button class="btn btn-primary" id="generateBtn"><i data-lucide="shuffle"></i>开始编排</button>
+          <button class="icon-btn" id="rerollBtn" title="随机重排" aria-label="随机重排" disabled><i data-lucide="refresh-cw"></i></button>
+        </div>
+      </section>
+      <datalist id="gradeOptions"></datalist>
+    </aside>
+
+    <section class="results">
+      <div class="result-topbar">
+        <div class="result-title"><h2>监考安排表</h2><p id="resultSubtitle">尚未生成</p></div>
+        <div class="result-actions">
+          <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled><i data-lucide="download"></i></button>
+          <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled>导出班次表</button>
+          <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled>发布在线版</button>
+          <button class="icon-btn" id="printBtn" title="打印" aria-label="打印" disabled><i data-lucide="printer"></i></button>
+          <button class="icon-btn danger" id="clearResultBtn" title="清空当前结果" aria-label="清空当前结果" disabled><i data-lucide="file-x-2"></i></button>
+        </div>
+      </div>
+
+      <div class="metric-strip">
+        <div class="metric"><span>考试场次</span><strong id="metricSessions">0</strong></div>
+        <div class="metric"><span>监考人次</span><strong id="metricAssignments">0</strong></div>
+        <div class="metric"><span>参与教师</span><strong id="metricTeachers">0</strong></div>
+        <div class="metric"><span>当前版本</span><strong class="small" id="metricVersion">--</strong></div>
+      </div>
+
+      <div class="readiness" id="readiness" hidden>
+        <div class="readiness-head"><i data-lucide="clipboard-check"></i>就绪检查</div>
+        <div class="readiness-steps" id="readinessSteps"></div>
+        <div class="readiness-issues" id="readinessIssues"></div>
+        <div class="readiness-good" id="readinessGood" hidden>各项就绪，可以开始编排</div>
+      </div>
+
+      <div class="notice" id="notice"><i data-lucide="circle-alert"></i><div id="noticeText"></div></div>
+
+      <div class="view-tabs" id="resultTabs">
+        <button class="active" data-result-tab="primary">小学部监考表</button>
+        <button data-result-tab="middle">初中部监考表</button>
+        <button data-result-tab="stats">教师统计表</button>
+      </div>
+
+      <div class="schedule-shell">
+        <div class="schedule-empty" id="scheduleEmpty"><div><i data-lucide="calendar-range"></i><strong>等待编排</strong><span>完成左侧人员、场次和规则设置</span></div></div>
+        <div class="schedule-scroll" id="scheduleScroll" hidden><div id="templateView"></div></div>
+      </div>
+
+      <div class="lower-grid">
+        <section class="workload">
+          <div class="panel-head"><h3>教师工作量</h3><span class="count" id="workloadRange">0 - 0 场</span></div>
+          <div class="workload-list" id="workloadList"><div class="history-empty">暂无数据</div></div>
+        </section>
+        <section class="history">
+          <div class="panel-head"><h3>版本记录</h3><span class="count" id="historyCount">0 版</span></div>
+          <div class="history-list" id="historyList"><div class="history-empty">生成后自动保存</div></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="tablePasteDialog">
+    <div class="dialog-head"><h2>粘贴岗位表</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body"><label for="tablePasteInput">表格内容</label><textarea id="tablePasteInput" style="min-height:280px" placeholder="年级&#9;班级&#9;教师姓名&#10;七年级&#9;1班&#9;张 三"></textarea></div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="parseTableBtn"><i data-lucide="scan-text"></i>识别</button></div>
+  </dialog>
+
+  <dialog id="sessionDialog">
+    <div class="dialog-head"><h2>考试场次</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <div class="field-row">
+        <div><label for="manualGrade">年级</label><select id="manualGrade"><option value="">请选择年级</option></select></div>
+        <div><label for="manualRoom">考场</label><select id="manualRoom"></select></div>
+      </div>
+      <div style="margin-top:10px"><label for="manualSubject">考试科目</label><select id="manualSubject"><option value="">请先选择年级</option></select></div>
+      <div class="field-row" style="margin-top:10px">
+        <div><label for="manualDate">日期</label><input id="manualDate" type="date"></div>
+        <div><label for="manualTime">时间</label><input id="manualTime" placeholder="08:30-10:00"></div>
+      </div>
+      <div class="button-row"><button class="btn" id="manualAddBtn"><i data-lucide="plus"></i>加入一场</button></div>
+      <div class="field-row" style="margin-top:10px">
+        <div><label for="applyDateInput">统一改为日期</label><input id="applyDateInput" type="date"></div>
+        <div><label>&nbsp;</label><button class="btn" id="applyDateToAllBtn"><i data-lucide="calendar-sync"></i>应用到全部场次</button></div>
+      </div>
+      <div class="session-list" id="sessionList"></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <div class="dialog-head"><h2 id="historyDialogTitle">版本详情</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body"><div class="modal-table"><table><thead><tr><th>日期</th><th>时间</th><th>科目</th><th>年级</th><th>考场</th><th>监考教师</th></tr></thead><tbody id="historyDialogBody"></tbody></table></div></div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>关闭</button><button class="btn btn-primary" id="restoreVersionBtn"><i data-lucide="history"></i>恢复此版本</button></div>
+  </dialog>
+
+  <dialog id="confirmDialog">
+    <div class="dialog-head"><h2 id="confirmTitle">确认操作</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body"><p id="confirmText" style="margin:0"></p></div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-danger" id="confirmActionBtn">确认</button></div>
+  </dialog>
+
+  <dialog id="assignmentDialog">
+    <div class="dialog-head"><h2>调整监考教师</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p id="assignmentMeta" class="muted" style="margin:0 0 14px"></p>
+      <div class="field-row">
+        <div><label for="assignmentTeacher1">主监教师</label><select id="assignmentTeacher1"></select></div>
+        <div><label for="assignmentTeacher2">副监教师</label><select id="assignmentTeacher2"></select></div>
+      </div>
+      <div class="button-row" style="margin-top:8px"><button class="btn swap-btn" id="swapAssignmentBtn"><i data-lucide="arrow-left-right"></i>互换主副</button></div>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveAssignmentBtn"><i data-lucide="save"></i>保存调整</button></div>
+  </dialog>
+
+  <dialog id="manageTeachersDialog">
+    <div class="dialog-head"><h2>人员管理</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <div class="field-row" style="margin-bottom:10px">
+        <div><label>姓名</label><input id="mtNameInput" placeholder="教师姓名"></div>
+        <div><label>学部</label><select id="mtDeptInput"><option value="">自动判断</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select></div>
+        <div><label>任教年级</label><select id="mtGradeInput"></select></div>
+        <div><label>&nbsp;</label><button class="btn btn-primary" id="mtAddBtn"><i data-lucide="user-plus"></i>添加</button></div>
+      </div>
+      <div style="margin-bottom:10px"><label>任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="mtSubjectsBox"></div></div>
+      <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px">
+      <div class="modal-table"><table>
+        <thead><tr><th>姓名</th><th>学部</th><th>任教年级</th><th>任教科目</th><th>本次监考年级</th><th>本次场次</th><th>累计场次</th><th>操作</th></tr></thead>
+        <tbody id="mtTableBody"></tbody>
+      </table></div>
+      <p class="muted" style="margin:8px 0 0">“累计场次”统计全部历史版本里该教师被安排的监考场次；“本次场次”为当前排表。点“明细”查看该教师监考过的具体场次。</p>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  </dialog>
+
+  <dialog id="teacherEditDialog">
+    <div class="dialog-head"><h2>编辑人员</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <div class="field-row">
+        <div><label>姓名</label><input id="teNameInput"></div>
+        <div><label>学部</label><select id="teDeptInput"><option value="">自动判断</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select></div>
+      </div>
+      <div style="margin-top:10px"><label>任教年级</label><select id="teGradeInput"></select></div>
+      <div style="margin-top:10px"><label>任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="teSubjectsBox"></div></div>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="teSaveBtn"><i data-lucide="save"></i>保存</button></div>
+  </dialog>
+
+  <dialog id="teacherDetailDialog">
+    <div class="dialog-head"><h2 id="teacherDetailTitle">监考明细</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="margin:0 0 10px" id="teacherDetailSummary"></p>
+      <div class="modal-table"><table>
+        <thead><tr><th>日期</th><th>时间</th><th>科目</th><th>年级</th><th>考场</th><th>身份</th></tr></thead>
+        <tbody id="teacherDetailBody"></tbody>
+      </table></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>关闭</button></div>
+  </dialog>
+
+  <dialog id="planDialog">
+    <div class="dialog-head"><h2>考试方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="margin:0 0 12px">保存当前的人员勾选、场次、考场与编排规则。月考/期末各存一个方案，下次直接载入复用，载入时可一键把日期改成新日期。</p>
+      <div class="plan-save-box">
+        <input id="planNameInput" placeholder="方案名称，如：9月月考 / 期末考">
+        <button class="btn btn-primary" id="savePlanBtn"><i data-lucide="save"></i>保存</button>
+      </div>
+      <div class="plan-list" id="planList"><div class="plan-empty">暂无已保存方案</div></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  </dialog>
+
+  <dialog id="planLoadDialog">
+    <div class="dialog-head"><h2 id="planLoadTitle">载入方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <div class="load-date-box">
+        <label class="check-line"><input type="checkbox" id="planUpdateDate" checked>载入后把全部场次日期改为：</label>
+        <input id="planLoadDate" type="date">
+        <p class="muted" style="margin:0">不勾选则保留方案里保存的日期。</p>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="planLoadConfirmBtn">确认载入</button></div>
+  </dialog>
+
+  <dialog id="backupDialog">
+    <div class="dialog-head"><h2>数据备份 / 恢复</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <div class="backup-actions">
+        <button class="btn btn-primary" id="exportBackupBtn"><i data-lucide="download"></i>导出备份（保存为 JSON 文件）</button>
+        <div>
+          <label>导入备份</label>
+          <div class="upload-zone" style="min-height:80px">
+            <input type="file" id="importBackupInput" accept=".json">
+            <div><i data-lucide="upload"></i><strong>选择备份 JSON 文件</strong><span>导入后将替换当前全部数据</span></div>
+          </div>
+        </div>
+        <p class="backup-hint">提示：当前数据仅保存在本浏览器。建议每月导出一次备份，换电脑或清缓存后通过导入恢复。</p>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <div class="dialog-head"><h2>设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <label for="excludedInput">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
+      <textarea id="excludedInput" style="min-height:120px"></textarea>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveSettingsBtn">保存设置</button></div>
+  </dialog>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <dialog id="timeMemoryDialog">
+    <div class="dialog-head"><h2>时间记忆</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">在这里查看/编辑系统记住的科目时间。第一次在"考试年级"行里填写时间后会自动记住，下次选同一科目/年级自动带出；特殊情况直接改这里或行里的时间，保存后下次按新的来。也可在下方快速填入常用时间。</p>
+      <label for="subjectTimesInput">记住的科目时间（每行：科目 时间 或 年级 科目 时间）</label>
+      <textarea id="subjectTimesInput" style="min-height:150px" placeholder="语文 08:30-10:00&#10;五年级 语文 09:10-10:40&#10;历史+道德与法治（合卷） 14:00-15:30&#10;物理+化学（合卷） 15:50-17:20&#10;生物+地理（合卷） 16:30-18:00"></textarea>
+      <div style="margin-top:8px" class="button-row">
+        <button type="button" class="btn" id="clearTimesBtn">清空全部记忆</button>
+        <span class="muted" style="font-size:12px;align-self:center">清空后下次选科目时间框为空，重新填写即可再次记住</span>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveTimesBtn">保存时间记忆</button></div>
+  </dialog>
+
+<!-- ================= 在线版：设置 ================= -->
+<dialog id="lcSettingsDialog">
+  <div class="dialog-head"><h2>在线版设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+  <div class="dialog-body">
+    <p class="muted" style="margin-top:0">在线版让老师通过链接看到监考表、自助换班。需要 Supabase（免费）作为云端数据库。在 supabase.com 控制台「Project Settings → API」里可找到下面两个值。未配置时可用「演示模式」先体验完整流程。</p>
+    <div class="field-row">
+      <div style="flex:1"><label>Project URL（项目地址）</label><input id="sbUrl" placeholder="https://xxxx.supabase.co"></div>
+    </div>
+    <div class="field-row" style="margin-top:8px">
+      <div style="flex:1"><label>anon public key（匿名公钥）</label><input id="sbKey" placeholder="eyJhbGciOi..."></div>
+    </div>
+    <div class="field-row" style="margin-top:10px">
+      <div style="flex:1"><label>线上页面地址（发布链接用的前缀，填托管后的网址）</label><input id="sbSiteUrl" placeholder="https://xxxx.tcloudbaseapp.com/监考编排台.html"></div>
+    </div>
+    <div class="field-row" style="margin-top:10px">
+      <label class="check-line"><input type="checkbox" id="lcDemoMode">演示模式（无需注册，数据仅在本机模拟，用于体验/测试流程）</label>
+    </div>
+    <p class="muted" style="margin:6px 0 0">凭证只保存在你自己的浏览器本机，不会上传到其他平台。演示模式与真实云端可随时切换。</p>
+    <p id="lcStatus" class="muted" style="margin:8px 0 0"></p>
+  </div>
+  <div class="dialog-foot">
+    <button class="btn" id="lcTestBtn"><i data-lucide="plug-zap"></i>测试连接</button>
+    <button class="btn btn-primary" id="lcSaveBtn"><i data-lucide="save"></i>保存</button>
+  </div>
+</dialog>
+
+<!-- ================= 在线版：发布 ================= -->
+<dialog id="publishDialog">
+  <div class="dialog-head"><h2>发布到在线版</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+  <div class="dialog-body">
+    <p id="publishIntro" class="muted" style="margin-top:0">把当前监考表发布成在线版，把链接发到微信群，老师即可查看并自助换班。</p>
+    <div style="margin-top:12px" id="publishResult">
+      <label>在线链接（发到群里）</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="publishLink" readonly style="flex:1">
+        <button class="btn btn-primary" id="publishCopyBtn"><i data-lucide="copy"></i>复制</button>
+      </div>
+      <button class="btn btn-block" id="openOnlineBtn" style="margin-top:10px"><i data-lucide="external-link"></i>打开老师端预览（自己先体验）</button>
+      <p class="muted" style="margin:8px 0 0">重新生成后再次点「发布在线版」会更新同一链接，老师刷新即可看到最新表。</p>
+    </div>
+  </div>
+  <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+</dialog>
+
+<!-- ================= 在线版：老师端视图 ================= -->
+<div id="onlineView" style="display:none;position:fixed;inset:0;background:#f4f3ee;z-index:9999;overflow-y:auto;">
+  <div style="max-width:960px;margin:0 auto;padding:16px 14px 60px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h2 id="onlineTitle" style="margin:0;font-size:18px;flex:1;min-width:180px">在线监考表</h2>
+      <select id="onlineIdentity" style="max-width:200px"><option value="">我是谁？</option></select>
+      <button class="btn" id="onlineRefreshBtn"><i data-lucide="refresh-cw"></i>刷新</button>
+      <button class="btn" id="onlineBackBtn"><i data-lucide="log-out"></i>退出</button>
+    </div>
+    <div id="onlineHint" class="muted" style="font-size:12px;margin-bottom:10px">选择你的姓名后，你的场次会高亮显示，可向其他老师发起换班（对方同意后自动更新）。</div>
+
+    <div id="onlinePending" style="display:none;background:rgba(250,173,20,0.10);border:1px solid rgba(250,173,20,0.5);border-radius:12px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:8px">待我处理的换班申请</div>
+      <div id="onlinePendingList"></div>
+    </div>
+
+    <div id="onlineMine" style="display:none;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:8px">我发出的申请</div>
+      <div id="onlineMineList"></div>
+    </div>
+
+    <div id="onlineBoard"></div>
+  </div>
+</div>
+
+<!-- ================= 在线版：发起换班 ================= -->
+<dialog id="swapDialog">
+  <div class="dialog-head"><h2>发起换班</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+  <div class="dialog-body">
+    <p id="swapFromInfo" class="muted" style="margin-top:0"></p>
+    <div class="field-row" style="margin-top:8px">
+      <div style="flex:1"><label>跟谁换（对方教师）</label><select id="swapToTeacher"></select></div>
+    </div>
+    <div class="field-row" style="margin-top:8px">
+      <div style="flex:1"><label>用对方的哪个场次交换</label><select id="swapToSession"></select></div>
+    </div>
+    <p id="swapConflictInfo" class="muted" style="margin:8px 0 0;white-space:pre-line"></p>
+  </div>
+  <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="swapSendBtn"><i data-lucide="send"></i>发送申请</button></div>
+</dialog>
+
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = 'invigilation-planner-v1';
+      const CHINESE_NUM = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
+      const NUM_CHINESE = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+      const DEFAULT_GRADES = ['一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级','高一','高二','高三','未分年级'];
+      const PRIMARY_SUBJECTS = ['语文', '数学', '英语', '道德与法治', '科学'];
+      const JUNIOR_BASE_SUBJECTS = ['语文', '数学', '英语', '道德与法治', '历史', '历史+道德与法治（合卷）', '生物+地理（合卷）'];
+      const DEFAULT_TIME_TEMPLATE = '08:30-10:00\n10:30-12:00\n14:00-15:30';
+      const SUBJECTS_BY_GRADE = {
+        1: PRIMARY_SUBJECTS, 2: PRIMARY_SUBJECTS, 3: PRIMARY_SUBJECTS,
+        4: PRIMARY_SUBJECTS, 5: PRIMARY_SUBJECTS, 6: PRIMARY_SUBJECTS,
+        7: JUNIOR_BASE_SUBJECTS,
+        8: [...JUNIOR_BASE_SUBJECTS, '物理'],
+        9: [...JUNIOR_BASE_SUBJECTS, '物理', '化学', '物理+化学（合卷）']
+      };
+      const ALL_SUBJECTS = [...new Set(Object.values(SUBJECTS_BY_GRADE).flat())];
+      const TEACHER_SUBJECTS = ['语文','数学','英语','道德与法治','历史','生物','地理','物理','化学','科学','信息技术','体育','音乐','美术'];
+      function teacherTeachesSubject(teacher, subject) {
+        const ts = teacher.subjects || [];
+        if (!ts.length || !subject) return false;
+        if (ts.includes(subject)) return true;
+        const merged = String(subject).match(/^(.+)\+(.+)（合卷）$/);
+        if (merged) return ts.includes(merged[1]) || ts.includes(merged[2]);
+        return false;
+      }
+      function subjectChipsHtml(selected = []) {
+        const set = new Set(selected);
+        return TEACHER_SUBJECTS.map(subject => `<label><input type="checkbox" value="${esc(subject)}" ${set.has(subject) ? 'checked' : ''}>${esc(subject)}</label>`).join('');
+      }
+      function getCheckedSubjects(boxId) {
+        return [...document.querySelectorAll('#' + boxId + ' input:checked')].map(input => input.value);
+      }
+      const MAX_ROOMS = 100;
+      const DEFAULT_EXCLUDED = ['韩校', '吴刚', '陈辉', '潘梅芳', '陈超'];
+      const BUILTIN_TEACHER_DATA = `付娅容|一;何梦柔|九;侯亚琼|八;刘万进|九;刘海霞|二;华晓琼|一,二;史维|七;周荣慧|九;土蕊|七;孟林珍|二,三;左明鑫|三,四,九;庄分莲|三,四,五;张丽娜|七;张卓雅|二;张吉美|八;张寿丽|七;张秘芳|八;张雨|一,五,六;张雪梅|二;彭明芬|八;文锋|一,五;晋雪梅|六;曾可|七;朱露|九;李平安|七;李明恩|一,二,九;李晓芬|五,六;李杭燚|七;李永杰|七;李琼州|二,三,四,五,六;李瑶瑶|一;李璠|三,四,五,六;李聆语|七;李颖|三,四;杨文娇|四,六;杨露|三,四;柳雨婷|一,二,七,八;梁潇|七;楚晓姣|二;涂艳艳|四;王丽梅|一,二;王丽莎|八;王丽萍|七;王坤|八,九;王宁|七,八;王平|三,四,五,六;王月鹏|八;王正娇|七,八;王琪涵|七;王祥秀|九;王鹏|四,五,六,八;盛国恩|一,五,六;禹佳雪|三;罗伊选|七,八;胡永山|八;芶丽梅|三;苏吟湖|九;袁小然|一;许双|三;许毓|八;贝仕秀|五;赵丝瑞|八;赵庆莉|九;赵晓梅|八;赵皎|九;邓明鹏|一,二,七;邓玲|三,四,八,九;邓芸|二;邱智勇|九;金晓艳|一;钟婕欣|一;阳明正|三,四,五,六;陈志凤|七;陈茜|九;隋赵双|二,三,七;韩志敏|九;韩易良|一,二,七;顾倩羽|三;飞梓淞|二;高赛|八;魏文芳|二;鲁娜|七;黄小|二;龚海仙|四`;
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+      const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+      const excludedSet = () => new Set((state.excludedNames && state.excludedNames.length ? state.excludedNames : DEFAULT_EXCLUDED).filter(Boolean));
+      const sessionGradesSet = () => new Set(state.sessions.map(session => session.grade).filter(Boolean));
+      const customRoomList = () => state.customRooms.map(String).map(v => v.trim()).filter(Boolean);
+
+      const state = {
+        teachers: [],
+        sessions: [],
+        result: [],
+        history: [],
+        plans: [],
+        excludedNames: [...DEFAULT_EXCLUDED],
+        customRooms: [],
+        gradeRows: [],
+        timeTemplate: '',
+        combinedTimes: {},
+        activeVersionId: null,
+        resultTab: 'primary',
+        seedVersion: '',
+        selectionVersion: 0,
+        config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false }
+      };
+      let viewedHistoryId = null;
+      let confirmCallback = null;
+      let editingAssignmentId = null;
+      let planLoadingId = null;
+      let editingTeacherId = null;
+
+      function todayString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function syncCustomRoomsInput() {
+        const el = $('#customRoomsInput');
+        if (el && document.activeElement !== el) {
+          const current = customRoomList().join('\n');
+          if (el.value !== current) el.value = current;
+        }
+      }
+
+      function saveCustomRooms() {
+        state.customRooms = $('#customRoomsInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
+        $('#manualRoom').innerHTML = roomNameOptionsHtml($('#manualRoom').value || '第1考场');
+        saveState();
+      }
+
+      function renderReadiness() {
+        const panel = $('#readiness');
+        if (!panel) return;
+        const hasSessions = state.sessions.length > 0;
+        const hasTeachers = state.teachers.length > 0;
+        if (!hasTeachers && !hasSessions) { panel.hidden = true; return; }
+        const selected = state.teachers.filter(t => t.enabled);
+        const unassigned = selected.filter(t => !t.monitorGrade);
+        const perRoom = Number(state.config.teacherPerRoom) || 0;
+        const noSubject = state.sessions.filter(s => !s.subject).length;
+        const steps = [];
+        steps.push(`<span class="ready-chip ${selected.length ? 'ok' : 'bad'}">① 人员：已勾选 ${selected.length}/${state.teachers.length}</span>`);
+        steps.push(`<span class="ready-chip ${hasSessions ? 'ok' : 'bad'}">② 场次：${state.sessions.length} 场</span>`);
+        steps.push(`<span class="ready-chip ${perRoom ? 'ok' : 'bad'}">③ 规则：${perRoom ? perRoom + ' 人/场' : '未选'}${state.config.crossGrade ? ' · 可跨年级' : ''}${state.config.sameSubjectAvoid ? ' · 同科目避开' : ''}${state.config.avoidOwnGrade ? ' · 期末错开' : ''}</span>`);
+        $('#readinessSteps').innerHTML = steps.join('');
+        const issues = [];
+        if (!selected.length) issues.push('尚未勾选本次监考教师');
+        if (unassigned.length) issues.push(`${unassigned.length} 位已勾选教师未设置监考年级（可点“按任教年级自动指派”，或在“只看考试涉及的年级”下逐人设置）`);
+        if (!hasSessions) issues.push('尚未添加考试场次（在“考试场次”区添加考试年级并生成场次）');
+        if (noSubject) issues.push(`${noSubject} 场考试未设置科目`);
+        if (perRoom && hasSessions && selected.length) {
+          gradeStatistics().forEach(item => {
+            if (item.required > 0 && !state.config.crossGrade && item.selected < item.required) {
+              issues.push(`${item.grade} 缺 ${item.required - item.selected} 位监考教师（可多勾选教师、或开启“允许跨年级调配”）`);
+            }
+          });
+        }
+        $('#readinessIssues').innerHTML = issues.map(i => `<div class="issue"><i data-lucide="circle-alert"></i><span>${esc(i)}</span></div>`).join('');
+        $('#readinessGood').hidden = issues.length > 0;
+        panel.hidden = false;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function autoAssignMonitorGrades() {
+        const examGrades = sessionGradesSet();
+        if (!examGrades.size) return toast('请先添加考试场次，才能按考试年级自动指派', 'error');
+        let assigned = 0;
+        state.teachers.filter(t => t.enabled && !t.monitorGrade).forEach(teacher => {
+          const match = (teacher.grades || []).find(g => examGrades.has(g));
+          if (match) { teacher.monitorGrade = match; assigned++; }
+        });
+        persistAndRender();
+        toast(assigned ? `已按任教年级为 ${assigned} 位教师自动指派监考年级` : '没有可自动指派的教师（已勾选教师均有监考年级，或任教年级不在本次考试范围）', assigned ? '' : 'warn');
+      }
+
+      function openPlanDialog() {
+        renderPlanList();
+        $('#planNameInput').value = '';
+        $('#planDialog').showModal();
+      }
+
+      function saveCurrentPlan() {
+        const name = $('#planNameInput').value.trim();
+        if (!name) return toast('请填写方案名称', 'error');
+        if (!state.sessions.length) return toast('当前没有考试场次，无法保存方案', 'error');
+        const plan = {
+          id: uid(), name, savedAt: new Date().toISOString(),
+          sessions: structuredClone(state.sessions),
+          config: structuredClone(state.config),
+          customRooms: [...state.customRooms],
+          gradeRows: structuredClone(state.gradeRows),
+          timeTemplate: state.timeTemplate || ($('#timeTemplateInput')?.value || ''),
+          teacherSelection: state.teachers.filter(t => t.enabled).map(t => ({ id: t.id, monitorGrade: t.monitorGrade }))
+        };
+        state.plans = state.plans.filter(p => p.name !== name);
+        state.plans.unshift(plan);
+        saveState();
+        renderPlanList();
+        toast(`已保存方案「${name}」`);
+      }
+
+      function renderPlanList() {
+        const root = $('#planList');
+        if (!root) return;
+        if (!state.plans.length) { root.innerHTML = '<div class="plan-empty">暂无已保存方案</div>'; return; }
+        root.innerHTML = state.plans.map(plan => {
+          const perRoom = plan.config?.teacherPerRoom || '?';
+          const firstDate = plan.sessions[0]?.date || '—';
+          return `<div class="plan-row">
+            <div><div class="plan-name">${esc(plan.name)}</div><div class="plan-meta">${formatDateTime(plan.savedAt)} · ${plan.sessions.length} 场 · ${perRoom} 人/场 · 首场 ${esc(firstDate)}</div></div>
+            <button class="btn" data-plan-load="${plan.id}"><i data-lucide="download"></i>载入</button>
+            <button class="icon-btn danger" data-plan-delete="${plan.id}" title="删除方案" aria-label="删除方案"><i data-lucide="trash-2"></i></button>
+          </div>`;
+        }).join('');
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function requestPlanLoad(id) {
+        const plan = state.plans.find(p => p.id === id);
+        if (!plan) return;
+        planLoadingId = id;
+        $('#planLoadTitle').textContent = `载入方案「${plan.name}」`;
+        $('#planLoadDate').value = plan.sessions[0]?.date || $('#examDate').value || todayString();
+        $('#planUpdateDate').checked = true;
+        $('#planLoadDialog').showModal();
+      }
+
+      function confirmPlanLoad() {
+        const plan = state.plans.find(p => p.id === planLoadingId);
+        if (!plan) return;
+        state.sessions = structuredClone(plan.sessions || []);
+        state.config = { ...state.config, ...structuredClone(plan.config || {}) };
+        state.customRooms = Array.isArray(plan.customRooms) ? [...plan.customRooms] : [];
+        state.gradeRows = Array.isArray(plan.gradeRows) ? structuredClone(plan.gradeRows) : [];
+        state.timeTemplate = plan.timeTemplate || '';
+        if (plan.teacherSelection) {
+          const selected = new Map(plan.teacherSelection.map(item => [item.id, item.monitorGrade]));
+          state.teachers.forEach(teacher => { teacher.enabled = selected.has(teacher.id); teacher.monitorGrade = selected.get(teacher.id) || ''; });
+        }
+        if ($('#planUpdateDate').checked && $('#planLoadDate').value) {
+          const date = $('#planLoadDate').value;
+          state.sessions.forEach(session => { session.date = date; });
+          $('#examDate').value = date;
+        }
+        sortSessions();
+        state.result = []; state.activeVersionId = null;
+        $('#planLoadDialog').close(); planLoadingId = null;
+        persistAndRender();
+        toast(`已载入方案「${plan.name}」`);
+      }
+
+      function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+      function parseTimeTemplate(text) {
+        return String(text || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+          const tokens = line.split(/[\s\t]+/).filter(Boolean);
+          const entry = { date: null, grade: null, subject: null, time: null };
+          tokens.forEach(token => {
+            if (/^\d{1,2}-\d{1,2}$/.test(token) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(token) || /^\+\d+$/.test(token)) { entry.date = token; return; }
+            if (DEFAULT_GRADES.includes(token)) { entry.grade = token; return; }
+            if (ALL_SUBJECTS.includes(token)) { entry.subject = token; return; }
+            if (/^\d{1,2}[:：]\d{2}/.test(token)) entry.time = normalizeTime(token);
+          });
+          return entry;
+        });
+      }
+
+      function resolveTemplateDate(token, baseDate) {
+        if (!token) return baseDate;
+        if (/^\+\d+$/.test(token)) { const d = new Date(`${baseDate}T00:00:00`); d.setDate(d.getDate() + Number(token.slice(1))); return dateStr(d); }
+        if (/^\d{1,2}-\d{1,2}$/.test(token)) { const [mm, dd] = token.split('-'); const d = new Date(`${baseDate}T00:00:00`); d.setMonth(Number(mm) - 1, Number(dd)); return dateStr(d); }
+        return token;
+      }
+
+      function matchTime(grade, subject, entries) {
+        const withTime = entries.filter(e => e.time);
+        const exact = withTime.find(e => e.subject === subject && e.grade === grade);
+        if (exact) return exact;
+        const global = withTime.find(e => e.subject === subject && !e.grade);
+        if (global) return global;
+        return null;
+      }
+
+      function parseTimeInput(value, baseDate) {
+        const v = String(value || '').trim();
+        if (!v) return { date: baseDate, time: '' };
+        const full = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(.+)$/);
+        if (full) return { date: `${full[1]}-${full[2].padStart(2,'0')}-${full[3].padStart(2,'0')}`, time: normalizeTime(full[4]) };
+        const md = v.match(/^(\d{1,2})-(\d{1,2})\s+(.+)$/);
+        if (md) {
+          const base = new Date(`${baseDate}T00:00:00`);
+          const d = new Date(base.getFullYear(), Number(md[1]) - 1, Number(md[2]));
+          return { date: dateStr(d), time: normalizeTime(md[3]) };
+        }
+        return { date: baseDate, time: normalizeTime(v) };
+      }
+
+      function renderGradeRows() {
+        const root = $('#gradeRowsList');
+        if (!state.gradeRows.length) { root.innerHTML = '<div class="pool-empty">尚未添加考试年级</div>'; return; }
+        root.innerHTML = state.gradeRows.map(row => {
+          const subjects = subjectsForGrades(row.grade ? [row.grade] : []);
+          const checked = new Set(row.subjects);
+          return `<div class="grade-row" data-gr-id="${row.id}">
+            <div class="gr-top">
+              <select class="gr-grade" aria-label="年级">${gradeSelectOptionsHtml(row.grade)}</select>
+              <div class="gr-subject-drop">
+                <button type="button" class="gr-subj-toggle" title="多选科目">科目 ▾</button>
+                <div class="gr-subj-panel">${subjects.map(s => `<label><input type="checkbox" value="${esc(s)}" ${checked.has(s) ? 'checked' : ''}>${esc(s)}</label>`).join('')}</div>
+              </div>
+              <select class="gr-rooms" aria-label="考场数">${Array.from({ length: 10 }, (_, i) => `<option value="${i+1}" ${row.roomCount === i+1 ? 'selected' : ''}>${i+1} 个</option>`).join('')}</select>
+              <button type="button" class="icon-btn gr-del" title="删除此行" aria-label="删除此行"><i data-lucide="x"></i></button>
+            </div>
+            <div class="gr-times"></div>
+          </div>`;
+        }).join('');
+        $$('#gradeRowsList .grade-row').forEach(rowEl => {
+          const row = state.gradeRows.find(r => r.id === rowEl.dataset.grId);
+          renderRowTimes(rowEl, row);
+        });
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function renderRowTimes(rowEl, row) {
+        const timesEl = rowEl.querySelector('.gr-times');
+        const entries = parseTimeTemplate($('#timeTemplateInput').value);
+        const baseDate = $('#examDate').value || todayString();
+        if (!row || !row.subjects.length) { timesEl.innerHTML = '<div class="gr-empty">选择科目后自动匹配时间</div>'; return; }
+        const plainTimes = entries.filter(e => !e.grade && !e.subject && e.time);
+        let fallbackIndex = 0;
+        timesEl.innerHTML = row.subjects.map(subject => {
+          const match = matchTime(row.grade, subject, entries);
+          let display = '';
+          if (match) {
+            const date = resolveTemplateDate(match.date, baseDate);
+            display = date === baseDate ? match.time : `${date.slice(5)} ${match.time}`;
+          } else if (state.combinedTimes && (state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject])) {
+            display = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject];
+          } else if (plainTimes.length) {
+            const fallback = plainTimes[Math.min(fallbackIndex, plainTimes.length - 1)];
+            fallbackIndex++;
+            const date = resolveTemplateDate(fallback.date, baseDate);
+            display = date === baseDate ? fallback.time : `${date.slice(5)} ${fallback.time}`;
+          }
+          return `<div class="gr-time-item"><span class="gr-t-subj">${esc(subject)}</span><input class="gr-time-input" data-subj="${esc(subject)}" value="${esc(display)}" placeholder="MM-DD 08:30-10:00"></div>`;
+        }).join('');
+      }
+
+      function addGradeRow() {
+        state.gradeRows.push({ id: uid(), grade: '', subjects: [], roomCount: 1 });
+        saveState(); renderGradeRows();
+      }
+
+      function generateFromGradeRows() {
+        const baseDate = $('#examDate').value;
+        if (!baseDate) return toast('请选择考试起始日期', 'error');
+        const roomNames = customRoomList();
+        const keys = new Set(state.sessions.map(sessionKey));
+        let added = 0, skippedSubjects = 0, rowsWithGrade = 0;
+        $$('#gradeRowsList .grade-row').forEach(rowEl => {
+          const row = state.gradeRows.find(r => r.id === rowEl.dataset.grId);
+          if (!row || !row.grade) return;
+          rowsWithGrade++;
+          const roomCount = row.roomCount || 1;
+          const names = roomNames.length ? roomNames : Array.from({ length: roomCount }, (_, i) => `第${i + 1}考场`);
+          rowEl.querySelectorAll('.gr-time-input').forEach(input => {
+            const subject = input.dataset.subj;
+            if (!subject) return;
+            const parsed = parseTimeInput(input.value, baseDate);
+            if (!parsed.time) { skippedSubjects++; return; }
+            names.forEach(className => {
+              const session = { id: uid(), date: parsed.date, time: parsed.time, subject, grade: row.grade, className };
+              const key = `${session.date}|${normalizeTime(session.time)}|${session.grade}|${session.className}|${session.subject}`;
+              if (!keys.has(key)) { state.sessions.push(session); keys.add(key); added++; }
+            });
+          });
+        });
+        if (!rowsWithGrade) return toast('请先“添加考试年级”并选择年级', 'error');
+        if (!added) return toast('没有生成任何场次：请为科目填写时间', 'error');
+        sortSessions();
+        state.result = []; state.activeVersionId = null;
+        persistAndRender();
+        toast(`已生成 ${added} 场考试${skippedSubjects ? `（${skippedSubjects} 科缺时间被跳过）` : ''}`);
+      }
+
+      function exportBackup() {
+        try {
+          const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+          anchor.href = url; anchor.download = `监考备份_${todayString()}.json`; anchor.click(); URL.revokeObjectURL(url);
+          toast('备份已导出');
+        } catch (error) { toast('导出失败：' + error.message, 'error'); }
+      }
+
+      async function importBackup(files) {
+        const file = files && files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const raw = JSON.parse(text);
+          if (!raw || typeof raw !== 'object' || !Array.isArray(raw.teachers)) return toast('文件格式不正确，不是有效的备份文件', 'error');
+          confirmAction('导入备份', '导入后将替换当前全部数据（人员、场次、结果、方案、设置）。当前数据建议先导出备份。确定继续？', () => {
+            state.teachers = Array.isArray(raw.teachers) ? raw.teachers.map(normalizeTeacherRecord) : [];
+            state.sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
+            state.result = Array.isArray(raw.result) ? raw.result : [];
+            state.history = Array.isArray(raw.history) ? raw.history : [];
+            state.plans = Array.isArray(raw.plans) ? raw.plans : [];
+            state.excludedNames = Array.isArray(raw.excludedNames) && raw.excludedNames.length ? raw.excludedNames : [...DEFAULT_EXCLUDED];
+            state.customRooms = Array.isArray(raw.customRooms) ? raw.customRooms : [];
+            state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
+            state.timeTemplate = raw.timeTemplate || '';
+            state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
+            state.activeVersionId = raw.activeVersionId || null;
+            state.resultTab = raw.resultTab || 'primary';
+            state.config = { ...state.config, ...(raw.config || {}) };
+            normalizeStoredRoomLabels();
+            $('#backupDialog').close(); $('#importBackupInput').value = '';
+            persistAndRender();
+            toast('备份已导入');
+          });
+        } catch (error) { toast('导入失败：' + error.message, 'error'); }
+      }
+
+      function formatCombinedTimes() {
+        const lines = [];
+        const ct = state.combinedTimes || {};
+        const gradeGroups = {};
+        const subjectOnly = {};
+        Object.entries(ct).forEach(([key, time]) => {
+          const parts = key.split('|');
+          if (parts.length === 2) {
+            if (!gradeGroups[parts[0]]) gradeGroups[parts[0]] = {};
+            gradeGroups[parts[0]][parts[1]] = time;
+          } else {
+            subjectOnly[key] = time;
+          }
+        });
+        DEFAULT_GRADES.forEach(g => {
+          if (gradeGroups[g]) Object.entries(gradeGroups[g]).forEach(([s, t]) => lines.push(`${g} ${s} ${t}`));
+        });
+        Object.entries(subjectOnly).forEach(([s, t]) => lines.push(`${s} ${t}`));
+        return lines.join('\n');
+      }
+
+      function parseCombinedTimes(text) {
+        const combined = {};
+        const subjects = [...ALL_SUBJECTS].sort((a, b) => b.length - a.length);
+        text.split(/\r?\n/).forEach(line => {
+          line = line.trim();
+          if (!line) return;
+          let subject = null;
+          for (const s of subjects) { if (line.includes(s)) { subject = s; break; } }
+          if (!subject) return;
+          const rest = line.replace(subject, ' ').trim();
+          const timeMatch = rest.match(/(\d{1,2}:\d{2})\s*[-—~至]\s*(\d{1,2}:\d{2})/);
+          if (!timeMatch) return;
+          const time = `${timeMatch[1]}-${timeMatch[2]}`;
+          const grade = DEFAULT_GRADES.find(g => rest.startsWith(g));
+          if (grade) combined[`${grade}|${subject}`] = time;
+          else combined[subject] = time;
+        });
+        return combined;
+      }
+
+      function openSettingsDialog() {
+        $('#excludedInput').value = state.excludedNames.join('\n');
+        $('#settingsDialog').showModal();
+      }
+
+      function saveSettings() {
+        state.excludedNames = $('#excludedInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
+        saveState(); $('#settingsDialog').close();
+        toast('设置已保存');
+      }
+
+      function openTimeMemoryDialog() {
+        $('#subjectTimesInput').value = formatCombinedTimes();
+        $('#timeMemoryDialog').showModal();
+      }
+
+      function saveTimeMemory() {
+        state.combinedTimes = parseCombinedTimes($('#subjectTimesInput').value);
+        saveState(); $('#timeMemoryDialog').close();
+        renderGradeRows();
+        toast('时间记忆已保存');
+      }
+
+      function clearTimeMemory() {
+        confirmAction('清空全部时间记忆', '清空后，各科目的时间需要重新填写一次才会再次记住。', () => {
+          state.combinedTimes = {};
+          saveState(); $('#subjectTimesInput').value = ''; renderGradeRows();
+          toast('已清空时间记忆');
+        });
+      }
+
+      function applyDateToAllSessions() {
+        const date = $('#applyDateInput').value;
+        if (!date) return toast('请先选择要统一修改的日期', 'error');
+        if (!state.sessions.length) return toast('当前没有场次', 'error');
+        confirmAction('修改全部场次日期', `将把全部 ${state.sessions.length} 场考试的日期改为 ${date}。`, () => {
+          state.sessions.forEach(session => { session.date = date; });
+          sortSessions(); state.result = []; state.activeVersionId = null;
+          saveState(); renderSessionEditor(); renderAll();
+          toast('已更新全部场次日期');
+        });
+      }
+
+      function swapAssignment() {
+        const t1 = $('#assignmentTeacher1').value, t2 = $('#assignmentTeacher2').value;
+        $('#assignmentTeacher1').value = t2; $('#assignmentTeacher2').value = t1;
+      }
+
+      function init() {
+        loadState();
+        populateScheduleSelects();
+        bindEvents();
+        setDefaultDates();
+        renderAll();
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function setDefaultDates() {
+        const today = new Date();
+        const value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        if (!$('#examDate').value) $('#examDate').value = value;
+        if (!$('#manualDate').value) $('#manualDate').value = value;
+      }
+
+      function departmentForGrade(grade) {
+        const number = gradeNumber(grade);
+        return number && number <= 6 ? '小学部' : number ? '中学部' : '未分学部';
+      }
+
+      function builtinTeacherEntries() {
+        return BUILTIN_TEACHER_DATA.split(';').map(record => {
+          const [name, gradeChars] = record.split('|');
+          const grades = gradeChars.split(',').map(char => `${char}年级`);
+          return { name, grades, departments: [...new Set(grades.map(departmentForGrade))] };
+        });
+      }
+
+      function normalizeTeacherRecord(teacher) {
+        const grades = [...new Set((teacher.grades?.length ? teacher.grades : [teacher.grade]).filter(Boolean).map(normalizeGrade))];
+        teacher.grades = grades.length ? grades : ['未分年级'];
+        teacher.grade = teacher.grades[0];
+        teacher.departments = [...new Set((teacher.departments?.length ? teacher.departments : teacher.grades.map(departmentForGrade)).filter(Boolean))];
+        teacher.enabled = !!teacher.enabled;
+        teacher.monitorGrade = teacher.monitorGrade || '';
+        teacher.source = teacher.source || '手动添加';
+        teacher.subjects = Array.isArray(teacher.subjects) ? teacher.subjects.filter(subject => TEACHER_SUBJECTS.includes(subject)) : [];
+        return teacher;
+      }
+
+      function mergeBuiltinTeachers(force = false) {
+        if (!force && state.seedVersion === '2026-09-v1') return 0;
+        const existing = new Map(state.teachers.map(teacher => [teacher.name.toLocaleLowerCase(), teacher]));
+        let added = 0;
+        builtinTeacherEntries().forEach(entry => {
+          const key = entry.name.toLocaleLowerCase();
+          if (existing.has(key)) {
+            const teacher = existing.get(key);
+            teacher.grades = [...new Set([...(teacher.grades || []), ...entry.grades])].sort((a,b) => gradeRank(a)-gradeRank(b));
+            teacher.grade = teacher.grades[0];
+            teacher.departments = [...new Set([...(teacher.departments || []), ...entry.departments])];
+            if (teacher.source === '示例') teacher.source = '岗位表';
+          } else {
+            const teacher = normalizeTeacherRecord({ id: uid(), ...entry, source: '岗位表', enabled: false, monitorGrade: '' });
+            state.teachers.push(teacher); existing.set(key, teacher); added++;
+          }
+        });
+        state.seedVersion = '2026-09-v1';
+        sortTeachers();
+        return added;
+      }
+
+      function bindEvents() {
+        $$('.segmented button').forEach(btn => btn.addEventListener('click', () => switchImportMode(btn.dataset.mode)));
+        $('#parseNamesBtn').addEventListener('click', addPastedNames);
+        $('#pasteTableBtn').addEventListener('click', () => $('#tablePasteDialog').showModal());
+        $('#parseTableBtn').addEventListener('click', parsePastedTable);
+        $('#jobFile').addEventListener('change', e => importJobFiles([...e.target.files]));
+        const upload = $('#uploadZone');
+        ['dragenter','dragover'].forEach(name => upload.addEventListener(name, e => { e.preventDefault(); upload.classList.add('dragover'); }));
+        ['dragleave','drop'].forEach(name => upload.addEventListener(name, e => { e.preventDefault(); upload.classList.remove('dragover'); }));
+        upload.addEventListener('drop', e => importJobFiles([...e.dataTransfer.files]));
+        $('#teacherSearch').addEventListener('input', renderTeacherPool);
+        $('#teacherDeptFilter').addEventListener('change', renderTeacherPool);
+        $('#teacherGradeFilter').addEventListener('change', renderTeacherPool);
+        $('#restoreTeachersBtn').addEventListener('click', () => { const added = mergeBuiltinTeachers(true); persistAndRender(); toast(`已恢复岗位表人员，新增 ${added} 人`); });
+        $('#selectVisibleBtn').addEventListener('click', toggleVisibleTeachers);
+        $('#applyBulkGradeBtn').addEventListener('click', applyBulkMonitorGrade);
+        $('#clearTeachersBtn').addEventListener('click', () => confirmAction('清空人员库', '将删除全部人员库数据，但保留已生成的监考表。之后可使用“恢复岗位表人员”按钮重新载入。', () => { state.teachers = []; persistAndRender(); }));
+        $('#manualGrade').addEventListener('change', updateManualSubjectOptions);
+        $('#editSessionsBtn').addEventListener('click', () => { updateManualSubjectOptions(); renderSessionEditor(); $('#sessionDialog').showModal(); });
+        $('#manualAddBtn').addEventListener('click', addManualSession);
+        $('#clearSessionsBtn').addEventListener('click', () => confirmAction('清空考试场次', '将移除全部场次和当前排表，历史版本仍会保留。', () => { state.sessions = []; state.result = []; state.activeVersionId = null; persistAndRender(); }));
+        $('#addGradeRowBtn').addEventListener('click', addGradeRow);
+        $('#genGradeRowsBtn').addEventListener('click', generateFromGradeRows);
+        $('#timeTemplateInput').addEventListener('change', () => { state.timeTemplate = $('#timeTemplateInput').value; saveState(); renderGradeRows(); });
+        $('#examDate').addEventListener('change', () => { saveState(); renderGradeRows(); });
+        $$('input[name="teacherPerRoom"]').forEach(input => input.addEventListener('change', syncConfig));
+        $('#balanceLoad').addEventListener('change', syncConfig);
+        $('#avoidConsecutive').addEventListener('change', syncConfig);
+        $('#generateBtn').addEventListener('click', () => generateSchedule(false));
+        $('#rerollBtn').addEventListener('click', () => generateSchedule(true));
+        $('#exportBtn').addEventListener('click', exportWorkbook);
+        $('#exportShiftsBtn').addEventListener('click', exportShiftsWorkbook);
+        $('#printBtn').addEventListener('click', () => window.print());
+        $('#clearResultBtn').addEventListener('click', () => confirmAction('清空当前结果', '当前版本已保存在版本记录中，清空不会删除历史。', () => { state.result = []; state.activeVersionId = null; persistAndRender(); }));
+        $('#sampleBtn').addEventListener('click', loadSample);
+        $('#newExamBtn').addEventListener('click', startNewExam);
+        $('#clearBtn').addEventListener('click', () => confirmAction('清空场次与结果', '将清空考试场次和当前排表；人员库、本次教师勾选和历史版本继续保留。', () => { state.sessions = []; state.result = []; state.activeVersionId = null; persistAndRender(); }));
+        $$('#resultTabs button').forEach(button => button.addEventListener('click', () => { state.resultTab = button.dataset.resultTab; saveState(); renderSchedule(); }));
+        $$('[data-close-dialog]').forEach(btn => btn.addEventListener('click', () => btn.closest('dialog').close()));
+        $('#restoreVersionBtn').addEventListener('click', restoreViewedVersion);
+        $('#saveAssignmentBtn').addEventListener('click', saveAssignmentEdit);
+        $('#confirmActionBtn').addEventListener('click', () => { const cb = confirmCallback; confirmCallback = null; $('#confirmDialog').close(); if (cb) cb(); });
+        $('#planBtn').addEventListener('click', openPlanDialog);
+        $('#savePlanBtn').addEventListener('click', saveCurrentPlan);
+        $('#planLoadConfirmBtn').addEventListener('click', confirmPlanLoad);
+        $('#backupBtn').addEventListener('click', () => $('#backupDialog').showModal());
+        $('#exportBackupBtn').addEventListener('click', exportBackup);
+        $('#importBackupInput').addEventListener('change', e => importBackup([...e.target.files]));
+        $('#settingsBtn').addEventListener('click', openSettingsDialog);
+        $('#saveSettingsBtn').addEventListener('click', saveSettings);
+        $('#timeMemoryBtn').addEventListener('click', openTimeMemoryDialog);
+        $('#saveTimesBtn').addEventListener('click', saveTimeMemory);
+        $('#clearTimesBtn').addEventListener('click', clearTimeMemory);
+        $('#autoAssignBtn').addEventListener('click', autoAssignMonitorGrades);
+        $('#onlyExamGrade').addEventListener('change', renderTeacherPool);
+        $('#crossGrade').addEventListener('change', syncConfig);
+        $('#sameSubjectAvoid').addEventListener('change', syncConfig);
+        $('#avoidOwnGrade').addEventListener('change', syncConfig);
+        $('#customRoomsInput').addEventListener('change', saveCustomRooms);
+        $('#applyDateToAllBtn').addEventListener('click', applyDateToAllSessions);
+        $('#swapAssignmentBtn').addEventListener('click', swapAssignment);
+        $('#manageTeachersBtn').addEventListener('click', openManageTeachers);
+        $('#mtAddBtn').addEventListener('click', addManageTeacher);
+        $('#mtSearch').addEventListener('input', renderManageTable);
+        $('#teSaveBtn').addEventListener('click', saveTeacherEdit);
+        document.addEventListener('click', handleDelegatedClick);
+      }
+
+      function switchImportMode(mode) {
+        $$('.segmented button').forEach(btn => { const active = btn.dataset.mode === mode; btn.classList.toggle('active', active); btn.setAttribute('aria-selected', String(active)); });
+        $('#pastePanel').hidden = mode !== 'paste';
+        $('#filePanel').hidden = mode !== 'file';
+      }
+
+      function syncConfig() {
+        state.config.teacherPerRoom = $('input[name="teacherPerRoom"]:checked')?.value || '';
+        state.config.balanceLoad = $('#balanceLoad').checked;
+        state.config.avoidConsecutive = $('#avoidConsecutive').checked;
+        state.config.crossGrade = !!$('#crossGrade').checked;
+        state.config.sameSubjectAvoid = !!$('#sameSubjectAvoid').checked;
+        state.config.avoidOwnGrade = !!$('#avoidOwnGrade').checked;
+        saveState();
+      }
+
+      function normalizeName(raw) {
+        let name = String(raw ?? '').normalize('NFKC').trim();
+        name = name.replace(/^\s*(?:序号|姓名|教师姓名|老师|班主任)\s*[:：]?\s*/i, '');
+        name = name.replace(/^\s*(?:\(?\d+\)?[.、．:：-]|[（(]\d+[）)])\s*/, '');
+        name = name.replace(/[（(]\s*(?:老师|教师|班主任|语文|数学|英语|体育|音乐|美术|科学|道法|信息|综合)[^）)]*[）)]\s*$/i, '');
+        name = name.replace(/^["'“”‘’]+|["'“”‘’]+$/g, '').trim();
+        if (/^[\u3400-\u9fff·\s]+$/.test(name)) name = name.replace(/\s+/g, '');
+        else name = name.replace(/\s+/g, ' ');
+        return name;
+      }
+
+      function isLikelyName(name) {
+        if (!name || name.length < 2 || name.length > 40) return false;
+        if (/^(姓名|教师|教师姓名|班主任|年级|班级|岗位|序号|合计|备注|无)$/.test(name)) return false;
+        if (/^\d+$/.test(name)) return false;
+        if (/[<>={}\[\]]/.test(name)) return false;
+        if (/^[\u3400-\u9fff·]+$/.test(name)) return name.length <= 8;
+        return /[\u3400-\u9fffA-Za-z]/.test(name);
+      }
+
+      function splitNames(raw, mode = 'auto') {
+        let text = String(raw ?? '').replace(/\r/g, '\n').replace(/\n{2,}/g, '\n').trim();
+        if (!text) return [];
+        if (mode === 'auto') {
+          const lines = text.split('\n');
+          const repaired = [];
+          for (let i = 0; i < lines.length;) {
+            if (/^\s*[\u3400-\u9fff]\s*$/.test(lines[i])) {
+              const run = [];
+              while (i < lines.length && /^\s*[\u3400-\u9fff]\s*$/.test(lines[i])) run.push(lines[i++].trim());
+              if (run.length <= 3) repaired.push(run.join(''));
+              else for (let n = 0; n < run.length; n += 2) repaired.push(run.slice(n, n + 2).join(''));
+            } else repaired.push(lines[i++]);
+          }
+          text = repaired.join('\n');
+        }
+        let pieces;
+        if (mode === 'line') pieces = text.split(/\n+/);
+        else if (mode === 'punctuation') pieces = text.split(/[，,、;；|/\n]+/);
+        else pieces = text.split(/[，,、;；|/\n\t]+/);
+        pieces = pieces.flatMap(piece => {
+          const tokens = piece.trim().split(/\s+/);
+          if (tokens.length > 1 && tokens.every(token => /^[\u3400-\u9fff]{2,4}$/.test(token))) return tokens;
+          return [piece];
+        });
+        return [...new Set(pieces.map(normalizeName).filter(isLikelyName))];
+      }
+
+      function normalizeGrade(raw) {
+        let value = String(raw ?? '').normalize('NFKC').replace(/\s+/g, '').trim();
+        if (!value) return '未分年级';
+        const junior = value.match(/^(?:初中部?|初)([一二三123])(?:年级)?$/);
+        if (junior) {
+          const n = Number(junior[1]) || CHINESE_NUM[junior[1]];
+          return `${NUM_CHINESE[n + 6]}年级`;
+        }
+        const senior = value.match(/^(?:高中部?|高)([一二三123])(?:年级)?$/);
+        if (senior) {
+          const n = Number(senior[1]) || CHINESE_NUM[senior[1]];
+          return `高${NUM_CHINESE[n]}`;
+        }
+        value = value.replace(/^小学部?[-—_:：]?/, '');
+        const regular = value.match(/^([一二三四五六七八九123456789])(?:年级|级)?$/);
+        if (regular) {
+          const n = Number(regular[1]) || CHINESE_NUM[regular[1]];
+          return `${NUM_CHINESE[n]}年级`;
+        }
+        const embedded = value.match(/([一二三四五六七八九123456789])年级/);
+        if (embedded) {
+          const n = Number(embedded[1]) || CHINESE_NUM[embedded[1]];
+          return `${NUM_CHINESE[n]}年级`;
+        }
+        return value.replace(/教师|老师|组$/g, '') || '未分年级';
+      }
+
+      function addTeachers(entries, source) {
+        const existing = new Map(state.teachers.map(t => [t.name.toLocaleLowerCase(), t]));
+        let added = 0, updated = 0;
+        entries.forEach(entry => {
+          const name = normalizeName(entry.name);
+          if (!isLikelyName(name) || excludedSet().has(name) || /^新语文\d+$/.test(name) || name === '围棋') return;
+          const grade = normalizeGrade(entry.grade);
+          const key = name.toLocaleLowerCase();
+          if (existing.has(key)) {
+            const teacher = existing.get(key);
+            if (!teacher.grades.includes(grade)) {
+              teacher.grades.push(grade); teacher.grades.sort((a,b) => gradeRank(a)-gradeRank(b));
+              teacher.grade = teacher.grades[0]; teacher.departments = [...new Set(teacher.grades.map(departmentForGrade))]; updated++;
+            }
+          } else {
+            const teacher = normalizeTeacherRecord({ id: uid(), name, grades: [grade], subjects: entry.subjects, source, enabled: false, monitorGrade: '' });
+            state.teachers.push(teacher); existing.set(key, teacher); added++;
+          }
+        });
+        sortTeachers();
+        persistAndRender();
+        toast(`新增 ${added} 人${updated ? `，更新年级 ${updated} 人` : ''}`);
+      }
+
+      function addPastedNames() {
+        const names = splitNames($('#nameInput').value, $('#nameSeparator').value);
+        if (!names.length) return toast('没有识别到有效姓名', 'error');
+        if (!$('#pasteGrade').value) return toast('请选择要归入的年级', 'error');
+        const grade = normalizeGrade($('#pasteGrade').value);
+        addTeachers(names.map(name => ({ name, grade })), '粘贴');
+        $('#nameInput').value = '';
+      }
+
+      function sortTeachers() {
+        state.teachers.sort((a, b) => gradeRank(a.grades?.[0] || a.grade) - gradeRank(b.grades?.[0] || b.grade) || a.name.localeCompare(b.name, 'zh-CN'));
+      }
+
+      function gradeRank(grade) {
+        const index = DEFAULT_GRADES.indexOf(grade);
+        return index >= 0 ? index : 50;
+      }
+
+      function gradeNumber(grade) {
+        const normalized = normalizeGrade(grade);
+        const match = normalized.match(/^([一二三四五六七八九])年级$/);
+        return match ? CHINESE_NUM[match[1]] : null;
+      }
+
+      function gradeSelectOptionsHtml(selected = '') {
+        const grades = DEFAULT_GRADES.slice(0, 9);
+        const extra = selected && !grades.includes(selected) ? [selected] : [];
+        return [...extra, ...grades].map(grade => `<option value="${esc(grade)}" ${grade === selected ? 'selected' : ''}>${esc(grade)}</option>`).join('');
+      }
+
+      function monitorGradeOptionsHtml(selected = '', placeholder = '本次年级') {
+        const gradeSelected = DEFAULT_GRADES.slice(0, 9).includes(selected) ? selected : '';
+        return `<option value="">${esc(placeholder)}</option>${gradeSelectOptionsHtml(gradeSelected)}<option value="reserve" ${selected === 'reserve' ? 'selected' : ''}>机动人员</option>`;
+      }
+
+      function normalizeRoomName(value) {
+        const text = String(value ?? '').normalize('NFKC').trim();
+        const number = text.match(/\d+/)?.[0];
+        if (number) return `第${Number(number)}考场`;
+        return text.replace(/班/g, '考场');
+      }
+
+      function normalizeStoredRoomLabels() {
+        const normalizeRows = rows => (rows || []).forEach(row => { row.className = normalizeRoomName(row.className); });
+        normalizeRows(state.sessions);
+        normalizeRows(state.result);
+        state.history.forEach(version => {
+          normalizeRows(version.sessions);
+          normalizeRows(version.result);
+        });
+      }
+
+      function roomSelectOptionsHtml(selected = '', countMode = false) {
+        const normalized = normalizeRoomName(selected);
+        return Array.from({ length: MAX_ROOMS }, (_, index) => {
+          const number = index + 1;
+          const value = countMode ? String(number) : `第${number}考场`;
+          const label = countMode ? `${number} 个考场` : value;
+          return `<option value="${value}" ${value === normalized || value === selected ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+      }
+
+      function roomNameOptionsHtml(selected = '') {
+        const rooms = customRoomList();
+        if (rooms.length) {
+          const normalized = normalizeRoomName(selected);
+          return `<option value="">请选择考场</option>${rooms.map(room => `<option value="${esc(room)}" ${room === selected || normalizeRoomName(room) === normalized ? 'selected' : ''}>${esc(room)}</option>`).join('')}`;
+        }
+        return roomSelectOptionsHtml(selected);
+      }
+
+      function populateScheduleSelects() {
+        $('#pasteGrade').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#manualGrade').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#manualRoom').innerHTML = roomNameOptionsHtml('第1考场');
+        $('#teacherGradeFilter').innerHTML = `<option value="">全部任教年级</option>${gradeSelectOptionsHtml()}`;
+        $('#bulkMonitorGrade').innerHTML = monitorGradeOptionsHtml('', '设置监考年级');
+        $('#mtGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#teGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+      }
+
+      function subjectsForGrades(grades) {
+        const numbers = [...new Set(grades.map(gradeNumber).filter(Boolean))];
+        if (!numbers.length) return ALL_SUBJECTS;
+        return numbers.slice(1).reduce(
+          (common, number) => common.filter(subject => SUBJECTS_BY_GRADE[number].includes(subject)),
+          [...SUBJECTS_BY_GRADE[numbers[0]]]
+        );
+      }
+
+      function fillSubjectSelect(select, grades, emptyText) {
+        const current = select.value;
+        if (!grades.length) {
+          select.innerHTML = `<option value="">${esc(emptyText)}</option>`;
+          return;
+        }
+        const subjects = subjectsForGrades(grades);
+        select.innerHTML = `<option value="">请选择科目</option>${subjects.map(subject => `<option value="${esc(subject)}">${esc(subject)}</option>`).join('')}`;
+        if (subjects.includes(current)) select.value = current;
+      }
+
+      function updateManualSubjectOptions() {
+        const grade = $('#manualGrade').value.trim();
+        fillSubjectSelect($('#manualSubject'), grade ? [normalizeGrade(grade)] : [], '请先选择年级');
+      }
+
+      function subjectOptionsHtml(grade, selected) {
+        const subjects = subjectsForGrades([grade]);
+        return `<option value="">未设置</option>${subjects.map(subject => `<option value="${esc(subject)}" ${subject === selected ? 'selected' : ''}>${esc(subject)}</option>`).join('')}`;
+      }
+
+      function subjectBadgeClass(subject) {
+        if (!subject) return 'unset';
+        return subject.includes('合卷') ? 'merged' : '';
+      }
+
+      function parseTableMatrix(matrix, sourceName = '岗位表') {
+        const rows = matrix.map(row => row.map(cell => String(cell ?? '').trim())).filter(row => row.some(Boolean));
+        if (!rows.length) return [];
+        let headerIndex = -1, gradeIndex = -1, nameIndices = [];
+        const gradeHeaders = /^(所属)?年级|班级|学段|级部/;
+        const nameHeaders = /教师姓名|老师姓名|任课教师|任课老师|教师|老师|班主任|姓名|人员/;
+        for (let r = 0; r < Math.min(rows.length, 20); r++) {
+          const g = rows[r].findIndex(cell => gradeHeaders.test(cell.replace(/\s/g,'')));
+          let ns = rows[r].map((cell, i) => nameHeaders.test(cell.replace(/\s/g,'')) ? i : -1).filter(i => i >= 0);
+          if (g >= 0 && rows[r][g].replace(/\s/g,'') === '班级' && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
+          else if (g >= 0 && !ns.length && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
+          if (g >= 0 && ns.length) { headerIndex = r; gradeIndex = g; nameIndices = ns; break; }
+        }
+        if (headerIndex < 0) {
+          const maxCols = Math.max(...rows.map(r => r.length));
+          if (maxCols >= 3) { headerIndex = -1; gradeIndex = 0; nameIndices = [maxCols - 1]; }
+          else return [];
+        }
+        const entries = [];
+        let currentGrade = '未分年级';
+        rows.slice(headerIndex + 1).forEach(row => {
+          const rawGrade = row[gradeIndex];
+          const compactGrade = rawGrade.replace(/\s/g, '');
+          if (rawGrade && !/^(?:所属)?年级$|^班级$|^学段$|^级部$/.test(compactGrade)) currentGrade = normalizeGrade(rawGrade);
+          if (currentGrade === '未分年级') return;
+          nameIndices.forEach(index => {
+            splitNames(row[index], 'auto').forEach(name => entries.push({ name, grade: currentGrade, source: sourceName }));
+          });
+        });
+        return entries;
+      }
+
+      async function importJobFiles(files) {
+        if (!files.length) return;
+        if (!window.XLSX) {
+          const csvFiles = files.filter(file => file.name.toLowerCase().endsWith('.csv'));
+          if (!csvFiles.length) return toast('Excel 解析组件未加载，请联网后刷新或改用粘贴表格', 'error');
+          let csvEntries = [];
+          for (const file of csvFiles) csvEntries.push(...parseTableMatrix(parseCsv(await file.text()), file.name));
+          if (!csvEntries.length) return toast('CSV 中未找到年级和教师姓名列', 'error');
+          addTeachers(csvEntries, '岗位表');
+          $('#jobFile').value = '';
+          return;
+        }
+        let entries = [];
+        for (const file of files) {
+          try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            workbook.SheetNames.forEach(sheetName => {
+              const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '', raw: false });
+              entries.push(...parseTableMatrix(matrix, `${file.name}/${sheetName}`));
+            });
+          } catch (error) {
+            toast(`${file.name} 读取失败`, 'error');
+          }
+        }
+        if (!entries.length) return toast('未找到同时包含年级和教师姓名的表头', 'error');
+        addTeachers(entries, '岗位表');
+        $('#jobFile').value = '';
+      }
+
+      function parseCsv(text) {
+        const rows = [[]];
+        let cell = '', quoted = false;
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          if (quoted) {
+            if (char === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+            else if (char === '"') quoted = false;
+            else cell += char;
+          } else if (char === '"') quoted = true;
+          else if (char === ',') { rows.at(-1).push(cell); cell = ''; }
+          else if (char === '\n') { rows.at(-1).push(cell); cell = ''; rows.push([]); }
+          else if (char !== '\r') cell += char;
+        }
+        rows.at(-1).push(cell);
+        return rows;
+      }
+
+      function parsePastedTable() {
+        const text = $('#tablePasteInput').value.trim();
+        if (!text) return toast('请先粘贴岗位表内容', 'error');
+        const pipeLines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).filter(line => line.includes('|') && line.split('|').length >= 2);
+        if (pipeLines.length >= 1) {
+          const pipeEntries = pipeLines.map(line => {
+            const parts = line.split('|').map(part => part.trim());
+            const name = parts[0];
+            const grade = normalizeGrade(parts[1]);
+            const subjects = parts[2] ? parts[2].split(/[,，]/).map(subject => subject.trim()).filter(subject => TEACHER_SUBJECTS.includes(subject)) : [];
+            if (!isLikelyName(name) || !grade) return null;
+            return { name, grade, subjects, source: '岗位表' };
+          }).filter(Boolean);
+          if (pipeEntries.length) { addTeachers(pipeEntries, '岗位表'); $('#tablePasteInput').value = ''; $('#tablePasteDialog').close(); return; }
+        }
+        const matrix = text.split(/\r?\n/).map(line => line.includes('\t') ? line.split('\t') : line.split(/\s{2,}|，|,/));
+        const entries = parseTableMatrix(matrix, '粘贴岗位表');
+        if (!entries.length) return toast('未识别到年级和教师姓名列', 'error');
+        addTeachers(entries, '岗位表');
+        $('#tablePasteInput').value = '';
+        $('#tablePasteDialog').close();
+      }
+
+      function normalizeTime(value) {
+        const normalized = String(value).normalize('NFKC').replace(/[~～—至]/g, '-').replace(/\s+/g, '').trim();
+        const range = normalized.match(/^(\d{1,2})[:：](\d{2})-(\d{1,2})[:：](\d{2})$/);
+        if (!range) return normalized;
+        return `${range[1].padStart(2, '0')}:${range[2]}-${range[3].padStart(2, '0')}:${range[4]}`;
+      }
+
+      function sessionKey(session) { return `${session.date}|${normalizeTime(session.time)}|${session.grade}|${session.className}`; }
+      function timeKey(session) { return `${session.date}|${normalizeTime(session.time)}`; }
+      function sortSessions() { state.sessions.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || gradeRank(a.grade)-gradeRank(b.grade) || a.className.localeCompare(b.className, 'zh-CN', {numeric:true})); }
+
+      function addManualSession() {
+        const session = { id: uid(), date: $('#manualDate').value, time: normalizeTime($('#manualTime').value), subject: $('#manualSubject').value, grade: normalizeGrade($('#manualGrade').value), className: $('#manualRoom').value };
+        if (!session.date || !session.time || !session.className || !session.subject || !$('#manualGrade').value) return toast('请选择年级、科目、考场并填写日期和时间', 'error');
+        if (state.sessions.some(s => sessionKey(s) === sessionKey(session))) return toast('该场次已存在', 'error');
+        state.sessions.push(session); sortSessions(); state.result = []; state.activeVersionId = null;
+        saveState(); renderSessionEditor(); renderAll();
+      }
+
+      function generateSchedule(isReroll) {
+        syncConfig();
+        const selectedTeachers = state.teachers.filter(t => t.enabled);
+        const teachers = selectedTeachers.filter(t => t.monitorGrade && t.monitorGrade !== 'reserve');
+        const perRoom = Number(state.config.teacherPerRoom);
+        if (!selectedTeachers.length) return showNotice('请先从人员库勾选本次监考教师。', 'error');
+        if (selectedTeachers.some(teacher => !teacher.monitorGrade)) return showNotice('有已勾选教师尚未设置本次监考年级。', 'error');
+        if (!teachers.length) return showNotice('当前勾选人员全部是机动人员，请至少为部分教师指定监考年级。', 'error');
+        if (!state.sessions.length) return showNotice('请先添加考试场次。', 'error');
+        if (state.sessions.some(session => !session.subject)) return showNotice('有考试场次尚未设置科目，请在“查看/编辑”中补充。', 'error');
+        if (![1,2].includes(perRoom)) return showNotice('“每场监考人数”是开始前必选项。', 'error');
+
+        const result = solveSchedule(teachers, state.sessions, perRoom, state.config);
+        if (!result.ok) return showNotice(result.message, 'error');
+        state.result = result.assignments;
+        state.resultTab = state.result.some(row => gradeNumber(row.grade) <= 6) ? 'primary' : 'middle';
+        const versionNumber = state.history.reduce((max, item) => Math.max(max, item.number || 0), 0) + 1;
+        const version = {
+          id: uid(), number: versionNumber, generatedAt: new Date().toISOString(),
+          label: `第 ${versionNumber} 版`, result: structuredClone(state.result),
+          config: structuredClone(state.config), sessions: structuredClone(state.sessions),
+          teacherSelection: state.teachers.filter(t => t.enabled).map(t => ({ id:t.id, monitorGrade:t.monitorGrade }))
+        };
+        state.history.unshift(version);
+        state.activeVersionId = version.id;
+        saveState(); renderAll();
+        showNotice(`${isReroll ? '随机重排' : '编排'}完成，已自动保存为第 ${versionNumber} 版。`, 'success');
+      }
+
+      function solveSchedule(teachers, sessions, perRoom, config) {
+        const groups = new Map();
+        sessions.forEach(session => {
+          const key = timeKey(session);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(session);
+        });
+        const counts = new Map(teachers.map(t => [t.id, 0]));
+        const daySlots = new Map();
+        const assignments = [];
+
+        const orderedGroups = [...groups.entries()].sort(([a],[b]) => a.localeCompare(b));
+        const crossGrade = !!config.crossGrade;
+        for (const [groupKey, groupSessions] of orderedGroups) {
+          if (groupSessions.length * perRoom > teachers.length) {
+            return { ok: false, message: `${formatTimeKey(groupKey)} 需要 ${groupSessions.length * perRoom} 人，但启用教师只有 ${teachers.length} 人；同一时段不能重复安排同一人。` };
+          }
+          const slots = [];
+          groupSessions.forEach(session => {
+            let eligible;
+            if (config.avoidOwnGrade) {
+              eligible = teachers.filter(t => !(t.grades || []).includes(session.grade));
+              if (!eligible.length) eligible = teachers;
+            } else {
+              eligible = crossGrade ? teachers : teachers.filter(t => teacherMatchesGrade(t, session));
+            }
+            for (let seat = 0; seat < perRoom; seat++) slots.push({ session, seat, eligible });
+          });
+          slots.sort((a,b) => a.eligible.length - b.eligible.length || Math.random() - .5);
+          const impossible = slots.find(slot => !slot.eligible.length);
+          if (impossible) return { ok: false, message: `${formatTimeKey(groupKey)} 的 ${impossible.session.grade}${impossible.session.className} 没有可用的教师${crossGrade ? '' : '（该年级）'}。` };
+          const used = new Set();
+          const selected = new Map();
+          const maxNodes = 80000;
+          let nodes = 0;
+
+          const backtrack = index => {
+            if (index === slots.length) return true;
+            if (++nodes > maxNodes) return false;
+            const slot = slots[index];
+            const candidates = slot.eligible.filter(t => !used.has(t.id));
+            candidates.sort((a,b) => candidateScore(a, slot.session, counts, daySlots, config) - candidateScore(b, slot.session, counts, daySlots, config));
+            for (const teacher of candidates) {
+              used.add(teacher.id); selected.set(`${slot.session.id}|${slot.seat}`, teacher);
+              if (backtrack(index + 1)) return true;
+              selected.delete(`${slot.session.id}|${slot.seat}`); used.delete(teacher.id);
+            }
+            return false;
+          };
+          if (!backtrack(0)) return { ok: false, message: `${formatTimeKey(groupKey)} 无法完成分配。请为相关年级增加教师、减少考场或使用机动人员手工补充。` };
+          groupSessions.forEach(session => {
+            const assigned = [];
+            for (let seat = 0; seat < perRoom; seat++) {
+              const teacher = selected.get(`${session.id}|${seat}`);
+              assigned.push({ id: teacher.id, name: teacher.name, grade: teacher.grade, monitorGrade: teacher.monitorGrade });
+              counts.set(teacher.id, counts.get(teacher.id) + 1);
+              if (!daySlots.has(teacher.id)) daySlots.set(teacher.id, []);
+              daySlots.get(teacher.id).push({ date: session.date, time: session.time });
+            }
+            assignments.push({ ...structuredClone(session), teachers: assigned });
+          });
+        }
+        assignments.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || gradeRank(a.grade)-gradeRank(b.grade) || a.className.localeCompare(b.className, 'zh-CN', {numeric:true}));
+        return { ok: true, assignments };
+      }
+
+      function teacherMatchesGrade(teacher, session) { return teacher.monitorGrade === session.grade; }
+
+      function candidateScore(teacher, session, counts, daySlots, config) {
+        let score = Math.random() * 18;
+        if (config.balanceLoad) score += counts.get(teacher.id) * 100;
+        if (config.crossGrade && teacher.monitorGrade !== session.grade) score += 300;
+        if (config.sameSubjectAvoid && teacherTeachesSubject(teacher, session.subject)) score += 350;
+        if (config.avoidOwnGrade && (teacher.grades || []).includes(session.grade)) score += 3000;
+        if (config.avoidConsecutive) {
+          const sameDay = (daySlots.get(teacher.id) || []).filter(slot => slot.date === session.date);
+          score += sameDay.length * 10;
+          if (sameDay.some(slot => areAdjacentTimes(slot.time, session.time))) score += 450;
+        }
+        return score;
+      }
+
+      function areAdjacentTimes(a, b) {
+        const aParts = a.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+        const bParts = b.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+        if (!aParts || !bParts) return false;
+        const aEnd = Number(aParts[3]) * 60 + Number(aParts[4]);
+        const bStart = Number(bParts[1]) * 60 + Number(bParts[2]);
+        const bEnd = Number(bParts[3]) * 60 + Number(bParts[4]);
+        const aStart = Number(aParts[1]) * 60 + Number(aParts[2]);
+        return Math.min(Math.abs(aEnd - bStart), Math.abs(bEnd - aStart)) <= 120;
+      }
+
+      function formatTimeKey(key) { const [date, time] = key.split('|'); return `${date} ${time}`; }
+
+      function renderAll() {
+        renderTeacherPool(); renderSessionsCount(); renderSchedule(); renderHistory(); renderGradeOptions(); applyConfigToControls(); renderGradeRows(); renderReadiness(); syncCustomRoomsInput();
+        const tt = $('#timeTemplateInput');
+        if (tt && document.activeElement !== tt && tt.value !== state.timeTemplate) tt.value = state.timeTemplate;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function filteredTeachers() {
+        const query = $('#teacherSearch').value.trim().toLocaleLowerCase();
+        const department = $('#teacherDeptFilter').value;
+        const grade = $('#teacherGradeFilter').value;
+        const onlyExam = $('#onlyExamGrade')?.checked;
+        const examGrades = sessionGradesSet();
+        return state.teachers.filter(teacher => {
+          const searchable = `${teacher.name} ${(teacher.grades || []).join(' ')} ${(teacher.departments || []).join(' ')}`.toLocaleLowerCase();
+          return (!query || searchable.includes(query)) && (!department || teacher.departments.includes(department)) && (!grade || teacher.grades.includes(grade)) && (!onlyExam || !examGrades.size || (teacher.grades || []).some(g => examGrades.has(g)));
+        });
+      }
+
+      function renderTeacherPool() {
+        const filtered = filteredTeachers();
+        const selectedCount = state.teachers.filter(teacher => teacher.enabled).length;
+        $('#teacherCount').textContent = `${state.teachers.length} 人 · 本次 ${selectedCount}`;
+        const groups = new Map();
+        filtered.forEach(teacher => {
+          const group = teacher.departments.length > 1 ? '跨学部' : teacher.departments[0] || '未分学部';
+          if (!groups.has(group)) groups.set(group, []); groups.get(group).push(teacher);
+        });
+        if (!filtered.length) { $('#teacherPool').innerHTML = `<div class="pool-empty">${state.teachers.length ? '无匹配人员' : '暂无人员'}</div>`; return; }
+        $('#teacherPool').innerHTML = [...groups.entries()].map(([group, teachers]) => `
+          <div class="grade-group"><div class="grade-title"><span>${esc(group)}</span><span>${teachers.length} 人</span></div>
+          ${teachers.map(t => `<div class="teacher-row ${t.enabled ? 'selected' : ''}"><input type="checkbox" data-teacher-toggle="${t.id}" ${t.enabled ? 'checked' : ''} aria-label="选择 ${esc(t.name)}"><div><div class="teacher-name" title="${esc(t.name)}">${esc(t.name)}</div><div class="teacher-source">任教：${esc(t.grades.join('、'))}</div></div><select data-monitor-grade="${t.id}" ${t.enabled ? '' : 'disabled'} aria-label="${esc(t.name)}本次监考年级">${monitorGradeOptionsHtml(t.monitorGrade)}</select><button class="icon-btn" data-teacher-delete="${t.id}" title="移除" aria-label="移除 ${esc(t.name)}"><i data-lucide="x"></i></button></div>`).join('')}</div>
+        `).join('');
+      }
+
+      function toggleVisibleTeachers() {
+        const visible = filteredTeachers();
+        if (!visible.length) return toast('当前筛选没有教师', 'error');
+        const shouldSelect = !visible.every(teacher => teacher.enabled);
+        const filterGrade = $('#teacherGradeFilter').value;
+        visible.forEach(teacher => {
+          teacher.enabled = shouldSelect;
+          teacher.monitorGrade = shouldSelect ? (teacher.monitorGrade || filterGrade || teacher.grades[0]) : '';
+        });
+        persistAndRender();
+      }
+
+      function applyBulkMonitorGrade() {
+        const monitorGrade = $('#bulkMonitorGrade').value;
+        if (!monitorGrade) return toast('请先选择本次监考年级或机动人员', 'error');
+        const teachers = filteredTeachers().filter(teacher => teacher.enabled);
+        if (!teachers.length) return toast('当前筛选范围内没有已勾选教师', 'error');
+        teachers.forEach(teacher => { teacher.monitorGrade = monitorGrade; });
+        persistAndRender();
+        toast(`已设置 ${teachers.length} 位教师`);
+      }
+
+      function teacherAssignmentStats() {
+        const current = new Map();
+        state.result.forEach(row => (row.teachers || []).forEach(t => current.set(t.id, (current.get(t.id) || 0) + 1)));
+        const cumulative = new Map();
+        state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach(t => cumulative.set(t.id, (cumulative.get(t.id) || 0) + 1))));
+        return { current, cumulative };
+      }
+
+      function openManageTeachers() {
+        $('#mtGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#mtNameInput').value = ''; $('#mtDeptInput').value = ''; $('#mtSearch').value = '';
+        $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
+        renderManageTable();
+        $('#manageTeachersDialog').showModal();
+      }
+
+      function renderManageTable() {
+        const query = $('#mtSearch').value.trim().toLocaleLowerCase();
+        const { current, cumulative } = teacherAssignmentStats();
+        const teachers = state.teachers.filter(t => !query || t.name.toLocaleLowerCase().includes(query) || (t.grades || []).some(g => g.includes(query)));
+        $('#mtTableBody').innerHTML = teachers.map(t => `<tr>
+          <td><strong>${esc(t.name)}</strong></td>
+          <td>${esc((t.departments || []).join('、') || '未分学部')}</td>
+          <td>${esc((t.grades || []).join('、'))}</td>
+          <td>${esc((t.subjects || []).join('、') || '—')}</td>
+          <td>${esc(t.monitorGrade === 'reserve' ? '机动人员' : (t.monitorGrade || '—'))}</td>
+          <td>${current.get(t.id) || 0}</td>
+          <td>${cumulative.get(t.id) || 0}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm" data-mt-detail="${t.id}">明细</button>
+            <button class="btn btn-sm" data-mt-edit="${t.id}">编辑</button>
+            <button class="btn btn-sm danger-text" data-mt-delete="${t.id}" style="color:var(--danger)">删除</button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="8" class="muted">暂无人员</td></tr>';
+      }
+
+      function addManageTeacher() {
+        const name = normalizeName($('#mtNameInput').value);
+        if (!isLikelyName(name)) return toast('请输入有效姓名', 'error');
+        const grade = $('#mtGradeInput').value;
+        if (!grade) return toast('请选择任教年级', 'error');
+        addTeachers([{ name, grade, subjects: getCheckedSubjects('mtSubjectsBox') }], '手工添加');
+        $('#mtNameInput').value = ''; $('#mtGradeInput').value = '';
+        $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
+        renderManageTable();
+      }
+
+      function openTeacherEdit(id) {
+        const teacher = state.teachers.find(t => t.id === id);
+        if (!teacher) return;
+        editingTeacherId = id;
+        $('#teNameInput').value = teacher.name;
+        $('#teDeptInput').value = teacher.departments.length === 1 && ['小学部','中学部'].includes(teacher.departments[0]) ? teacher.departments[0] : '';
+        $('#teGradeInput').innerHTML = gradeSelectOptionsHtml(teacher.grades[0]);
+        $('#teSubjectsBox').innerHTML = subjectChipsHtml(teacher.subjects || []);
+        $('#teacherEditDialog').showModal();
+      }
+
+      function saveTeacherEdit() {
+        const teacher = state.teachers.find(t => t.id === editingTeacherId);
+        if (!teacher) return;
+        const name = normalizeName($('#teNameInput').value);
+        if (!isLikelyName(name)) return toast('请输入有效姓名', 'error');
+        if (state.teachers.some(t => t.id !== teacher.id && t.name === name)) return toast('同名教师已存在', 'error');
+        const grade = $('#teGradeInput').value;
+        if (!grade) return toast('请选择任教年级', 'error');
+        const dept = $('#teDeptInput').value;
+        teacher.name = name;
+        teacher.grades = [grade];
+        teacher.grade = grade;
+        teacher.subjects = getCheckedSubjects('teSubjectsBox');
+        teacher.departments = dept ? [dept] : [...new Set([grade].map(departmentForGrade))];
+        sortTeachers();
+        persistAndRender();
+        $('#teacherEditDialog').close(); editingTeacherId = null;
+        renderManageTable();
+      }
+
+      function removeManageTeacher(id) {
+        const teacher = state.teachers.find(t => t.id === id);
+        if (!teacher) return;
+        confirmAction(`删除「${teacher.name}」`, `将从人员库删除该教师，已生成的排表和版本记录不受影响。`, () => {
+          state.teachers = state.teachers.filter(t => t.id !== id);
+          persistAndRender(); renderManageTable();
+        });
+      }
+
+      function openTeacherDetail(id) {
+        const teacher = state.teachers.find(t => t.id === id);
+        if (!teacher) return;
+        const rows = [];
+        state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach((assigned, seat) => {
+          if (assigned.id !== id) return;
+          rows.push({ date: row.date, time: row.time, subject: row.subject, grade: row.grade, className: row.className, role: row.teachers.length > 1 ? (seat === 0 ? '主监' : '副监') : '监考' });
+        })));
+        rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
+        $('#teacherDetailTitle').textContent = `${teacher.name} 的监考明细`;
+        $('#teacherDetailSummary').textContent = rows.length ? `累计监考 ${rows.length} 场（来自全部历史版本），按日期排序。` : '该教师目前没有监考记录。';
+        $('#teacherDetailBody').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.subject || '—')}</td><td>${esc(r.grade)}</td><td>${esc(r.className)}</td><td>${esc(r.role)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">暂无监考记录</td></tr>';
+        $('#teacherDetailDialog').showModal();
+      }
+
+      function startNewExam() {
+        confirmAction('新建考试', '将清空本次勾选、临时监考年级、场次、排表和版本记录；长期人员库继续保留。', () => {
+          state.teachers.forEach(teacher => { teacher.enabled = false; teacher.monitorGrade = ''; });
+          state.sessions = []; state.result = []; state.history = []; state.activeVersionId = null; state.resultTab = 'primary';
+          state.gradeRows = []; state.timeTemplate = '';
+          persistAndRender(); toast('已建立新的考试编排');
+        });
+      }
+
+      function renderSessionsCount() { $('#sessionCount').textContent = `${state.sessions.length} 场`; }
+
+      function renderSessionEditor() {
+        const root = $('#sessionList');
+        if (!state.sessions.length) { root.innerHTML = '<div class="history-empty">暂无场次</div>'; return; }
+        root.innerHTML = state.sessions.map(s => `<div class="session-row" data-session-id="${s.id}">
+          <select data-field="grade" aria-label="年级">${gradeSelectOptionsHtml(s.grade)}</select>
+          <select data-field="subject" aria-label="科目">${subjectOptionsHtml(s.grade, s.subject || '')}</select>
+          <input type="date" data-field="date" value="${esc(s.date)}" aria-label="日期">
+          <input data-field="time" value="${esc(s.time)}" aria-label="时间">
+          <select data-field="className" aria-label="考场">${roomNameOptionsHtml(s.className)}</select>
+          <button class="icon-btn" data-session-delete="${s.id}" title="删除" aria-label="删除场次"><i data-lucide="trash-2"></i></button>
+        </div>`).join('');
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function renderSchedule() {
+        const has = state.result.length > 0;
+        $('#scheduleEmpty').hidden = has;
+        $('#scheduleScroll').hidden = !has;
+        $('#rerollBtn').disabled = !has;
+        $('#exportBtn').disabled = !has;
+        $('#exportShiftsBtn').disabled = !has;
+        $('#publishBtn').disabled = !has;
+        $('#printBtn').disabled = !has;
+        $('#clearResultBtn').disabled = !has;
+        $$('#resultTabs button').forEach(button => button.classList.toggle('active', button.dataset.resultTab === state.resultTab));
+        if (!has) {
+          $('#templateView').innerHTML = '';
+          $('#resultSubtitle').textContent = '尚未生成';
+          $('#metricSessions').textContent = '0'; $('#metricAssignments').textContent = '0'; $('#metricTeachers').textContent = '0'; $('#metricVersion').textContent = '--';
+          renderWorkload(); return;
+        }
+        const version = state.history.find(v => v.id === state.activeVersionId);
+        const subjectCount = new Set(state.result.map(row => row.subject).filter(Boolean)).size;
+        $('#resultSubtitle').textContent = `${formatDateTime(version?.generatedAt || new Date().toISOString())} · ${subjectCount} 个科目 · ${policyText(version?.config || state.config)}`;
+        $('#metricSessions').textContent = state.result.length;
+        $('#metricAssignments').textContent = state.result.reduce((n, row) => n + row.teachers.length, 0);
+        $('#metricTeachers').textContent = new Set(state.result.flatMap(row => row.teachers.map(t => t.id))).size;
+        $('#metricVersion').textContent = version?.label || '已恢复';
+        $('#templateView').innerHTML = state.resultTab === 'stats' ? renderStatsPage() : renderDepartmentTemplate(state.resultTab);
+        renderWorkload();
+      }
+
+      function resultEventKey(row) { return `${row.date}|${normalizeTime(row.time)}|${row.subject}`; }
+
+      function displayExamDate(date) {
+        try {
+          const value = new Date(`${date}T00:00:00`);
+          return `${value.getFullYear()}年${value.getMonth()+1}月${value.getDate()}日（${new Intl.DateTimeFormat('zh-CN',{weekday:'short'}).format(value)}）`;
+        } catch { return date; }
+      }
+
+      function renderDepartmentTemplate(tab) {
+        const department = tab === 'primary' ? '小学部' : '初中部';
+        const departmentKey = tab === 'primary' ? '小学部' : '中学部';
+        const allowed = tab === 'primary' ? [1,2,3,4,5,6] : [7,8,9];
+        const grades = [...new Set(state.result.map(row => row.grade))].filter(grade => allowed.includes(gradeNumber(grade))).sort((a,b) => gradeRank(a)-gradeRank(b));
+        if (!grades.length) return `<div class="template-empty">本次没有${department}监考安排</div>`;
+        const year = state.result[0]?.date?.slice(0,4) || new Date().getFullYear();
+        const blocks = grades.map(grade => {
+          const rows = state.result.filter(row => row.grade === grade);
+          const eventMap = new Map();
+          rows.forEach(row => eventMap.set(resultEventKey(row), { date: row.date, time: row.time, subject: row.subject }));
+          const events = [...eventMap.values()].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.subject.localeCompare(b.subject,'zh-CN'));
+          const rooms = [...new Set(rows.map(row => row.className))].sort((a,b) => a.localeCompare(b,'zh-CN',{numeric:true}));
+          const dateGroups = [];
+          events.forEach(event => {
+            const previous = dateGroups.at(-1);
+            if (previous?.date === event.date) previous.count++;
+            else dateGroups.push({ date: event.date, count: 1 });
+          });
+          const headDates = dateGroups.map(group => `<th colspan="${group.count}">${esc(displayExamDate(group.date))}</th>`).join('');
+          const headEvents = events.map(event => `<th class="exam-cell"><span class="subject-badge ${subjectBadgeClass(event.subject)}">${esc(event.subject)}</span><br><span class="muted">${esc(event.time)}</span></th>`).join('');
+          const body = rooms.map((room, roomIndex) => {
+            const cells = events.map(event => {
+              const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
+              if (!assignment) return '<td></td>';
+              const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id)?.monitorGrade === 'reserve');
+              const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
+              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" title="点击调整教师">${esc(cellNames)}</td>`;
+            }).join('');
+            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(room)}</td>${cells}</tr>`;
+          }).join('');
+          return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
+        }).join('');
+        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve' && teacher.departments.includes(departmentKey));
+        return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}</div></div>`;
+      }
+
+      function gradeStatistics() {
+        const perRoom = Number(state.config.teacherPerRoom) || 1;
+        const grades = [...new Set([...state.sessions.map(row => row.grade), ...state.teachers.filter(t => t.enabled && t.monitorGrade !== 'reserve').map(t => t.monitorGrade)])].filter(Boolean).sort((a,b) => gradeRank(a)-gradeRank(b));
+        return grades.map(grade => {
+          const sessions = state.sessions.filter(row => row.grade === grade);
+          const byTime = new Map();
+          sessions.forEach(row => byTime.set(timeKey(row), (byTime.get(timeKey(row)) || 0) + 1));
+          const required = Math.max(0, ...[...byTime.values()].map(count => count * perRoom));
+          const selected = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === grade).length;
+          const personTimes = state.result.filter(row => row.grade === grade).reduce((sum,row) => sum + row.teachers.length, 0);
+          return { grade, rooms: sessions.length, required, selected, balance: selected - required, personTimes };
+        });
+      }
+
+      function renderStatsPage() {
+        const stats = gradeStatistics();
+        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve');
+        const summaryRows = stats.map(item => `<tr><td><span class="grade-badge">${esc(item.grade)}</span></td><td>${item.rooms}</td><td>${item.required}</td><td>${item.selected}</td><td class="${item.balance >= 0 ? 'status-good' : 'status-bad'}">${item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`}</td><td>${item.personTimes}</td></tr>`).join('');
+        const selected = state.teachers.filter(teacher => teacher.enabled);
+        const teacherRows = selected.sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).map(teacher => {
+          const assigned = state.result.filter(row => row.teachers.some(item => item.id === teacher.id));
+          const details = assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；');
+          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${teacher.monitorGrade === 'reserve' ? 'reserve-mark' : ''}">${esc(teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade)}</td><td><strong>${assigned.length}</strong></td><td class="muted">${esc(details || '尚未安排')}</td></tr>`;
+        }).join('');
+        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">机动人员：${reserves.length ? esc(reserves.map(t => t.name).join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>监考次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table></div></div></div>`;
+      }
+
+      function renderWorkload() {
+        if (!state.result.length) { $('#workloadList').innerHTML = '<div class="history-empty">暂无数据</div>'; $('#workloadRange').textContent = '0 - 0 场'; return; }
+        const counts = new Map();
+        state.result.forEach(row => row.teachers.forEach(t => counts.set(t.name, (counts.get(t.name) || 0) + 1)));
+        const values = [...counts.values()]; const min = Math.min(...values), max = Math.max(...values);
+        $('#workloadRange').textContent = `${min} - ${max} 场`;
+        $('#workloadList').innerHTML = [...counts.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'zh-CN')).map(([name,count]) => `<div class="load-row"><span title="${esc(name)}">${esc(name)}</span><div class="load-bar"><div class="load-fill" style="width:${Math.max(8, count/max*100)}%"></div></div><span class="load-count">${count}</span></div>`).join('');
+      }
+
+      function renderHistory() {
+        $('#historyCount').textContent = `${state.history.length} 版`;
+        if (!state.history.length) { $('#historyList').innerHTML = '<div class="history-empty">生成后自动保存</div>'; return; }
+        $('#historyList').innerHTML = state.history.map(v => {
+          const subjectCount = new Set(v.result.map(row => row.subject).filter(Boolean)).size;
+          return `<div class="history-row ${v.id === state.activeVersionId ? 'active' : ''}" data-history-view="${v.id}"><div><div class="history-name">${esc(v.label)}</div><div class="history-meta">${formatDateTime(v.generatedAt)} · ${v.result.length} 场 · ${subjectCount || '未设'}科 · ${policyText(v.config)}</div></div><button class="icon-btn danger" data-history-delete="${v.id}" title="删除版本" aria-label="删除版本"><i data-lucide="trash-2"></i></button></div>`;
+        }).join('');
+      }
+
+      function renderGradeOptions() {
+        const grades = [...new Set([...DEFAULT_GRADES, ...state.teachers.flatMap(t => t.grades || [t.grade]), ...state.sessions.map(s => s.grade)])];
+        $('#gradeOptions').innerHTML = grades.map(g => `<option value="${esc(g)}"></option>`).join('');
+      }
+
+      function applyConfigToControls() {
+        const radio = $(`input[name="teacherPerRoom"][value="${state.config.teacherPerRoom}"]`);
+        if (radio) radio.checked = true;
+        $('#balanceLoad').checked = state.config.balanceLoad !== false;
+        $('#avoidConsecutive').checked = !!state.config.avoidConsecutive;
+        $('#crossGrade').checked = !!state.config.crossGrade;
+        $('#sameSubjectAvoid').checked = !!state.config.sameSubjectAvoid;
+        $('#avoidOwnGrade').checked = !!state.config.avoidOwnGrade;
+      }
+
+      function policyText(config = {}) {
+        return `${config.teacherPerRoom || '?'} 人/场，按本次指定年级${config.crossGrade ? '（可跨年级调配）' : ''}`;
+      }
+
+      function handleDelegatedClick(event) {
+        const toggle = event.target.closest('[data-teacher-toggle]');
+        if (toggle) {
+          const teacher = state.teachers.find(t => t.id === toggle.dataset.teacherToggle);
+          if (teacher) {
+            teacher.enabled = toggle.checked;
+            teacher.monitorGrade = teacher.enabled ? (teacher.monitorGrade || $('#teacherGradeFilter').value || teacher.grades[0]) : '';
+            persistAndRender();
+          }
+          return;
+        }
+        const teacherDelete = event.target.closest('[data-teacher-delete]');
+        if (teacherDelete) { state.teachers = state.teachers.filter(t => t.id !== teacherDelete.dataset.teacherDelete); persistAndRender(); return; }
+        const sessionDelete = event.target.closest('[data-session-delete]');
+        if (sessionDelete) { state.sessions = state.sessions.filter(s => s.id !== sessionDelete.dataset.sessionDelete); state.result = []; state.activeVersionId = null; saveState(); renderSessionEditor(); renderAll(); return; }
+        const resultDelete = event.target.closest('[data-result-delete]');
+        if (resultDelete) { state.result = state.result.filter(r => r.id !== resultDelete.dataset.resultDelete); state.activeVersionId = null; persistAndRender(); return; }
+        const historyDelete = event.target.closest('[data-history-delete]');
+        if (historyDelete) { event.stopPropagation(); confirmAction('删除版本', '此操作只删除所选历史版本。', () => { state.history = state.history.filter(v => v.id !== historyDelete.dataset.historyDelete); if (state.activeVersionId === historyDelete.dataset.historyDelete) state.activeVersionId = null; persistAndRender(); }); return; }
+        const historyView = event.target.closest('[data-history-view]');
+        if (historyView) showHistory(historyView.dataset.historyView);
+        const planLoad = event.target.closest('[data-plan-load]');
+        if (planLoad) { requestPlanLoad(planLoad.dataset.planLoad); return; }
+        const planDelete = event.target.closest('[data-plan-delete]');
+        if (planDelete) { confirmAction('删除方案', '此操作只删除所选方案。', () => { state.plans = state.plans.filter(p => p.id !== planDelete.dataset.planDelete); saveState(); renderPlanList(); }); return; }
+        const assignmentCell = event.target.closest('[data-assignment-id]');
+        if (assignmentCell) openAssignmentEditor(assignmentCell.dataset.assignmentId);
+        const mtDetail = event.target.closest('[data-mt-detail]');
+        if (mtDetail) { openTeacherDetail(mtDetail.dataset.mtDetail); return; }
+        const mtEdit = event.target.closest('[data-mt-edit]');
+        if (mtEdit) { openTeacherEdit(mtEdit.dataset.mtEdit); return; }
+        const mtDelete = event.target.closest('[data-mt-delete]');
+        if (mtDelete) { removeManageTeacher(mtDelete.dataset.mtDelete); return; }
+        const subjToggle = event.target.closest('.gr-subj-toggle');
+        if (subjToggle) {
+          const panel = subjToggle.parentElement.querySelector('.gr-subj-panel');
+          if (panel) { const was = panel.classList.contains('open'); $$('.gr-subj-panel').forEach(p => p.classList.remove('open')); if (!was) panel.classList.add('open'); }
+          return;
+        }
+        const grDel = event.target.closest('.gr-del');
+        if (grDel) {
+          const rowEl = grDel.closest('.grade-row');
+          if (rowEl) { state.gradeRows = state.gradeRows.filter(r => r.id !== rowEl.dataset.grId); saveState(); renderGradeRows(); }
+          return;
+        }
+        if (!event.target.closest('.gr-subject-drop')) $$('.gr-subj-panel').forEach(p => p.classList.remove('open'));
+      }
+
+      document.addEventListener('change', event => {
+        const grGrade = event.target.closest('.gr-grade');
+        if (grGrade) {
+          const rowEl = grGrade.closest('.grade-row');
+          const row = state.gradeRows.find(r => r.id === rowEl?.dataset.grId);
+          if (row) {
+            row.grade = grGrade.value;
+            row.subjects = row.subjects.filter(s => subjectsForGrades([row.grade]).includes(s));
+            saveState(); renderGradeRows();
+          }
+          return;
+        }
+        const grRooms = event.target.closest('.gr-rooms');
+        if (grRooms) {
+          const rowEl = grRooms.closest('.grade-row');
+          const row = state.gradeRows.find(r => r.id === rowEl?.dataset.grId);
+          if (row) { row.roomCount = Number(grRooms.value) || 1; saveState(); }
+          return;
+        }
+        const grTime = event.target.closest('.gr-time-input');
+        if (grTime) {
+          const rowEl = grTime.closest('.grade-row');
+          const row = state.gradeRows.find(r => r.id === rowEl?.dataset.grId);
+          const subject = grTime.dataset.subj;
+          const parsed = parseTimeInput(grTime.value, $('#examDate').value || todayString());
+          if (row && subject) {
+            if (parsed.time) {
+              state.combinedTimes[`${row.grade}|${subject}`] = parsed.time;
+              state.combinedTimes[subject] = parsed.time;
+            } else {
+              delete state.combinedTimes[`${row.grade}|${subject}`];
+              delete state.combinedTimes[subject];
+            }
+            saveState();
+          }
+          return;
+        }
+        const grSubj = event.target.closest('.gr-subj-panel input[type="checkbox"]');
+        if (grSubj) {
+          const rowEl = grSubj.closest('.grade-row');
+          const row = state.gradeRows.find(r => r.id === rowEl?.dataset.grId);
+          if (row) {
+            const value = grSubj.value;
+            if (grSubj.checked) { if (!row.subjects.includes(value)) row.subjects.push(value); }
+            else row.subjects = row.subjects.filter(s => s !== value);
+            saveState(); renderRowTimes(rowEl, row);
+          }
+          return;
+        }
+        const monitorSelect = event.target.closest('[data-monitor-grade]');
+        if (monitorSelect) {
+          const teacher = state.teachers.find(item => item.id === monitorSelect.dataset.monitorGrade);
+          if (teacher) { teacher.monitorGrade = monitorSelect.value; persistAndRender(); }
+          return;
+        }
+        const row = event.target.closest('[data-session-id]');
+        if (!row || !event.target.dataset.field) return;
+        const session = state.sessions.find(s => s.id === row.dataset.sessionId);
+        if (session) {
+          const field = event.target.dataset.field;
+          session[field] = field === 'grade' ? normalizeGrade(event.target.value) : field === 'time' ? normalizeTime(event.target.value) : event.target.value.trim();
+          if (field === 'grade' && session.subject && !subjectsForGrades([session.grade]).includes(session.subject)) session.subject = '';
+          sortSessions(); state.result = []; state.activeVersionId = null; saveState(); renderAll(); renderSessionEditor();
+        }
+      });
+
+      function openAssignmentEditor(id) {
+        const assignment = state.result.find(row => row.id === id);
+        if (!assignment) return;
+        editingAssignmentId = id;
+        $('#assignmentMeta').textContent = `${assignment.date} ${assignment.time} · ${assignment.grade} · ${assignment.subject} · ${assignment.className}`;
+        const candidates = state.teachers.filter(teacher => teacher.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN'));
+        const gradeLabel = g => g === 'reserve' ? '机动' : g || '未设';
+        const optionHtml = (selectedId, allowEmpty = false) => `${allowEmpty ? '<option value="">不安排</option>' : '<option value="">请选择教师</option>'}${candidates.map(teacher => `<option value="${teacher.id}" ${teacher.id === selectedId ? 'selected' : ''}>${esc(teacher.name)}（${esc(gradeLabel(teacher.monitorGrade))}）</option>`).join('')}`;
+        const single = Number(state.config.teacherPerRoom) === 1;
+        $('#assignmentTeacher1').innerHTML = optionHtml(assignment.teachers[0]?.id);
+        $('#assignmentTeacher2').innerHTML = optionHtml(assignment.teachers[1]?.id, single);
+        $('#assignmentTeacher2').disabled = single;
+        $('#swapAssignmentBtn').hidden = single;
+        $('#assignmentDialog').showModal();
+      }
+
+      function saveAssignmentEdit() {
+        const assignment = state.result.find(row => row.id === editingAssignmentId);
+        if (!assignment) return;
+        const expected = Number(state.config.teacherPerRoom) || assignment.teachers.length;
+        const ids = [$('#assignmentTeacher1').value, $('#assignmentTeacher2').value].slice(0, expected).filter(Boolean);
+        if (ids.length !== expected) return toast(`请选择 ${expected} 位监考教师`, 'error');
+        if (new Set(ids).size !== ids.length) return toast('同一考场不能安排同一位教师两次', 'error');
+        const conflicting = ids.find(id => state.result.some(row => row.id !== assignment.id && timeKey(row) === timeKey(assignment) && row.teachers.some(teacher => teacher.id === id)));
+        if (conflicting) {
+          const teacher = state.teachers.find(item => item.id === conflicting);
+          return toast(`${teacher?.name || '所选教师'}在同一时段已有监考`, 'error');
+        }
+        assignment.teachers = ids.map(id => {
+          const teacher = state.teachers.find(item => item.id === id);
+          return { id: teacher.id, name: teacher.name, grade: teacher.grade, monitorGrade: teacher.monitorGrade };
+        });
+        const number = state.history.reduce((max, item) => Math.max(max, item.number || 0), 0) + 1;
+        const version = { id: uid(), number, generatedAt: new Date().toISOString(), label: `第 ${number} 版（手动调整）`, result: structuredClone(state.result), config: structuredClone(state.config), sessions: structuredClone(state.sessions), teacherSelection: state.teachers.filter(t => t.enabled).map(t => ({ id:t.id, monitorGrade:t.monitorGrade })) };
+        state.history.unshift(version); state.activeVersionId = version.id;
+        $('#assignmentDialog').close(); editingAssignmentId = null; persistAndRender();
+        showNotice(`教师调整已保存为第 ${number} 版。`, 'success');
+      }
+
+      function showHistory(id) {
+        const version = state.history.find(v => v.id === id);
+        if (!version) return;
+        viewedHistoryId = id;
+        $('#historyDialogTitle').textContent = `${version.label} · ${formatDateTime(version.generatedAt)}`;
+        $('#historyDialogBody').innerHTML = version.result.map(row => `<tr><td>${esc(row.date)}</td><td>${esc(row.time)}</td><td>${esc(row.subject || '未设置')}</td><td>${esc(row.grade)}</td><td>${esc(row.className)}</td><td>${esc(row.teachers.map(t => t.name).join('、'))}</td></tr>`).join('');
+        $('#historyDialog').showModal();
+      }
+
+      function restoreViewedVersion() {
+        const version = state.history.find(v => v.id === viewedHistoryId);
+        if (!version) return;
+        state.result = structuredClone(version.result);
+        state.sessions = structuredClone(version.sessions || version.result.map(({teachers, ...session}) => session));
+        state.config = structuredClone(version.config);
+        if (version.teacherSelection) {
+          const selected = new Map(version.teacherSelection.map(item => [item.id, item.monitorGrade]));
+          state.teachers.forEach(teacher => { teacher.enabled = selected.has(teacher.id); teacher.monitorGrade = selected.get(teacher.id) || ''; });
+        }
+        state.activeVersionId = version.id;
+        $('#historyDialog').close(); persistAndRender(); toast(`已恢复${version.label}`);
+      }
+
+      function splitTimeRange(time) {
+        const m = String(time || '').match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
+        return m ? [m[1], m[2]] : [String(time || ''), ''];
+      }
+
+      async function exportShiftsWorkbook() {
+        if (!state.result.length) return;
+        if (!window.ExcelJS) return toast('Excel 组件未加载，请联网后刷新', 'error');
+        try {
+          const workbook = new ExcelJS.Workbook();
+          workbook.creator = '监考编排台';
+          const worksheet = workbook.addWorksheet('班次导入表', { pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1 } });
+          worksheet.columns = [
+            { header: '日期', key: 'date', width: 12 },
+            { header: '开始时间', key: 'start', width: 10 },
+            { header: '结束时间', key: 'end', width: 10 },
+            { header: '班次名称', key: 'name', width: 28 },
+            { header: '年级', key: 'grade', width: 10 },
+            { header: '科目', key: 'subject', width: 16 },
+            { header: '考场', key: 'room', width: 12 },
+            { header: '监考教师', key: 'teacher', width: 14 }
+          ];
+          worksheet.getRow(1).font = { name: '微软雅黑', size: 12, bold: true };
+          worksheet.getRow(1).height = 22;
+          state.result.forEach(row => {
+            const [start, end] = splitTimeRange(row.time);
+            (row.teachers || []).forEach(teacher => {
+              worksheet.addRow({ date: row.date, start, end, name: `${row.grade}${row.subject} ${row.className}`, grade: row.grade, subject: row.subject, room: row.className, teacher: teacher.name });
+            });
+          });
+          worksheet.autoFilter = { from: 'A1', to: 'H1' };
+          worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+          anchor.href = url; anchor.download = `班次导入表_${new Date().toISOString().slice(0, 10)}.xlsx`; anchor.click(); URL.revokeObjectURL(url);
+          toast('班次导入表已生成（每岗位一行，含日期/时间/班次/教师）');
+        } catch (error) { toast(`导出失败：${error.message}`, 'error'); }
+      }
+
+      async function exportWorkbook() {
+        if (!state.result.length) return;
+        if (!window.ExcelJS) return exportCsvFallback();
+        try {
+          const workbook = new ExcelJS.Workbook();
+          workbook.creator = '监考编排台';
+          addDepartmentWorksheet(workbook, '小学部监考', [1,2,3,4,5,6], '小学部');
+          addDepartmentWorksheet(workbook, '初中部监考', [7,8,9], '初中部');
+          addStatisticsWorksheet(workbook);
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+          anchor.href = url; anchor.download = `监考安排_${new Date().toISOString().slice(0,10)}.xlsx`; anchor.click(); URL.revokeObjectURL(url);
+          toast('Excel 工作簿已生成');
+        } catch (error) { toast(`Excel 生成失败：${error.message}`, 'error'); }
+      }
+
+      function addDepartmentWorksheet(workbook, name, allowedGrades, department) {
+        const worksheet = workbook.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 } });
+        const grades = [...new Set(state.result.map(row => row.grade))].filter(grade => allowedGrades.includes(gradeNumber(grade))).sort((a,b) => gradeRank(a)-gradeRank(b));
+        const eventCounts = grades.map(grade => new Set(state.result.filter(row => row.grade === grade).map(resultEventKey)).size);
+        const totalColumns = Math.max(3, 2 + Math.max(1, ...eventCounts));
+        const year = state.result[0]?.date?.slice(0,4) || new Date().getFullYear();
+        worksheet.mergeCells(1, 1, 1, totalColumns);
+        const title = worksheet.getCell(1,1); title.value = `${year}年考试监考安排表（${department}）`; title.font = { name:'微软雅黑', size:16, bold:true }; title.alignment = { horizontal:'center', vertical:'middle' };
+        worksheet.getRow(1).height = 30;
+        let cursor = 3;
+        if (!grades.length) worksheet.getCell(cursor,1).value = `本次无${department}安排`;
+        grades.forEach(grade => {
+          const rows = state.result.filter(row => row.grade === grade);
+          const eventMap = new Map(); rows.forEach(row => eventMap.set(resultEventKey(row), { date:row.date, time:row.time, subject:row.subject }));
+          const events = [...eventMap.values()].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.subject.localeCompare(b.subject,'zh-CN'));
+          const rooms = [...new Set(rows.map(row => row.className))].sort((a,b) => a.localeCompare(b,'zh-CN',{numeric:true}));
+          worksheet.mergeCells(cursor,1,cursor+1,1); worksheet.getCell(cursor,1).value = '年级';
+          worksheet.mergeCells(cursor,2,cursor+1,2); worksheet.getCell(cursor,2).value = '考场';
+          let column = 3;
+          for (let index = 0; index < events.length;) {
+            const date = events[index].date; let count = 1;
+            while (events[index+count]?.date === date) count++;
+            if (count > 1) worksheet.mergeCells(cursor,column,cursor,column+count-1);
+            worksheet.getCell(cursor,column).value = displayExamDate(date);
+            column += count; index += count;
+          }
+          events.forEach((event,index) => { worksheet.getCell(cursor+1,index+3).value = `${event.subject}\n${event.time}`; });
+          const firstRoomRow = cursor + 2;
+          rooms.forEach((room,roomIndex) => {
+            const excelRow = firstRoomRow + roomIndex;
+            worksheet.getCell(excelRow,2).value = room;
+            events.forEach((event,eventIndex) => {
+              const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
+              worksheet.getCell(excelRow,eventIndex+3).value = assignment ? (assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ')) : '';
+            });
+          });
+          if (rooms.length > 1) worksheet.mergeCells(firstRoomRow,1,firstRoomRow+rooms.length-1,1);
+          worksheet.getCell(firstRoomRow,1).value = grade;
+          const lastRow = firstRoomRow + Math.max(rooms.length,1) - 1;
+          for (let rowNumber = cursor; rowNumber <= lastRow; rowNumber++) {
+            worksheet.getRow(rowNumber).height = rowNumber <= cursor+1 ? 34 : 28;
+            for (let col = 1; col <= events.length+2; col++) styleExcelCell(worksheet.getCell(rowNumber,col), rowNumber <= cursor+1);
+          }
+          cursor = lastRow + 2;
+        });
+        const departmentKey = department === '初中部' ? '中学部' : department;
+        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve' && teacher.departments.includes(departmentKey));
+        worksheet.mergeCells(cursor,1,cursor,totalColumns); worksheet.getCell(cursor,1).value = `机动人员：${reserves.map(t => t.name).join('、') || '暂无'}`; styleExcelCell(worksheet.getCell(cursor,1), true); cursor++;
+        worksheet.getColumn(1).width = 12; worksheet.getColumn(2).width = 15;
+        for (let column = 3; column <= totalColumns; column++) worksheet.getColumn(column).width = 24;
+        worksheet.pageSetup.printArea = `A1:${excelColumnName(totalColumns)}${Math.max(cursor-1,3)}`;
+        worksheet.views = [{ state:'frozen', ySplit:1 }];
+      }
+
+      function styleExcelCell(cell, header = false) {
+        cell.font = { name:'微软雅黑', size:10, bold:header };
+        cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+        cell.border = { top:{style:'thin',color:{argb:'FF9EAAA3'}}, left:{style:'thin',color:{argb:'FF9EAAA3'}}, bottom:{style:'thin',color:{argb:'FF9EAAA3'}}, right:{style:'thin',color:{argb:'FF9EAAA3'}} };
+        if (header) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE5F3EC'} };
+      }
+
+      function excelColumnName(number) {
+        let name = '';
+        while (number) { number--; name = String.fromCharCode(65 + number % 26) + name; number = Math.floor(number / 26); }
+        return name;
+      }
+
+      function addStatisticsWorksheet(workbook) {
+        const worksheet = workbook.addWorksheet('教师统计', { pageSetup:{ orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 } });
+        worksheet.mergeCells('A1:F1'); worksheet.getCell('A1').value = '教师数量与监考次数统计'; worksheet.getCell('A1').font = {name:'微软雅黑',size:16,bold:true}; worksheet.getCell('A1').alignment = {horizontal:'center'};
+        worksheet.addRow([]); worksheet.addRow(['年级','场次数','峰值需要','已选教师','缺口/余量','监考人次']);
+        gradeStatistics().forEach(item => worksheet.addRow([item.grade,item.rooms,item.required,item.selected,item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`,item.personTimes]));
+        worksheet.addRow([]);
+        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve');
+        worksheet.addRow(['机动人员', reserves.map(t => t.name).join('、') || '暂无']);
+        worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','监考次数','具体场次']);
+        state.teachers.filter(t => t.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).forEach(teacher => {
+          const assigned = state.result.filter(row => row.teachers.some(item => item.id === teacher.id));
+          worksheet.addRow([teacher.name,teacher.grades.join('、'),teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade,assigned.length,assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排']);
+        });
+        worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
+        [14,24,16,12,65,14].forEach((width,index) => worksheet.getColumn(index+1).width = width);
+      }
+
+      function exportCsvFallback() {
+        const rows = [['日期','时间','科目','年级','考场','主监教师','副监教师']];
+        state.result.forEach(row => rows.push([row.date,row.time,row.subject || '未设置',row.grade,row.className,row.teachers[0]?.name || '',row.teachers[1]?.name || '']));
+        const csv = '\uFEFF' + rows.map(row => row.map(value => `"${String(value).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8'}); const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+        anchor.href = url; anchor.download = `监考安排_${new Date().toISOString().slice(0,10)}.csv`; anchor.click(); URL.revokeObjectURL(url); toast('Excel 组件未加载，已导出 CSV');
+      }
+
+      function loadSample() {
+        confirmAction('载入示例', '将使用岗位表人员建立一组初中示例场次，不会删除长期人员库。', () => {
+          if (!state.teachers.length) mergeBuiltinTeachers(true);
+          state.teachers.forEach(teacher => { teacher.enabled = false; teacher.monitorGrade = ''; });
+          ['七年级','八年级','九年级'].forEach(grade => state.teachers.filter(teacher => teacher.grades.includes(grade)).slice(0,6).forEach(teacher => { teacher.enabled = true; teacher.monitorGrade = grade; }));
+          const date = $('#examDate').value; state.sessions = [];
+          ['08:30-10:00','10:30-12:00'].forEach((time, timeIndex) => ['七年级','八年级','九年级'].forEach(grade => [1,2].forEach(n => state.sessions.push({id:uid(),date,time,subject:timeIndex ? '历史+道德与法治（合卷）' : '语文',grade,className:`第${n}考场`}))));
+          state.result = []; state.activeVersionId = null; sortTeachers(); sortSessions(); persistAndRender(); toast('示例已载入');
+        });
+      }
+
+      function confirmAction(title, text, callback) {
+        $('#confirmTitle').textContent = title; $('#confirmText').textContent = text; confirmCallback = callback; $('#confirmDialog').showModal();
+      }
+
+      function showNotice(message, type = '') {
+        const notice = $('#notice'); notice.className = `notice show ${type}`; $('#noticeText').textContent = message;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function toast(message, type = '') {
+        const item = document.createElement('div'); item.className = `toast ${type}`; item.innerHTML = `<i data-lucide="${type === 'error' ? 'circle-alert' : 'circle-check'}"></i><span>${esc(message)}</span>`;
+        $('#toastStack').appendChild(item); if (window.lucide) lucide.createIcons();
+        setTimeout(() => item.remove(), 3200);
+      }
+
+      function formatDateTime(iso) {
+        try { return new Intl.DateTimeFormat('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
+        catch { return iso; }
+      }
+
+      function persistAndRender() { saveState(); renderAll(); }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          $('#saveState').textContent = `已保存 ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+        } catch (error) { $('#saveState').textContent = '本地保存失败'; }
+      }
+
+      function loadState() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (raw) {
+            state.teachers = Array.isArray(raw.teachers) ? raw.teachers : [];
+            state.sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
+            state.result = Array.isArray(raw.result) ? raw.result : [];
+            state.history = Array.isArray(raw.history) ? raw.history : [];
+            state.plans = Array.isArray(raw.plans) ? raw.plans : [];
+            state.excludedNames = Array.isArray(raw.excludedNames) && raw.excludedNames.length ? raw.excludedNames : [...DEFAULT_EXCLUDED];
+            state.customRooms = Array.isArray(raw.customRooms) ? raw.customRooms : [];
+            state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
+            state.timeTemplate = raw.timeTemplate || '';
+            state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
+            state.activeVersionId = raw.activeVersionId || null;
+            state.resultTab = raw.resultTab || 'primary';
+            state.seedVersion = raw.seedVersion || '';
+            state.selectionVersion = raw.selectionVersion || 0;
+            state.config = { ...state.config, ...(raw.config || {}) };
+          } else {
+            state.timeTemplate = DEFAULT_TIME_TEMPLATE;
+          }
+          state.teachers = state.teachers.map(normalizeTeacherRecord).filter(teacher => !excludedSet().has(teacher.name));
+          if (state.selectionVersion < 1) {
+            state.teachers.forEach(teacher => { teacher.enabled = false; teacher.monitorGrade = ''; });
+            state.result = []; state.activeVersionId = null;
+            state.selectionVersion = 1;
+          }
+          mergeBuiltinTeachers();
+          normalizeStoredRoomLabels();
+        } catch (error) {
+          localStorage.removeItem(STORAGE_KEY);
+          state.teachers = []; state.sessions = []; state.result = []; state.history = [];
+          state.plans = []; state.excludedNames = [...DEFAULT_EXCLUDED]; state.customRooms = []; state.gradeRows = []; state.timeTemplate = ''; state.combinedTimes = {};
+          mergeBuiltinTeachers(true);
+        }
+      }
+
+
+      // ===================== 在线版（Supabase + 演示模式） =====================
+      const ONLINE_KEY = 'invigilation-online-v1';
+      const DEMO_KEY = 'invigilation-demo-v1';
+      const SB_TABLES = { boards: 'schedule_boards', swaps: 'swap_requests' };
+
+      function onlineLoadConfig() { try { return JSON.parse(localStorage.getItem(ONLINE_KEY)) || {} } catch (e) { return {} } }
+      function onlineSaveConfig(cfg) { localStorage.setItem(ONLINE_KEY, JSON.stringify(cfg)); }
+      function sbClient() {
+        const cfg = onlineLoadConfig();
+        if (!cfg.url || !cfg.key || typeof supabase === 'undefined') return null;
+        return supabase.createClient(cfg.url, cfg.key);
+      }
+      function demoRead() { try { return JSON.parse(localStorage.getItem(DEMO_KEY)) || { boards: {}, swaps: [] } } catch (e) { return { boards: {}, swaps: [] } } }
+      function demoWrite(d) { localStorage.setItem(DEMO_KEY, JSON.stringify(d)); }
+
+      const onlineBackend = {
+        isDemo() { return !!onlineLoadConfig().demoMode || !onlineLoadConfig().url; },
+        async test() {
+          const cfg = onlineLoadConfig();
+          if (cfg.demoMode) return { ok: true, mode: '演示模式（本机模拟）' };
+          try {
+            const c = supabase.createClient(cfg.url, cfg.key);
+            const { error } = await c.from(SB_TABLES.boards).select('id').limit(1);
+            if (error) return { ok: false, error: error.message };
+            return { ok: true, mode: 'Supabase 云端' };
+          } catch (e) { return { ok: false, error: e.message }; }
+        },
+        async createBoard(board) {
+          if (this.isDemo()) {
+            const d = demoRead();
+            const id = 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            d.boards[id] = { id, title: board.title, data: board.data, version: 1, publishedAt: new Date().toISOString() };
+            demoWrite(d); return id;
+          }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { data, error } = await c.from(SB_TABLES.boards).insert({ title: board.title, data: board.data, version: 1 }).select('id').single();
+          if (error) throw new Error(error.message);
+          return data.id;
+        },
+        async getBoard(id) {
+          if (this.isDemo()) { const d = demoRead(); return d.boards[id] || null; }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { data, error } = await c.from(SB_TABLES.boards).select('*').eq('id', id).maybeSingle();
+          if (error) throw new Error(error.message);
+          return data || null;
+        },
+        async saveBoard(board) {
+          if (this.isDemo()) {
+            const d = demoRead(); const b = d.boards[board.id];
+            if (!b) throw new Error('表不存在');
+            b.data = board.data; b.version = (b.version || 0) + 1; b.updatedAt = new Date().toISOString(); demoWrite(d); return;
+          }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { error } = await c.from(SB_TABLES.boards).update({ data: board.data, version: (board.version || 0) + 1, updated_at: new Date().toISOString() }).eq('id', board.id);
+          if (error) throw new Error(error.message);
+        },
+        async createSwap(swap) {
+          if (this.isDemo()) {
+            const d = demoRead();
+            const id = 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            d.swaps.push({ ...swap, id, createdAt: new Date().toISOString() }); demoWrite(d); return id;
+          }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { data, error } = await c.from(SB_TABLES.swaps).insert({ ...swap, createdAt: new Date().toISOString() }).select('id').single();
+          if (error) throw new Error(error.message);
+          return data.id;
+        },
+        async listSwaps(boardId) {
+          if (this.isDemo()) { const d = demoRead(); return d.swaps.filter(s => s.boardId === boardId).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')); }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { data, error } = await c.from(SB_TABLES.swaps).select('*').eq('boardId', boardId).order('createdAt', { ascending: false });
+          if (error) throw new Error(error.message);
+          return data || [];
+        },
+        async updateSwap(id, patch) {
+          if (this.isDemo()) {
+            const d = demoRead(); const s = d.swaps.find(x => x.id === id);
+            if (s) { Object.assign(s, patch); s.updatedAt = new Date().toISOString(); demoWrite(d); }
+            return;
+          }
+          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
+          const { error } = await c.from(SB_TABLES.swaps).update({ ...patch, updatedAt: new Date().toISOString() }).eq('id', id);
+          if (error) throw new Error(error.message);
+        },
+        async subscribe(boardId, onChange) {
+          if (this.isDemo()) {
+            let last = JSON.stringify([demoRead().boards[boardId]?.version, demoRead().swaps.length]);
+            const timer = setInterval(() => {
+              const now = JSON.stringify([demoRead().boards[boardId]?.version, demoRead().swaps.length]);
+              if (now !== last) { last = now; onChange(); }
+            }, 2500);
+            return () => clearInterval(timer);
+          }
+          const c = sbClient(); if (!c) return () => {};
+          const channel = c.channel('board-' + boardId);
+          channel.on('postgres_changes', { event: '*', schema: 'public', table: SB_TABLES.boards, filter: 'id=eq.' + boardId }, () => onChange())
+                 .on('postgres_changes', { event: '*', schema: 'public', table: SB_TABLES.swaps, filter: 'boardId=eq.' + boardId }, () => onChange())
+                 .subscribe();
+          return () => { try { c.removeChannel(channel); } catch (e) {} };
+        }
+      };
+
+      // ---------- 发布 ----------
+      async function publishOnline() {
+        if (!state.result.length) return toast('请先生成监考表，再发布在线版', 'error');
+        const rows = state.result.map(r => ({
+          sessionId: r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className),
+          date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
+          teachers: (r.teachers || []).map(t => t.name)
+        }));
+        const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
+        try {
+          const isDemo = onlineBackend.isDemo();
+          let boardId = state.publishedBoardId;
+          if (boardId) {
+            const b = await onlineBackend.getBoard(boardId);
+            if (b) { b.data = { rows, config: state.config }; await onlineBackend.saveBoard(b); }
+            else boardId = null;
+          }
+          if (!boardId) {
+            boardId = await onlineBackend.createBoard({ title, data: { rows, config: state.config } });
+            state.publishedBoardId = boardId; saveState();
+          }
+          const siteUrl = (onlineLoadConfig().siteUrl || location.href.split('#')[0]).replace(/\/$/, '');
+          const link = siteUrl + '#board=' + boardId;
+          $('#publishLink').value = link;
+          $('#publishIntro').innerHTML = isDemo
+            ? '已用<b>演示模式</b>发布（数据仅在本机，仅供体验流程）。配置 Supabase 后重新发布即为真实云端，链接可发给老师。'
+            : '已发布到 <b>Supabase 云端</b>。把链接发到微信群，老师打开即可查看并自助换班。';
+          $('#publishDialog').showModal();
+        } catch (e) { toast('发布失败：' + e.message, 'error'); }
+      }
+
+      // ---------- 在线视图 ----------
+      const onlineView = { boardId: null, board: null, swaps: [], identity: '', unsubscribe: null };
+
+      async function showOnlineView(boardId) {
+        onlineView.boardId = boardId;
+        onlineView.board = null; onlineView.swaps = [];
+        const idKey = 'invigilation-online-id-' + boardId;
+        onlineView.identity = localStorage.getItem(idKey) || '';
+        $('#onlineView').style.display = 'block';
+        await refreshOnline();
+        if (onlineView.unsubscribe) onlineView.unsubscribe();
+        onlineView.unsubscribe = await onlineBackend.subscribe(boardId, () => { refreshOnline().catch(() => {}); });
+      }
+      function hideOnlineView() {
+        if (onlineView.unsubscribe) { onlineView.unsubscribe(); onlineView.unsubscribe = null; }
+        $('#onlineView').style.display = 'none';
+        if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      }
+      async function refreshOnline() {
+        try {
+          const b = await onlineBackend.getBoard(onlineView.boardId);
+          if (!b) { $('#onlineBoard').innerHTML = '<p class="muted">未找到该监考表，可能已被删除。</p>'; return; }
+          onlineView.board = b;
+          onlineView.swaps = await onlineBackend.listSwaps(onlineView.boardId);
+          $('#onlineTitle').textContent = b.title || '在线监考表';
+          renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
+        } catch (e) { $('#onlineBoard').innerHTML = '<p class="muted">加载失败：' + esc(e.message) + '</p>'; }
+      }
+      function allTeacherNames(board) {
+        const set = new Set();
+        ((board && board.data && board.data.rows) || []).forEach(r => (r.teachers || []).forEach(t => set.add(t)));
+        return [...set];
+      }
+      function renderOnlineIdentity() {
+        const sel = $('#onlineIdentity');
+        const names = allTeacherNames(onlineView.board);
+        sel.innerHTML = '<option value="">我是谁？</option>' + names.map(n => `<option value="${esc(n)}" ${n === onlineView.identity ? 'selected' : ''}>${esc(n)}</option>`).join('');
+      }
+      function descOf(sessionId) {
+        const r = ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []).find(x => x.sessionId === sessionId);
+        return r ? `${r.grade}${r.subject} ${r.className}（${r.date} ${r.time}）` : '已删除的场次';
+      }
+      function renderOnlineBoard() {
+        const rows = ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []);
+        const identity = onlineView.identity;
+        if (!rows.length) { $('#onlineBoard').innerHTML = '<p class="muted">表里还没有场次。</p>'; return; }
+        const groups = {};
+        rows.forEach(r => { const k = r.date + '|' + r.time; (groups[k] = groups[k] || []).push(r); });
+        const keys = Object.keys(groups).sort();
+        let html = '';
+        keys.forEach(k => {
+          const [date, time] = k.split('|');
+          html += `<div style="border:1px solid var(--line-strong,#e4e3dd);border-radius:12px;padding:10px 12px;margin-bottom:12px;background:#fff"><div style="font-weight:600;margin-bottom:6px">${esc(date)} · ${esc(time)}</div>`;
+          groups[k].forEach(r => { html += renderRowCard(r, identity); });
+          html += '</div>';
+        });
+        $('#onlineBoard').innerHTML = html;
+      }
+      function renderRowCard(r, identity) {
+        const mine = identity && (r.teachers || []).includes(identity);
+        const border = mine ? '2px solid #4c7dff' : '1px solid #e4e3dd';
+        const teachers = (r.teachers || []).map(t => {
+          const isMe = t === identity;
+          return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0;font-size:12px;${isMe ? 'background:#4c7dff;color:#fff;font-weight:600' : 'background:rgba(0,0,0,0.05);color:#1a1b1c'}">${esc(t)}${isMe ? '（我）' : ''}</span>`;
+        }).join('');
+        const swapBtn = mine ? `<button class="btn btn-sm swap-btn" data-swap-from="${esc(r.sessionId)}" style="margin-left:auto">申请换班</button>` : '';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:${border};border-radius:10px;margin-bottom:6px;flex-wrap:wrap;background:#fff">
+          <div style="font-size:13px;min-width:150px">${esc(r.grade)}${esc(r.subject)} · ${esc(r.className)}</div>
+          <div style="font-size:12px;color:#6b7280;flex:1;min-width:160px">${teachers}</div>${swapBtn}
+        </div>`;
+      }
+
+      // ---------- 待处理 / 我发出 ----------
+      function renderOnlinePending() {
+        const pending = onlineView.swaps.filter(s => s.status === 'pending' && s.toTeacher === onlineView.identity);
+        const box = $('#onlinePending');
+        if (!pending.length) { box.style.display = 'none'; return; }
+        box.style.display = 'block';
+        $('#onlinePendingList').innerHTML = pending.map(s =>
+          `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+            <span style="font-size:13px;flex:1;min-width:200px">${esc(s.fromTeacher)} 想跟你换：<b>${descOf(s.fromSessionId)}</b> ↔ <b>${descOf(s.toSessionId)}</b></span>
+            <button class="btn btn-sm" data-swap-approve="${esc(s.id)}" style="background:#52c41a;color:#fff">同意</button>
+            <button class="btn btn-sm" data-swap-reject="${esc(s.id)}">拒绝</button>
+          </div>`).join('');
+      }
+      function renderOnlineMine() {
+        const mine = onlineView.swaps.filter(s => s.fromTeacher === onlineView.identity);
+        const box = $('#onlineMine');
+        if (!mine.length) { box.style.display = 'none'; return; }
+        box.style.display = 'block';
+        const st = { pending: '等待对方同意', approved: '已同意（已互换）', rejected: '被拒绝', canceled: '已撤回' };
+        $('#onlineMineList').innerHTML = mine.map(s => {
+          const cancel = s.status === 'pending' ? `<button class="btn btn-sm" data-swap-cancel="${esc(s.id)}">撤回</button>` : '';
+          const color = s.status === 'approved' ? '#52c41a' : s.status === 'rejected' ? '#ea6668' : '#faad14';
+          return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+            <span style="font-size:13px;flex:1;min-width:200px">和 ${esc(s.toTeacher)} 换：<b>${descOf(s.fromSessionId)}</b> ↔ <b>${descOf(s.toSessionId)}</b> · <span style="color:${color}">${st[s.status] || s.status}</span></span>${cancel}
+          </div>`;
+        }).join('');
+      }
+
+      // ---------- 换班 ----------
+      let swapFromSessionId = null;
+      function swapConflictCheck(board, fromTeacher, fromSessionId, toTeacher, toSessionId) {
+        const rows = ((board && board.data && board.data.rows) || []);
+        const fromRow = rows.find(r => r.sessionId === fromSessionId);
+        const toRow = rows.find(r => r.sessionId === toSessionId);
+        if (!fromRow || !toRow) return '找不到对应场次';
+        if (fromTeacher === toTeacher) return '不能跟自己换';
+        if (!(toRow.teachers || []).includes(toTeacher)) return `${toTeacher} 不在所选场次【${toRow.grade}${toRow.subject} ${toRow.className}】中`;
+        const fromHasToSlot = rows.some(r => r.sessionId !== fromSessionId && r.date === toRow.date && r.time === toRow.time && (r.teachers || []).includes(fromTeacher));
+        const toHasFromSlot = rows.some(r => r.sessionId !== toSessionId && r.date === fromRow.date && r.time === fromRow.time && (r.teachers || []).includes(toTeacher));
+        if (fromHasToSlot) return `${fromTeacher} 在 ${toRow.date} ${toRow.time} 还有另一场监考，换不了`;
+        if (toHasFromSlot) return `${toTeacher} 在 ${fromRow.date} ${fromRow.time} 还有另一场监考，换不了`;
+        return null;
+      }
+      function openSwapDialog(fromSessionId) {
+        swapFromSessionId = fromSessionId;
+        const identity = onlineView.identity;
+        const fromRow = ((onlineView.board.data && onlineView.board.data.rows) || []).find(r => r.sessionId === fromSessionId);
+        if (!fromRow) return toast('找不到该场次', 'error');
+        $('#swapFromInfo').textContent = `${identity} 在【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】，想和其他老师互换监考。`;
+        const others = allTeacherNames(onlineView.board).filter(n => n !== identity).sort();
+        $('#swapToTeacher').innerHTML = others.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        fillSwapSessions();
+        $('#swapDialog').showModal();
+      }
+      function fillSwapSessions() {
+        const to = $('#swapToTeacher').value;
+        const rows = ((onlineView.board.data && onlineView.board.data.rows) || []);
+        const sessions = rows.filter(r => (r.teachers || []).includes(to));
+        $('#swapToSession').innerHTML = sessions.map(r => `<option value="${esc(r.sessionId)}">${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）</option>`).join('');
+        updateSwapConflict();
+      }
+      function updateSwapConflict() {
+        const to = $('#swapToTeacher').value;
+        const toSid = $('#swapToSession').value;
+        const conflict = swapConflictCheck(onlineView.board, onlineView.identity, swapFromSessionId, to, toSid);
+        const el = $('#swapConflictInfo');
+        el.textContent = conflict || '交换后两人均无时间冲突，可发送申请。';
+        el.style.color = conflict ? '#ea6668' : '#52c41a';
+      }
+      async function sendSwap() {
+        const to = $('#swapToTeacher').value; const toSid = $('#swapToSession').value;
+        const conflict = swapConflictCheck(onlineView.board, onlineView.identity, swapFromSessionId, to, toSid);
+        if (conflict) return toast('无法发送：' + conflict, 'error');
+        await onlineBackend.createSwap({ boardId: onlineView.boardId, fromTeacher: onlineView.identity, toTeacher: to, fromSessionId: swapFromSessionId, toSessionId: toSid, status: 'pending' });
+        $('#swapDialog').close();
+        toast('申请已发送，等对方同意');
+        await refreshOnline();
+      }
+      function applySwap(board, s) {
+        const rows = board.data.rows;
+        const fromRow = rows.find(r => r.sessionId === s.fromSessionId);
+        const toRow = rows.find(r => r.sessionId === s.toSessionId);
+        if (!fromRow || !toRow) return;
+        fromRow.teachers = fromRow.teachers.map(t => t === s.fromTeacher ? s.toTeacher : t);
+        toRow.teachers = toRow.teachers.map(t => t === s.toTeacher ? s.fromTeacher : t);
+      }
+      async function approveSwap(id) {
+        const s = onlineView.swaps.find(x => x.id === id); if (!s) return;
+        const conflict = swapConflictCheck(onlineView.board, s.fromTeacher, s.fromSessionId, s.toTeacher, s.toSessionId);
+        if (conflict) return toast('无法同意：' + conflict, 'error');
+        const fresh = await onlineBackend.getBoard(onlineView.boardId);
+        if (!fresh) return toast('监考表不存在', 'error');
+        applySwap(fresh, s);
+        await onlineBackend.saveBoard(fresh);
+        await onlineBackend.updateSwap(id, { status: 'approved', resolvedAt: new Date().toISOString() });
+        toast('已同意，双方场次已自动互换');
+        await refreshOnline();
+      }
+      async function rejectSwap(id) {
+        await onlineBackend.updateSwap(id, { status: 'rejected', resolvedAt: new Date().toISOString() });
+        toast('已拒绝');
+        await refreshOnline();
+      }
+      async function cancelSwap(id) {
+        await onlineBackend.updateSwap(id, { status: 'canceled' });
+        toast('已撤回');
+        await refreshOnline();
+      }
+
+      // ---------- 绑定 ----------
+      function bindOnline() {
+        $('#onlineBtn').addEventListener('click', () => {
+          const cfg = onlineLoadConfig();
+          $('#sbUrl').value = cfg.url || ''; $('#sbKey').value = cfg.key || ''; $('#sbSiteUrl').value = cfg.siteUrl || ''; $('#lcDemoMode').checked = !!cfg.demoMode;
+          $('#lcStatus').textContent = cfg.demoMode ? '当前：演示模式（本机模拟）' : (cfg.url ? '当前：Supabase 云端（未测试）' : '当前：未配置（将使用演示模式）');
+          $('#lcSettingsDialog').showModal();
+        });
+        $('#lcSaveBtn').addEventListener('click', () => {
+          onlineSaveConfig({ url: $('#sbUrl').value.trim(), key: $('#sbKey').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          toast('在线版设置已保存');
+          $('#lcSettingsDialog').close();
+        });
+        $('#lcTestBtn').addEventListener('click', async () => {
+          onlineSaveConfig({ url: $('#sbUrl').value.trim(), key: $('#sbKey').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          const r = await onlineBackend.test();
+          $('#lcStatus').textContent = r.ok ? '连接成功：' + r.mode : '连接失败：' + (r.error || '未知错误');
+        });
+        $('#publishBtn').addEventListener('click', publishOnline);
+        $('#publishCopyBtn').addEventListener('click', () => {
+          const link = $('#publishLink').value;
+          if (link && navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('链接已复制')).catch(() => toast('复制失败，请手动复制'));
+          else if (link) { $('#publishLink').select(); document.execCommand('copy'); toast('链接已复制'); }
+        });
+        $('#openOnlineBtn').addEventListener('click', () => {
+          const id = onlineView.boardId || ($('#publishLink').value.split('#board=')[1] || '');
+          if (id) { $('#publishDialog').close(); showOnlineView(id); }
+        });
+        $('#onlineBackBtn').addEventListener('click', hideOnlineView);
+        $('#onlineRefreshBtn').addEventListener('click', () => refreshOnline().catch(() => {}));
+        $('#onlineIdentity').addEventListener('change', e => {
+          onlineView.identity = e.target.value;
+          if (e.target.value) localStorage.setItem('invigilation-online-id-' + onlineView.boardId, e.target.value);
+          renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
+        });
+        $('#swapToTeacher').addEventListener('change', fillSwapSessions);
+        $('#swapToSession').addEventListener('change', updateSwapConflict);
+        $('#swapSendBtn').addEventListener('click', () => sendSwap().catch(e => toast('发送失败：' + e.message, 'error')));
+        $('#onlineView').addEventListener('click', async e => {
+          const swap = e.target.closest('[data-swap-from]');
+          if (swap) { openSwapDialog(swap.dataset.swapFrom); return; }
+          const ap = e.target.closest('[data-swap-approve]');
+          if (ap) { await approveSwap(ap.dataset.swapApprove).catch(err => toast('操作失败：' + err.message, 'error')); return; }
+          const rj = e.target.closest('[data-swap-reject]');
+          if (rj) { await rejectSwap(rj.dataset.swapReject).catch(err => toast('操作失败：' + err.message, 'error')); return; }
+          const cc = e.target.closest('[data-swap-cancel]');
+          if (cc) { await cancelSwap(cc.dataset.swapCancel).catch(err => toast('操作失败：' + err.message, 'error')); return; }
+        });
+      }
+      function initOnlineRouting() {
+        const route = () => {
+          const m = location.hash.match(/^#board=(.+)$/);
+          if (m) { const id = decodeURIComponent(m[1]); setTimeout(() => showOnlineView(id).catch(() => {}), 300); }
+        };
+        window.addEventListener('hashchange', route);
+        route();
+      }
+      bindOnline();
+      initOnlineRouting();
+
+      init();
+    })();
+  </script>
+
+</body>
+</html>
