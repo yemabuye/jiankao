@@ -656,6 +656,7 @@
           <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled><i data-lucide="download"></i></button>
           <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled>导出班次表</button>
           <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled>发布在线版</button>
+          <button class="btn btn-sm" id="swapLogBtn" title="查看老师的换班记录" disabled>换班记录</button>
           <button class="icon-btn" id="printBtn" title="打印" aria-label="打印" disabled><i data-lucide="printer"></i></button>
           <button class="icon-btn danger" id="clearResultBtn" title="清空当前结果" aria-label="清空当前结果" disabled><i data-lucide="file-x-2"></i></button>
         </div>
@@ -842,11 +843,39 @@
     <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
   </dialog>
 
+  <!-- 后台登录遮罩 -->
+  <div id="adminLoginOverlay" style="display:none;position:fixed;inset:0;background:rgba(244,243,238,0.97);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border:1px solid #e4e3dd;border-radius:16px;padding:28px 24px;width:min(360px,90vw);text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.08)">
+      <h2 style="margin:0 0 6px;font-size:18px">监考编排台 · 后台登录</h2>
+      <p class="muted" style="margin:0 0 4px;font-size:13px">编排功能需要密码才能进入</p>
+      <p class="muted" style="margin:0 0 10px;font-size:12px">教师查看 / 换班的链接无需登录</p>
+      <input type="password" id="adminPassInput" placeholder="请输入后台密码" style="width:100%;margin:6px 0 10px;padding:10px 12px;border:1px solid #e4e3dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      <button class="btn btn-primary btn-block" id="adminLoginBtn" style="width:100%">进入后台</button>
+      <p id="adminLoginMsg" class="muted" style="margin:10px 0 0;font-size:12.5px;color:#ea6668"></p>
+      <p class="muted" style="margin:14px 0 0;font-size:12px">首次使用默认密码：admin123<br>登录后请到「设置」里修改为你自己的密码</p>
+    </div>
+  </div>
+
   <dialog id="settingsDialog">
     <div class="dialog-head"><h2>设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
     <div class="dialog-body">
       <label for="excludedInput">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
       <textarea id="excludedInput" style="min-height:120px"></textarea>
+      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
+        <label>后台登录密码</label>
+        <p class="muted" style="font-size:12.5px;margin:4px 0 8px">教师查看/换班链接无需密码；只有进入编排后台才需要。默认密码是 admin123，请改成你自己的。</p>
+        <div class="field-row">
+          <div style="flex:1"><input id="oldPassInput" type="password" placeholder="当前密码" style="width:100%"></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div style="flex:1"><input id="newPassInput" type="password" placeholder="新密码（至少4位）" style="width:100%"></div>
+          <div style="flex:1"><input id="newPass2Input" type="password" placeholder="再次输入新密码" style="width:100%"></div>
+        </div>
+        <div class="button-row" style="margin-top:8px">
+          <button type="button" class="btn" id="changePassBtn">修改密码</button>
+          <button type="button" class="btn" id="logoutBtn" style="margin-left:8px">退出登录</button>
+        </div>
+      </div>
     </div>
     <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveSettingsBtn">保存设置</button></div>
   </dialog>
@@ -935,6 +964,16 @@
     <div id="onlineBoard"></div>
   </div>
 </div>
+
+<!-- ================= 在线版：换班记录（管理员） ================= -->
+<dialog id="swapLogDialog">
+  <div class="dialog-head"><h2>换班记录</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+  <div class="dialog-body">
+    <p class="muted" style="margin-top:0">老师自助换班的全部记录：谁和谁换了哪一场、结果如何，都在这里。打开后台即可随时查看。</p>
+    <div id="swapLogList" style="max-height:55vh;overflow-y:auto"></div>
+  </div>
+  <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+</dialog>
 
 <!-- ================= 在线版：发起换班 ================= -->
 <dialog id="swapDialog">
@@ -1324,6 +1363,7 @@
             state.timeTemplate = raw.timeTemplate || '';
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
             state.activeVersionId = raw.activeVersionId || null;
+            state.publishedBoardId = raw.publishedBoardId || null;
             state.resultTab = raw.resultTab || 'primary';
             state.config = { ...state.config, ...(raw.config || {}) };
             normalizeStoredRoomLabels();
@@ -2223,6 +2263,7 @@
         $('#exportBtn').disabled = !has;
         $('#exportShiftsBtn').disabled = !has;
         $('#publishBtn').disabled = !has;
+        $('#swapLogBtn').disabled = !has;
         $('#printBtn').disabled = !has;
         $('#clearResultBtn').disabled = !has;
         $$('#resultTabs button').forEach(button => button.classList.toggle('active', button.dataset.resultTab === state.resultTab));
@@ -2733,6 +2774,7 @@
             state.timeTemplate = raw.timeTemplate || '';
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
             state.activeVersionId = raw.activeVersionId || null;
+            state.publishedBoardId = raw.publishedBoardId || null;
             state.resultTab = raw.resultTab || 'primary';
             state.seedVersion = raw.seedVersion || '';
             state.selectionVersion = raw.selectionVersion || 0;
@@ -2881,7 +2923,8 @@
             state.publishedBoardId = boardId; saveState();
           }
           const siteUrl = (onlineLoadConfig().siteUrl || location.href.split('#')[0]).replace(/\/$/, '');
-          const link = siteUrl + '#board=' + boardId;
+          const sep = siteUrl.indexOf('?') >= 0 ? '&' : '?';
+          const link = siteUrl + sep + 'view=teacher#board=' + boardId;
           $('#publishLink').value = link;
           $('#publishIntro').innerHTML = isDemo
             ? '已用<b>演示模式</b>发布（数据仅在本机，仅供体验流程）。配置 Supabase 后重新发布即为真实云端，链接可发给老师。'
@@ -2893,12 +2936,37 @@
       // ---------- 在线视图 ----------
       const onlineView = { boardId: null, board: null, swaps: [], identity: '', unsubscribe: null };
 
+      function setBackendVisible(show) {
+        const h = document.querySelector('header.app-header');
+        const m = document.querySelector('main.workspace');
+        if (h) h.style.display = show ? '' : 'none';
+        if (m) m.style.display = show ? '' : 'none';
+      }
+      function isTeacherMode() {
+        try { return new URLSearchParams(location.search).get('view') === 'teacher'; } catch (e) { return false; }
+      }
+      function showTeacherEmpty() {
+        $('#onlineTitle').textContent = '在线监考表';
+        $('#onlineIdentity').innerHTML = '<option value="">—</option>';
+        $('#onlineHint').textContent = '这是老师专用页面，只用来查看监考表和换班，不包含编排功能。';
+        $('#onlinePending').style.display = 'none';
+        $('#onlineMine').style.display = 'none';
+        $('#onlineBoard').innerHTML = '<p class="muted" style="padding:50px 10px;text-align:center">这是监考表老师专用页面。<br>请通过群里的链接进入（链接形如 …/?view=teacher#board=xxx）。</p>';
+      }
       async function showOnlineView(boardId) {
         onlineView.boardId = boardId;
         onlineView.board = null; onlineView.swaps = [];
         const idKey = 'invigilation-online-id-' + boardId;
         onlineView.identity = localStorage.getItem(idKey) || '';
+        hideLoginOverlay();
+        setBackendVisible(false);
+        const isT = isTeacherMode();
+        $('#onlineBackBtn').style.display = isT ? 'none' : '';
+        $('#onlineHint').textContent = isT
+          ? '这是监考表页面：选择你的姓名后，你的场次会高亮显示。想和其他老师调换监考，点自己场次上的「申请换班」，对方同意后自动更新。'
+          : '选择你的姓名后，你的场次会高亮显示，可向其他老师发起换班（对方同意后自动更新）。';
         $('#onlineView').style.display = 'block';
+        if (!boardId) { showTeacherEmpty(); return; }
         await refreshOnline();
         if (onlineView.unsubscribe) onlineView.unsubscribe();
         onlineView.unsubscribe = await onlineBackend.subscribe(boardId, () => { refreshOnline().catch(() => {}); });
@@ -2906,6 +2974,7 @@
       function hideOnlineView() {
         if (onlineView.unsubscribe) { onlineView.unsubscribe(); onlineView.unsubscribe = null; }
         $('#onlineView').style.display = 'none';
+        if (!isTeacherMode()) { setBackendVisible(true); ensureBackendLogin(); }
         if (location.hash) history.replaceState(null, '', location.pathname + location.search);
       }
       async function refreshOnline() {
@@ -3090,6 +3159,33 @@
           $('#lcStatus').textContent = r.ok ? '连接成功：' + r.mode : '连接失败：' + (r.error || '未知错误');
         });
         $('#publishBtn').addEventListener('click', publishOnline);
+        $('#swapLogBtn').addEventListener('click', async () => {
+          const boardId = state.publishedBoardId;
+          if (!boardId) return toast('请先发布在线版，再查看换班记录', 'error');
+          try {
+            const swaps = await onlineBackend.listSwaps(boardId);
+            let boardRows = (onlineView.board && onlineView.board.data && onlineView.board.data.rows) || [];
+            if (!boardRows.length) {
+              const b = await onlineBackend.getBoard(boardId);
+              boardRows = (b && b.data && b.data.rows) || [];
+            }
+            const st = { pending: '等待对方同意', approved: '已互换', rejected: '被拒绝', canceled: '已撤回' };
+            const list = $('#swapLogList');
+            if (!swaps.length) { list.innerHTML = '<p class="muted">暂无换班记录。老师换班后这里会显示，你可以随时查看。</p>'; }
+            else {
+              list.innerHTML = swaps.map(x => {
+                const color = x.status === 'approved' ? '#52c41a' : x.status === 'rejected' ? '#ea6668' : x.status === 'pending' ? '#faad14' : '#6b7280';
+                const desc = id => { const r = boardRows.find(rr => rr.sessionId === id); return r ? `${r.grade}${r.subject} ${r.className}（${r.date} ${r.time}）` : '已删除场次'; };
+                return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <div style="font-size:13px"><b>${esc(x.fromTeacher)}</b> 换 <b>${esc(x.toTeacher)}</b></div>
+                  <div style="font-size:12px;color:#6b7280;margin-top:2px">${desc(x.fromSessionId)} ⇄ ${desc(x.toSessionId)}</div>
+                  <div style="font-size:12px;color:${color};margin-top:2px">${st[x.status] || x.status} · ${((x.createdAt || '').replace('T', ' ')).slice(0, 16)}</div>
+                </div>`;
+              }).join('');
+            }
+            $('#swapLogDialog').showModal();
+          } catch (e) { toast('加载换班记录失败：' + e.message, 'error'); }
+        });
         $('#publishCopyBtn').addEventListener('click', () => {
           const link = $('#publishLink').value;
           if (link && navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('链接已复制')).catch(() => toast('复制失败，请手动复制'));
@@ -3106,6 +3202,33 @@
           if (e.target.value) localStorage.setItem('invigilation-online-id-' + onlineView.boardId, e.target.value);
           renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
         });
+        $('#adminLoginBtn').addEventListener('click', () => {
+          const input = $('#adminPassInput').value;
+          if (!input) { $('#adminLoginMsg').textContent = '请输入密码'; return; }
+          if (checkPass(input)) {
+            localStorage.setItem(AUTH_KEY, String(Date.now()));
+            hideLoginOverlay();
+            toast('欢迎回来');
+          } else { $('#adminLoginMsg').textContent = '密码错误，请重试'; }
+        });
+        const apInput = $('#adminPassInput');
+        if (apInput) apInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#adminLoginBtn').click(); });
+        $('#changePassBtn').addEventListener('click', () => {
+          const oldP = $('#oldPassInput').value, p1 = $('#newPassInput').value, p2 = $('#newPass2Input').value;
+          if (!checkPass(oldP)) return toast('当前密码不正确', 'error');
+          if (p1.length < 4) return toast('新密码至少 4 位', 'error');
+          if (p1 !== p2) return toast('两次输入的新密码不一致', 'error');
+          localStorage.setItem(PASS_KEY, hashPass(p1));
+          localStorage.setItem(AUTH_KEY, String(Date.now()));
+          $('#oldPassInput').value = ''; $('#newPassInput').value = ''; $('#newPass2Input').value = '';
+          toast('密码已修改，请记住新密码');
+        });
+        $('#logoutBtn').addEventListener('click', () => {
+          localStorage.removeItem(AUTH_KEY);
+          const sd = $('#settingsDialog');
+          if (sd && sd.open) sd.close();
+          showLoginOverlay();
+        });
         $('#swapToTeacher').addEventListener('change', fillSwapSessions);
         $('#swapToSession').addEventListener('change', updateSwapConflict);
         $('#swapSendBtn').addEventListener('click', () => sendSwap().catch(e => toast('发送失败：' + e.message, 'error')));
@@ -3120,10 +3243,41 @@
           if (cc) { await cancelSwap(cc.dataset.swapCancel).catch(err => toast('操作失败：' + err.message, 'error')); return; }
         });
       }
+      // ---------- 后台登录 ----------
+      const AUTH_KEY = 'invigilation-admin-auth';
+      const PASS_KEY = 'invigilation-admin-pass';
+      const DEFAULT_PASS = 'admin123';
+      function hashPass(p) {
+        let h = 5381;
+        for (let i = 0; i < p.length; i++) h = ((h << 5) + h + p.charCodeAt(i)) | 0;
+        return 'h' + Math.abs(h).toString(36);
+      }
+      function checkPass(input) {
+        const stored = localStorage.getItem(PASS_KEY);
+        return stored ? hashPass(input) === stored : input === DEFAULT_PASS;
+      }
+      function isAuthed() { return !!localStorage.getItem(AUTH_KEY); }
+      function showLoginOverlay() {
+        const el = $('#adminPassInput');
+        if (el) el.value = '';
+        const msg = $('#adminLoginMsg');
+        if (msg) msg.textContent = '';
+        $('#adminLoginOverlay').style.display = 'flex';
+      }
+      function hideLoginOverlay() { $('#adminLoginOverlay').style.display = 'none'; }
+      function ensureBackendLogin() {
+        if (!isTeacherMode() && !isAuthed()) showLoginOverlay();
+      }
+
       function initOnlineRouting() {
         const route = () => {
           const m = location.hash.match(/^#board=(.+)$/);
           if (m) { const id = decodeURIComponent(m[1]); setTimeout(() => showOnlineView(id).catch(() => {}), 300); }
+          else if (isTeacherMode()) {
+            setBackendVisible(false);
+            setTimeout(() => showOnlineView(null).catch(() => {}), 300);
+          }
+          else { ensureBackendLogin(); }
         };
         window.addEventListener('hashchange', route);
         route();
