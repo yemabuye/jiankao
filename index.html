@@ -852,7 +852,7 @@
       <input type="password" id="adminPassInput" placeholder="请输入后台密码" style="width:100%;margin:6px 0 10px;padding:10px 12px;border:1px solid #e4e3dd;border-radius:8px;font-size:14px;box-sizing:border-box">
       <button class="btn btn-primary btn-block" id="adminLoginBtn" style="width:100%">进入后台</button>
       <p id="adminLoginMsg" class="muted" style="margin:10px 0 0;font-size:12.5px;color:#ea6668"></p>
-      <p class="muted" style="margin:14px 0 0;font-size:12px">首次使用默认密码：admin123<br>登录后请到「设置」里修改为你自己的密码</p>
+      <p class="muted" style="margin:14px 0 0;font-size:12px">密码存在云端（Supabase），改一次所有设备通用<br>首次使用默认密码：admin123，登录后请到「设置」里修改</p>
     </div>
   </div>
 
@@ -863,7 +863,7 @@
       <textarea id="excludedInput" style="min-height:120px"></textarea>
       <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
         <label>后台登录密码</label>
-        <p class="muted" style="font-size:12.5px;margin:4px 0 8px">教师查看/换班链接无需密码；只有进入编排后台才需要。默认密码是 admin123，请改成你自己的。</p>
+        <p class="muted" style="font-size:12.5px;margin:4px 0 8px">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（首次默认 admin123，请改成你自己的）。</p>
         <div class="field-row">
           <div style="flex:1"><input id="oldPassInput" type="password" placeholder="当前密码" style="width:100%"></div>
         </div>
@@ -3202,10 +3202,12 @@
           if (e.target.value) localStorage.setItem('invigilation-online-id-' + onlineView.boardId, e.target.value);
           renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
         });
-        $('#adminLoginBtn').addEventListener('click', () => {
+        $('#adminLoginBtn').addEventListener('click', async () => {
           const input = $('#adminPassInput').value;
           if (!input) { $('#adminLoginMsg').textContent = '请输入密码'; return; }
-          if (checkPass(input)) {
+          $('#adminLoginMsg').textContent = '验证中…';
+          const ok = await checkPassAsync(input);
+          if (ok) {
             localStorage.setItem(AUTH_KEY, String(Date.now()));
             hideLoginOverlay();
             toast('欢迎回来');
@@ -3213,15 +3215,20 @@
         });
         const apInput = $('#adminPassInput');
         if (apInput) apInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#adminLoginBtn').click(); });
-        $('#changePassBtn').addEventListener('click', () => {
+        $('#changePassBtn').addEventListener('click', async () => {
           const oldP = $('#oldPassInput').value, p1 = $('#newPassInput').value, p2 = $('#newPass2Input').value;
-          if (!checkPass(oldP)) return toast('当前密码不正确', 'error');
+          if (!await checkPassAsync(oldP)) return toast('当前密码不正确', 'error');
           if (p1.length < 4) return toast('新密码至少 4 位', 'error');
           if (p1 !== p2) return toast('两次输入的新密码不一致', 'error');
-          localStorage.setItem(PASS_KEY, hashPass(p1));
+          const salt = Math.random().toString(36).slice(2, 10);
+          const hash = hashPass(p1 + ':' + salt);
+          try {
+            await saveRemotePass(hash, salt);
+          } catch (e) { return toast('云端保存失败：' + e.message + '（请确认已建 admin_config 表）', 'error'); }
+          localStorage.setItem(PASS_KEY, hash + ':' + salt);
           localStorage.setItem(AUTH_KEY, String(Date.now()));
           $('#oldPassInput').value = ''; $('#newPassInput').value = ''; $('#newPass2Input').value = '';
-          toast('密码已修改，请记住新密码');
+          toast('密码已修改（云端生效，所有设备通用），请记住新密码');
         });
         $('#logoutBtn').addEventListener('click', () => {
           localStorage.removeItem(AUTH_KEY);
@@ -3252,9 +3259,31 @@
         for (let i = 0; i < p.length; i++) h = ((h << 5) + h + p.charCodeAt(i)) | 0;
         return 'h' + Math.abs(h).toString(36);
       }
-      function checkPass(input) {
+      async function fetchRemotePass() {
+        if (onlineBackend.isDemo()) return null;
+        const c = sbClient();
+        if (!c) return null;
+        try {
+          const { data, error } = await c.from('admin_config').select('pass_hash,salt').eq('id', 1).maybeSingle();
+          if (error || !data) return null;
+          return { hash: data.pass_hash, salt: data.salt || '' };
+        } catch (e) { return null; }
+      }
+      async function saveRemotePass(hash, salt) {
+        if (onlineBackend.isDemo()) return;
+        const c = sbClient();
+        if (!c) return;
+        await c.from('admin_config').upsert({ id: 1, pass_hash: hash, salt: salt, updated_at: new Date().toISOString() });
+      }
+      async function checkPassAsync(input) {
+        const remote = await fetchRemotePass();
+        if (remote) return hashPass(input + ':' + remote.salt) === remote.hash;
         const stored = localStorage.getItem(PASS_KEY);
-        return stored ? hashPass(input) === stored : input === DEFAULT_PASS;
+        if (stored) {
+          if (stored.indexOf(':') >= 0) { const parts = stored.split(':'); return hashPass(input + ':' + parts[1]) === parts[0]; }
+          return hashPass(input) === stored;
+        }
+        return input === DEFAULT_PASS;
       }
       function isAuthed() { return !!localStorage.getItem(AUTH_KEY); }
       function showLoginOverlay() {
