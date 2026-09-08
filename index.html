@@ -2801,10 +2801,18 @@
 
       // ===================== 在线版（Supabase + 演示模式） =====================
       const ONLINE_KEY = 'invigilation-online-v1';
+      const DEFAULT_ONLINE = { url: 'https://nbstxnatuxaasvzmllpw.supabase.co', key: 'sb_publishable_6_7WmOsDi5HQBV8FtpsiNw_91srnhrw', siteUrl: 'https://yemabuye.github.io/jiankao/' };
       const DEMO_KEY = 'invigilation-demo-v1';
       const SB_TABLES = { boards: 'schedule_boards', swaps: 'swap_requests' };
 
-      function onlineLoadConfig() { try { return JSON.parse(localStorage.getItem(ONLINE_KEY)) || {} } catch (e) { return {} } }
+      function onlineLoadConfig() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(ONLINE_KEY)) || {};
+          if (saved.demoMode) return saved;
+          if (saved.url && saved.key) return saved;
+        } catch (e) {}
+        return DEFAULT_ONLINE;
+      }
       function onlineSaveConfig(cfg) { localStorage.setItem(ONLINE_KEY, JSON.stringify(cfg)); }
       function sbClient() {
         const cfg = onlineLoadConfig();
