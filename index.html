@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="本地运行的监考快速编排工具">
+<html lang="zh-CN" data-page-node-id="VIbcn3IgbpErW0SkbZreDN">
+<head data-page-node-id="ypVBt7v1eAPPkJHDD81GBi">
+  <meta charset="UTF-8" data-page-node-id="SwtZ2R5eUnJbhgU2wM0Qkp">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="ckbO5anJ0TEeDp3C19razs">
+  <meta name="description" content="本地运行的监考快速编排工具" data-page-node-id="eA639nce5d8MQpEkidnFny">
   <title>监考编排台</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <!-- 云端能力改由 jk-api 接口提供，页面本身不再持有任何数据库钥匙 -->
   <style>
     :root {
       --bg: #f4f6f4;
@@ -507,488 +507,506 @@
     .swap-btn { flex: 0 0 auto; }
   </style>
 </head>
-<body>
-  <header class="app-header">
-    <div class="brand">
-      <span class="brand-mark"><i data-lucide="calendar-check-2"></i></span>
-      <h1>监考编排台</h1>
+<body data-page-node-id="oM2eeGRSfhaxeNLaZedAiZ">
+  <header class="app-header" data-page-node-id="wkqC2qLWCwtufCF0GIptdy">
+    <div class="brand" data-page-node-id="VVaIBgHA7M6FrA7pJ3KBzl">
+      <span class="brand-mark" data-page-node-id="pwQqPYepf2nL2yUZGh1mxV"><i data-lucide="calendar-check-2" data-page-node-id="jkRQgj0cDgAvrSvgNoow9v"></i></span>
+      <h1 data-page-node-id="JiqIQgtuioAu6Er9z6XHEe">监考编排台</h1>
     </div>
-    <div class="header-actions">
-      <span class="save-state" id="saveState">数据已保存在本机</span>
-      <button class="icon-btn" id="newExamBtn" title="新建考试" aria-label="新建考试"><i data-lucide="file-plus-2"></i></button>
-      <button class="icon-btn" id="planBtn" title="考试方案（保存/复用）" aria-label="考试方案"><i data-lucide="archive"></i></button>
-      <button class="icon-btn" id="backupBtn" title="数据备份/恢复" aria-label="数据备份"><i data-lucide="database-backup"></i></button>
-      <button class="icon-btn" id="onlineBtn" title="在线版（发布链接给老师自助换班）" aria-label="在线版"><i data-lucide="cloud"></i></button>
-      <button class="icon-btn" id="settingsBtn" title="设置（排除名单等）" aria-label="设置"><i data-lucide="settings-2"></i></button>
-      <button class="icon-btn" id="sampleBtn" title="载入示例" aria-label="载入示例"><i data-lucide="flask-conical"></i></button>
-      <button class="icon-btn" id="clearBtn" title="清空场次与结果" aria-label="清空场次与结果"><i data-lucide="eraser"></i></button>
+    <div class="header-actions" data-page-node-id="dD56hfndTBN9iPkFjTEa2c">
+      <span class="save-state" id="saveState" data-page-node-id="EduC3FXQMfADPE5H8gBm0P">数据已保存在本机</span>
+      <button class="icon-btn" id="newExamBtn" title="新建考试" aria-label="新建考试" data-page-node-id="3ebEcr0qEXiVClKXYk4u1F"><i data-lucide="file-plus-2" data-page-node-id="KGJqapJEsf6EmULMXg87mk"></i></button>
+      <button class="icon-btn" id="planBtn" title="考试方案（保存/复用）" aria-label="考试方案" data-page-node-id="7CSkK0yZTg6PxqgQbJCX3m"><i data-lucide="archive" data-page-node-id="5SGVLhHvuuDGbdH8ZU0Ypt"></i></button>
+      <button class="icon-btn" id="backupBtn" title="数据备份/恢复" aria-label="数据备份" data-page-node-id="srxRWumCyJ4tDMhZmbvKqE"><i data-lucide="database-backup" data-page-node-id="NwuHlQb8GJEyFRFkoDbi8H"></i></button>
+      <button class="icon-btn" id="onlineBtn" title="在线版（发布链接给老师自助换班）" aria-label="在线版" data-page-node-id="UriDG3Vr82EC2DqJZt990a"><i data-lucide="cloud" data-page-node-id="CRaFtt0EcBTMFMrpnhRMWl"></i></button>
+      <button class="icon-btn" id="settingsBtn" title="设置（排除名单等）" aria-label="设置" data-page-node-id="xZa2mklzokGh3CWUPvf82l"><i data-lucide="settings-2" data-page-node-id="YFTmJGvFBMb7CslCEBl9Tq"></i></button>
+      <button class="icon-btn" id="sampleBtn" title="载入示例" aria-label="载入示例" data-page-node-id="0zU23cUHrDnwCKmS4CO1Pj"><i data-lucide="flask-conical" data-page-node-id="sfNVyslsPcV6uXFmSwHwQh"></i></button>
+      <button class="icon-btn" id="clearBtn" title="清空场次与结果" aria-label="清空场次与结果" data-page-node-id="oFe8KJMLv3SrresRWdLA5W"><i data-lucide="eraser" data-page-node-id="0SZJjtKoqdCFsosnMXiXzn"></i></button>
     </div>
   </header>
 
-  <main class="workspace">
-    <aside class="setup">
-      <section class="section" id="peopleSection">
-        <div class="section-heading">
-          <div class="heading-main"><span class="step-number">1</span><h2>人员库</h2></div>
-          <span class="count" id="teacherCount">0 人</span>
-          <button class="btn btn-sm" id="manageTeachersBtn" style="margin-left:auto"><i data-lucide="users"></i>人员管理</button>
+  <main class="workspace" data-page-node-id="gDWZE3e7wcl0XOpb4esBaB">
+    <aside class="setup" data-page-node-id="LcAPSF8EWxGeH9Fa64HD4C">
+      <section class="section" id="peopleSection" data-page-node-id="yq82AH2HoD6TxASkD1YkhA">
+        <div class="section-heading" data-page-node-id="NRDGypjYTuJcyL6iP1Qr6f">
+          <div class="heading-main" data-page-node-id="dLVqw8H77SHi9hhTkNJmhu"><span class="step-number" data-page-node-id="zb6KQAoF5abxKyUxb33zxR">1</span><h2 data-page-node-id="0Cg411GB2fOgIpvmqgLXKc">人员库</h2></div>
+          <span class="count" id="teacherCount" data-page-node-id="jhYEBWUODURhGXkzFerzQ0">0 人</span>
+          <button class="btn btn-sm" id="manageTeachersBtn" style="margin-left:auto" data-page-node-id="ySNUEZw5NivKVBJf6UfVET"><i data-lucide="users" data-page-node-id="v0qynnb4HdtWQwUQU8Hdce"></i>人员管理</button>
         </div>
-        <div class="segmented" role="tablist" aria-label="人员导入方式">
-          <button class="active" data-mode="paste" role="tab" aria-selected="true">复制粘贴</button>
-          <button data-mode="file" role="tab" aria-selected="false">上传岗位表</button>
+        <div class="segmented" role="tablist" aria-label="人员导入方式" data-page-node-id="5Gr4lvaFxkNi1QGuTydk5D">
+          <button class="active" data-mode="paste" role="tab" aria-selected="true" data-page-node-id="esq6M9Ia0Fl50cP7Ads21a">复制粘贴</button>
+          <button data-mode="file" role="tab" aria-selected="false" data-page-node-id="M5mbs0tI8Xvm2uVAPpxXCw">上传岗位表</button>
         </div>
-        <div class="mode-panel" id="pastePanel">
-          <label for="nameInput">教师姓名</label>
+        <div class="mode-panel" id="pastePanel" data-page-node-id="mDmUxeX3SmnBRqbRlDUOlF">
+          <label for="nameInput" data-page-node-id="QD7LdZFdRdtxIRYfIJ89u5">教师姓名</label>
           <textarea id="nameInput" placeholder="张 三&#10;李四、王五&#10;欧阳 修"></textarea>
-          <div class="field-row">
-            <div>
-              <label for="pasteGrade">归入年级</label>
-              <select id="pasteGrade"><option value="">请选择年级</option></select>
+          <div class="field-row" data-page-node-id="0uAG5TbxS6BNSxrOQjcLKr">
+            <div data-page-node-id="1GV3UDcCDOCfjyC099THNN">
+              <label for="pasteGrade" data-page-node-id="lzDwlblFMNitcewP0MGqMz">归入年级</label>
+              <select id="pasteGrade" data-page-node-id="KCwqGw9JiBtD8soMdfJKt5"><option value="" data-page-node-id="Sykz9fe456nl0jHIRf9wu5">请选择年级</option></select>
             </div>
-            <div>
-              <label for="nameSeparator">内容格式</label>
-              <select id="nameSeparator">
-                <option value="auto">自动识别</option>
-                <option value="line">每行一人</option>
-                <option value="punctuation">逗号/顿号分隔</option>
+            <div data-page-node-id="Jc6YTrTmHA1nNhcEWt2BJ1">
+              <label for="nameSeparator" data-page-node-id="1IYoBxuGjdBrcUSlsakTLh">内容格式</label>
+              <select id="nameSeparator" data-page-node-id="DXZnLosappVp5OBEj5NPHx">
+                <option value="auto" data-page-node-id="VANrILk8JJizcJ0igAB0FJ">自动识别</option>
+                <option value="line" data-page-node-id="gxXUWCzobj6p5OnGQHXYIK">每行一人</option>
+                <option value="punctuation" data-page-node-id="4jCD1YjPWEeyd4vThPQhNl">逗号/顿号分隔</option>
               </select>
             </div>
           </div>
-          <div class="button-row">
-            <button class="btn btn-primary btn-block" id="parseNamesBtn"><i data-lucide="user-plus"></i>识别并加入</button>
+          <div class="button-row" data-page-node-id="GbuDub56REAvInYoPbjHdn">
+            <button class="btn btn-primary btn-block" id="parseNamesBtn" data-page-node-id="4KqrCgU8nUu8WzbFCt7m2H"><i data-lucide="user-plus" data-page-node-id="FVXlWCyXgVbxH8zRvJbvVV"></i>识别并加入</button>
           </div>
         </div>
-        <div class="mode-panel" id="filePanel" hidden>
-          <div class="upload-zone" id="uploadZone">
-            <input type="file" id="jobFile" accept=".xlsx,.xls,.csv" multiple>
-            <div><i data-lucide="sheet"></i><strong>选择或拖入岗位表</strong><span>Excel / CSV</span></div>
+        <div class="mode-panel" id="filePanel" hidden data-page-node-id="pHabzFdinPSHOVGkpu8lUr">
+          <div class="upload-zone" id="uploadZone" data-page-node-id="DRFByFxlJjNwdLRDAxxJmX">
+            <input type="file" id="jobFile" accept=".xlsx,.xls,.csv" multiple data-page-node-id="Y9q5EHzAGkrED3ECn0WTP3">
+            <div data-page-node-id="HRVLqAI1A1xJld3EDG55aJ"><i data-lucide="sheet" data-page-node-id="YRHfqlX1Gf6ClfS0dpt0HJ"></i><strong data-page-node-id="VMILwswvUtQhtPVNaLR9Sr">选择或拖入岗位表</strong><span data-page-node-id="BolrFGxhUYfASciA2CIgbf">Excel / CSV</span></div>
           </div>
-          <div class="button-row">
-            <button class="btn btn-block" id="pasteTableBtn"><i data-lucide="clipboard-paste"></i>粘贴表格内容</button>
+          <div class="button-row" data-page-node-id="Vow54NDtLDrass6YxzBmnl">
+            <button class="btn btn-block" id="pasteTableBtn" data-page-node-id="omqC23jVTOHgtps57AT1GC"><i data-lucide="clipboard-paste" data-page-node-id="yWdc3J7vkJZuJldanlXUIO"></i>粘贴表格内容</button>
           </div>
         </div>
-        <div class="pool-toolbar">
-          <input id="teacherSearch" type="search" placeholder="搜索姓名或年级">
-          <button class="icon-btn" id="restoreTeachersBtn" title="恢复岗位表人员" aria-label="恢复岗位表人员"><i data-lucide="database-backup"></i></button>
-          <button class="icon-btn danger" id="clearTeachersBtn" title="清空人员库" aria-label="清空人员库"><i data-lucide="trash-2"></i></button>
+        <div class="pool-toolbar" data-page-node-id="qI0CYRk1vDokBUE2K41qNU">
+          <input id="teacherSearch" type="search" placeholder="搜索姓名或年级" data-page-node-id="dVhw0uQ4udT5YXm90X9JGf">
+          <button class="icon-btn" id="restoreTeachersBtn" title="恢复岗位表人员" aria-label="恢复岗位表人员" data-page-node-id="ydc4fL1HAAKwmfskqWiQms"><i data-lucide="database-backup" data-page-node-id="Cu7Z8MYTGV6lLa6J6Upicc"></i></button>
+          <button class="icon-btn danger" id="clearTeachersBtn" title="清空人员库" aria-label="清空人员库" data-page-node-id="u1nZG9rQmvmhVKVD9WdvrT"><i data-lucide="trash-2" data-page-node-id="QTaV6PpLEDMmkZVcI6KXf7"></i></button>
         </div>
-        <div class="pool-filters">
-          <select id="teacherDeptFilter" aria-label="按学部筛选"><option value="">全部学部</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select>
-          <select id="teacherGradeFilter" aria-label="按年级筛选"><option value="">全部任教年级</option></select>
+        <div class="pool-filters" data-page-node-id="8KE7SVsPLSdygyRhzlJDIJ">
+          <select id="teacherDeptFilter" aria-label="按学部筛选" data-page-node-id="I0Nc7sHXskMQ8Aq6rVRLeS"><option value="" data-page-node-id="Vs5IgxaMvyevL73xcfCPXw">全部学部</option><option value="小学部" data-page-node-id="DFjjTCpwuG6jffrtHExmR2">小学部</option><option value="中学部" data-page-node-id="EvscfvhzF2GoReabvhZBpL">中学部</option></select>
+          <select id="teacherGradeFilter" aria-label="按年级筛选" data-page-node-id="xl36RwVqMafmhKK0PhFCAA"><option value="" data-page-node-id="XjXrVhFlOQ43ZjpcOJ4HEv">全部任教年级</option></select>
         </div>
-        <label class="check-line" style="margin-top:8px"><input type="checkbox" id="onlyExamGrade">只看本次考试涉及的年级</label>
-        <div class="selection-toolbar">
-          <button class="btn" id="selectVisibleBtn"><i data-lucide="list-checks"></i>勾选当前</button>
-          <select id="bulkMonitorGrade" aria-label="批量设置本次监考年级"><option value="">设置监考年级</option></select>
-          <button class="icon-btn" id="applyBulkGradeBtn" title="应用到已勾选教师" aria-label="应用到已勾选教师"><i data-lucide="check"></i></button>
+        <label class="check-line" style="margin-top:8px" data-page-node-id="Krs9PoKyUvPI57ToRjgEVC"><input type="checkbox" id="onlyExamGrade" data-page-node-id="xM2Zan5RQ184fbnfSNH53m">只看本次考试涉及的年级</label>
+        <div class="selection-toolbar" data-page-node-id="hCAFrV4RY4lSq8Ex25BdKp">
+          <button class="btn" id="selectVisibleBtn" data-page-node-id="sSzoLhsuGLCA0gGq39X0mU"><i data-lucide="list-checks" data-page-node-id="VnO1IkYjOqQwD0P1gHT35v"></i>勾选当前</button>
+          <select id="bulkMonitorGrade" aria-label="批量设置本次监考年级" data-page-node-id="7xaCM6TpufcHTLlbLTF0f4"><option value="" data-page-node-id="0lik0YwCvbwgxtYy99hShS">设置监考年级</option></select>
+          <button class="icon-btn" id="applyBulkGradeBtn" title="应用到已勾选教师" aria-label="应用到已勾选教师" data-page-node-id="mstH6gZ7ly2HqQcRGXVu9j"><i data-lucide="check" data-page-node-id="4aN9Cadz6wtTwXPgjeunKJ"></i></button>
         </div>
-        <div class="teacher-pool" id="teacherPool"><div class="pool-empty">暂无人员</div></div>
+        <div class="teacher-pool" id="teacherPool" data-page-node-id="XLyypBcUrG6whoeh7MuIQm"><div class="pool-empty" data-page-node-id="HXOTXTMsoPEx3kyhywsN4H">暂无人员</div></div>
       </section>
 
-      <section class="section" id="sessionSection">
-        <div class="section-heading">
-          <div class="heading-main"><span class="step-number">2</span><h2>考试场次</h2></div>
-          <span class="count" id="sessionCount">0 场</span>
+      <section class="section" id="sessionSection" data-page-node-id="39jARcwUCCtcoC891ff3Y5">
+        <div class="section-heading" data-page-node-id="Ha0etLZ4Ph7Srq5du4BQWk">
+          <div class="heading-main" data-page-node-id="7iCi4CnVbGDYvyMyeUQjjl"><span class="step-number" data-page-node-id="O2TSDFp3CwAViBBEB3us0e">2</span><h2 data-page-node-id="YBXrQEUwW5HQfCc2RillvZ">考试场次</h2></div>
+          <span class="count" id="sessionCount" data-page-node-id="dmGtSZAAlRUDLTgwQC6j70">0 场</span>
         </div>
-        <div class="field-row">
-          <div>
-            <label for="examDate">考试起始日期 <span class="required-mark">*</span></label>
-            <input id="examDate" type="date">
+        <div class="field-row" data-page-node-id="ohqGFHgmWzErkcrCoJ8Y68">
+          <div data-page-node-id="x8gixUQa2vml6jXGUhBkBo">
+            <label for="examDate" data-page-node-id="M2ZwsOzMJIuCrXA7DvewTU">考试起始日期 <span class="required-mark" data-page-node-id="A66eyvrzhOkWMCZaDspiqE">*</span></label>
+            <input id="examDate" type="date" data-page-node-id="4Ay6WGE2bTSixqFVRu67Iu">
           </div>
-          <div>
-            <label for="timeTemplateInput">时间段模板</label>
+          <div data-page-node-id="8FkJpEsDKRAafqCNGiOC15">
+            <label for="timeTemplateInput" data-page-node-id="gaCIqQuMwoPjM18KSEq72T">时间段模板</label>
             <textarea id="timeTemplateInput" style="min-height:72px" placeholder="08:30-10:00&#10;10:30-12:00&#10;14:00-15:30">08:30-10:00&#10;10:30-12:00&#10;14:00-15:30</textarea>
           </div>
         </div>
-        <p class="muted" style="font-size:12px;margin:6px 2px 0">模板每行一个时段，可选前缀：<code>09-10 08:30-10:00</code>（日期）／<code>语文 08:30-10:00</code>（科目）／<code>五年级 语文 09:10-10:40</code>（年级+科目）。选科目后自动按此匹配时间。</p>
-        <div style="margin-top:10px">
-          <label>考试年级</label>
-          <div class="grade-rows" id="gradeRowsList"><div class="pool-empty">尚未添加考试年级</div></div>
-          <button class="btn" id="addGradeRowBtn" style="margin-top:8px"><i data-lucide="plus"></i>添加考试年级</button>
+        <p class="muted" style="font-size:12px;margin:6px 2px 0" data-page-node-id="Xcr0FOlVUQrZyG5ifDTrtx">模板每行一个时段，可选前缀：<code data-page-node-id="GfrLoZtML0uxX1BB6bMMB3">09-10 08:30-10:00</code>（日期）／<code data-page-node-id="fXlgLUiZ4jJZRyBKTM4P6K">语文 08:30-10:00</code>（科目）／<code data-page-node-id="yy8t7wl3QInG8oofFZnQYv">五年级 语文 09:10-10:40</code>（年级+科目）。选科目后自动按此匹配时间。</p>
+        <div style="margin-top:10px" data-page-node-id="VBEogElcjwMrk3y6qCs15M">
+          <label data-page-node-id="FaxSXQySc2WFnZJiApjU6k">考试年级</label>
+          <div class="grade-rows" id="gradeRowsList" data-page-node-id="VHNCbZCQIDKXCCb7ZifsJU"><div class="pool-empty" data-page-node-id="mKxUtimDNMrRA8xDUzlrik">尚未添加考试年级</div></div>
+          <button class="btn" id="addGradeRowBtn" style="margin-top:8px" data-page-node-id="nH59IoDWWgM6uanI31Rscj"><i data-lucide="plus" data-page-node-id="pfmz1iRVp4QVYGmPOWete5"></i>添加考试年级</button>
         </div>
-        <div style="margin-top:10px">
-          <label for="customRoomsInput">自定义考场名（每行一个，可选；留空则用“第 N 考场”）</label>
+        <div style="margin-top:10px" data-page-node-id="CyYa3eM6Gst3WdQ0Spc6cX">
+          <label for="customRoomsInput" data-page-node-id="qncd7CkpzffbcQ9S4vHCho">自定义考场名（每行一个，可选；留空则用“第 N 考场”）</label>
           <textarea id="customRoomsInput" style="min-height:52px" placeholder="第1考场&#10;第2考场&#10;第3考场"></textarea>
         </div>
-        <div class="button-row">
-          <button class="btn btn-primary" id="genGradeRowsBtn"><i data-lucide="list-plus"></i>生成场次</button>
-          <button class="btn" id="timeMemoryBtn"><i data-lucide="clock"></i>时间记忆</button>
-          <button class="btn" id="editSessionsBtn"><i data-lucide="table-properties"></i>查看/编辑</button>
-          <button class="icon-btn danger" id="clearSessionsBtn" title="清空场次" aria-label="清空场次"><i data-lucide="trash-2"></i></button>
+        <div class="button-row" data-page-node-id="wMkQiFGJchSKd0BrShVdP6">
+          <button class="btn btn-primary" id="genGradeRowsBtn" data-page-node-id="7rZTGFUEGm8tbgbd8OpzmV"><i data-lucide="list-plus" data-page-node-id="aB1YPufnsYOVEiNHM1SnBA"></i>生成场次</button>
+          <button class="btn" id="timeMemoryBtn" data-page-node-id="mis5RAKMCwH1DkAlvQnTsD"><i data-lucide="clock" data-page-node-id="EUsJ0L9LAUcd5LeamQaHes"></i>时间记忆</button>
+          <button class="btn" id="editSessionsBtn" data-page-node-id="cgZ9O9X1NFhHxOqAJlocu2"><i data-lucide="table-properties" data-page-node-id="7IIE8OUrcCqqqhZnBrMXEy"></i>查看/编辑</button>
+          <button class="icon-btn danger" id="clearSessionsBtn" title="清空场次" aria-label="清空场次" data-page-node-id="j0QbmyZrK5uHyWwZf7olXm"><i data-lucide="trash-2" data-page-node-id="xXVwCbrQJA8kZYDqEUfMBf"></i></button>
         </div>
       </section>
 
-      <section class="section" id="ruleSection">
-        <div class="section-heading">
-          <div class="heading-main"><span class="step-number">3</span><h2>编排规则</h2></div>
-          <span class="required-mark">必选</span>
+      <section class="section" id="ruleSection" data-page-node-id="6iCTCDiTJmF2SMqs7HaskC">
+        <div class="section-heading" data-page-node-id="T255Is1iUpdqiYfqaWhh66">
+          <div class="heading-main" data-page-node-id="l9Ojg6m2HKt6n6iaLLrATH"><span class="step-number" data-page-node-id="FZBLJQULbePrKAziYQ8AeS">3</span><h2 data-page-node-id="UenDvrNwSSdSPvV1HqzxqI">编排规则</h2></div>
+          <span class="required-mark" data-page-node-id="y2M5yZY958Hm25pefn5dDt">必选</span>
         </div>
-        <div class="rule-stack">
-          <div>
-            <label>每场监考人数 <span class="required-mark">*</span></label>
-            <div class="choice-group">
-              <label class="choice-card"><input type="radio" name="teacherPerRoom" value="1"><span><strong>1 位</strong><small>单人监考</small></span></label>
-              <label class="choice-card"><input type="radio" name="teacherPerRoom" value="2"><span><strong>2 位</strong><small>双人监考</small></span></label>
+        <div class="rule-stack" data-page-node-id="GRAdp15s29Rm7EtM78JuGv">
+          <div data-page-node-id="5y3MOAy3YxwPUFTPvbq9Ow">
+            <label data-page-node-id="zm8NQZ7Nzwq97J3Z6HcG4P">每场监考人数 <span class="required-mark" data-page-node-id="zhg9HxmTNA3oAhoI8btHwb">*</span></label>
+            <div class="choice-group" data-page-node-id="JmYbHJGGLEQGI3GkuLt05h">
+              <label class="choice-card" data-page-node-id="BhUTHvL6D6smIkFU7EJ23r"><input type="radio" name="teacherPerRoom" value="1" data-page-node-id="OdWJ4irlhEdbA3lBlZVcEI"><span data-page-node-id="L0RReK6UgFA2PhnwzYUy4H"><strong data-page-node-id="g1vilpbN7ET4SBFsoB78Gi">1 位</strong><small data-page-node-id="HTI4W5MtfM9MT4GpMdyEAB">单人监考</small></span></label>
+              <label class="choice-card" data-page-node-id="TyHPO0Ef4EPL0ZfFmpketl"><input type="radio" name="teacherPerRoom" value="2" data-page-node-id="hyAkKV1yZCkja7TpUcOjO7"><span data-page-node-id="fFjqouKKAcTUlSBpbeRT1M"><strong data-page-node-id="oyhRWaVjtp0Cpa5pFkclB7">2 位</strong><small data-page-node-id="czTyQ1KQMAO3h9PKyOrGhF">双人监考</small></span></label>
             </div>
           </div>
-          <label class="check-line"><input type="checkbox" id="balanceLoad" checked>优先均衡每位老师的场次</label>
-          <label class="check-line"><input type="checkbox" id="avoidConsecutive">尽量避免连续两个时段</label>
-          <label class="check-line"><input type="checkbox" id="crossGrade">允许跨年级调配（本年级教师不足时自动借调其他年级）</label>
-          <label class="check-line"><input type="checkbox" id="avoidOwnGrade">期末模式：本年级教师不监考本年级场次（按任教年级自动错开）</label>
-          <label class="check-line"><input type="checkbox" id="sameSubjectAvoid">同科目教师不监考同科目场次（需在“人员管理”里给教师设置任教科目）</label>
+          <label class="check-line" data-page-node-id="5yZD6sDYD2hTwxjCQjIcDb"><input type="checkbox" id="balanceLoad" checked data-page-node-id="yuIJCMIXzPvRqaUPeFYzKf">优先均衡每位老师的场次</label>
+          <label class="check-line" data-page-node-id="7bXwv3oOXdLodyF9RszyEn"><input type="checkbox" id="avoidConsecutive" data-page-node-id="bQqDwknYOqwOfUa4kSnMx1">尽量避免连续两个时段</label>
+          <label class="check-line" data-page-node-id="EG7b42axj2qABwdyMPJeD4"><input type="checkbox" id="crossGrade" data-page-node-id="a4LzoP1kkrw033GqrZnWWW">允许跨年级调配（本年级教师不足时自动借调其他年级）</label>
+          <label class="check-line" data-page-node-id="HupyZDEi13qyrqkbVOVsQv"><input type="checkbox" id="avoidOwnGrade" data-page-node-id="FXbVmmik2rPVbVb5q6gC13">期末模式：本年级教师不监考本年级场次（按任教年级自动错开）</label>
+          <label class="check-line" data-page-node-id="jY62FAatMtAHH5DFhoLXNe"><input type="checkbox" id="sameSubjectAvoid" data-page-node-id="LLGUlALHDKDz51iTYDCeOl">同科目教师不监考同科目场次（需在“人员管理”里给教师设置任教科目）</label>
         </div>
-        <div class="button-row" style="margin-top:8px">
-          <button class="btn btn-block" id="autoAssignBtn"><i data-lucide="wand-2"></i>按任教年级自动指派监考年级</button>
-          <p class="muted" style="font-size:12px;margin:6px 2px 0">最后一步：先确认考试场次，再让系统按教师的任教年级自动匹配监考年级。</p>
+        <div class="button-row" style="margin-top:8px" data-page-node-id="QExGl9NgTyfIJSTJCy1rmH">
+          <button class="btn btn-block" id="autoAssignBtn" data-page-node-id="rTWjIC1ETC4AZRMXxDD3O6"><i data-lucide="wand-2" data-page-node-id="IJ8iNXmHTDJJG1dZrAaj5s"></i>按任教年级自动指派监考年级</button>
+          <p class="muted" style="font-size:12px;margin:6px 2px 0" data-page-node-id="SilBM2BhPCbsBk0Rc3iuvV">最后一步：先确认考试场次，再让系统按教师的任教年级自动匹配监考年级。</p>
         </div>
-        <div class="generate-row">
-          <button class="btn btn-primary" id="generateBtn"><i data-lucide="shuffle"></i>开始编排</button>
-          <button class="icon-btn" id="rerollBtn" title="随机重排" aria-label="随机重排" disabled><i data-lucide="refresh-cw"></i></button>
+        <div class="generate-row" data-page-node-id="OeGwBGOqULy0x8wdp10RJR">
+          <button class="btn btn-primary" id="generateBtn" data-page-node-id="PABcyeg1O3SGLG2HlWXREA"><i data-lucide="shuffle" data-page-node-id="FC5PjNOuc7GACXHVQt6DbN"></i>开始编排</button>
+          <button class="icon-btn" id="rerollBtn" title="随机重排" aria-label="随机重排" disabled data-page-node-id="s9doGi49aFfxGLoXwdGo6B"><i data-lucide="refresh-cw" data-page-node-id="cqbTU78xNWuh6HDvWDLEGv"></i></button>
         </div>
       </section>
-      <datalist id="gradeOptions"></datalist>
+      <datalist id="gradeOptions" data-page-node-id="t1LokYkDV8pmtsWkP0bsoG"></datalist>
     </aside>
 
-    <section class="results">
-      <div class="result-topbar">
-        <div class="result-title"><h2>监考安排表</h2><p id="resultSubtitle">尚未生成</p></div>
-        <div class="result-actions">
-          <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled><i data-lucide="download"></i></button>
-          <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled>导出班次表</button>
-          <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled>发布在线版</button>
-          <button class="btn btn-sm" id="swapLogBtn" title="查看老师的换班记录" disabled>换班记录</button>
-          <button class="icon-btn" id="printBtn" title="打印" aria-label="打印" disabled><i data-lucide="printer"></i></button>
-          <button class="icon-btn danger" id="clearResultBtn" title="清空当前结果" aria-label="清空当前结果" disabled><i data-lucide="file-x-2"></i></button>
+    <section class="results" data-page-node-id="Dxe8jwC9Gs46Pz4ZK1ZY9v">
+      <div class="result-topbar" data-page-node-id="49yhQ8Y1p1HXxlt7uis35t">
+        <div class="result-title" data-page-node-id="hhGDS6yMRh0UAkkvtRTgge"><h2 data-page-node-id="kkoqvNmBDJmk2juXPg3MO9">监考安排表</h2><p id="resultSubtitle" data-page-node-id="M1AHV3iW3tItP5CVrVCsrM">尚未生成</p></div>
+        <div class="result-actions" data-page-node-id="IlSd0J299jddf4aXaVkFap">
+          <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled data-page-node-id="QPHHoYHOzWYMSgyUtxljzL"><i data-lucide="download" data-page-node-id="auHxINJPgg8COUM6d7wGIS"></i></button>
+          <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled data-page-node-id="t9YajfTxAm7ArSBmFxHGX8">导出班次表</button>
+          <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled data-page-node-id="KACGH59Ve8tleXUXvk5xcf">发布在线版</button>
+          <button class="btn btn-sm" id="swapLogBtn" title="查看老师的换班记录" disabled data-page-node-id="58P525obfek9Co9ULOOmRS">换班记录</button>
+          <button class="btn btn-sm" id="syncSwapBtn" title="把老师已经同意的换班结果同步回本地监考表" disabled>同步换班</button>
+          <button class="icon-btn" id="printBtn" title="打印" aria-label="打印" disabled data-page-node-id="srAcQ601zMTRzIDvsOZhep"><i data-lucide="printer" data-page-node-id="6RNTeMx6PKGpg5vkjWGEDS"></i></button>
+          <button class="icon-btn danger" id="clearResultBtn" title="清空当前结果" aria-label="清空当前结果" disabled data-page-node-id="Avgg56wR4TDRWwcpUshaW7"><i data-lucide="file-x-2" data-page-node-id="SxOeWgIu7PGWtkTKQHczzD"></i></button>
         </div>
       </div>
 
-      <div class="metric-strip">
-        <div class="metric"><span>考试场次</span><strong id="metricSessions">0</strong></div>
-        <div class="metric"><span>监考人次</span><strong id="metricAssignments">0</strong></div>
-        <div class="metric"><span>参与教师</span><strong id="metricTeachers">0</strong></div>
-        <div class="metric"><span>当前版本</span><strong class="small" id="metricVersion">--</strong></div>
+      <div class="metric-strip" data-page-node-id="Jcw02Hi6JKnJEm7vOWLfTy">
+        <div class="metric" data-page-node-id="wYvEhEgFXhcDz2m8FSQCYS"><span data-page-node-id="1F5tphtdWjoS06VK82u2Vo">考试场次</span><strong id="metricSessions" data-page-node-id="L73gT2b6rCD6E9CtMwtkAS">0</strong></div>
+        <div class="metric" data-page-node-id="k1AdLmK3aQ3vV3LunoNeUr"><span data-page-node-id="JTv8Yqlc66ysTcCZT1b7KV">监考人次</span><strong id="metricAssignments" data-page-node-id="v7ynB2OKkfDH7BiytGKBE0">0</strong></div>
+        <div class="metric" data-page-node-id="NAY7ZJkyjiRaW7nNewsmqU"><span data-page-node-id="FN496UN4KCQ6pf1ZEh5e3y">参与教师</span><strong id="metricTeachers" data-page-node-id="CxNrokBFOGGAIcADFKPVjo">0</strong></div>
+        <div class="metric" data-page-node-id="a2aS2kj8e7oE6RNF17uSnG"><span data-page-node-id="wnDGxTSpZDSW1zEaQMJgvP">当前版本</span><strong class="small" id="metricVersion" data-page-node-id="83bjjJJOOxBFLJocg20QHM">--</strong></div>
       </div>
 
-      <div class="readiness" id="readiness" hidden>
-        <div class="readiness-head"><i data-lucide="clipboard-check"></i>就绪检查</div>
-        <div class="readiness-steps" id="readinessSteps"></div>
-        <div class="readiness-issues" id="readinessIssues"></div>
-        <div class="readiness-good" id="readinessGood" hidden>各项就绪，可以开始编排</div>
+      <div class="readiness" id="readiness" hidden data-page-node-id="0W43SdOERmCtqFzrwOcZLz">
+        <div class="readiness-head" data-page-node-id="PgwLJDPRKiblZu0vnxIFu2"><i data-lucide="clipboard-check" data-page-node-id="JiBOFBSTpvtiIiTxT67ODA"></i>就绪检查</div>
+        <div class="readiness-steps" id="readinessSteps" data-page-node-id="G56zLO33M4HMTmSEsWxA5S"></div>
+        <div class="readiness-issues" id="readinessIssues" data-page-node-id="j3gpJVKHNT8qvDFIlUPxp5"></div>
+        <div class="readiness-good" id="readinessGood" hidden data-page-node-id="lafdSHHqdn73visvjhhER6">各项就绪，可以开始编排</div>
       </div>
 
-      <div class="notice" id="notice"><i data-lucide="circle-alert"></i><div id="noticeText"></div></div>
+      <div class="notice" id="notice" data-page-node-id="fM0ogxzJNPG6QdzF8AJr8O"><i data-lucide="circle-alert" data-page-node-id="H54UbcjkeHUEmxNm1VkXWC"></i><div id="noticeText" data-page-node-id="S00YgJrVAinAqGlWeq4iBm"></div></div>
 
-      <div class="view-tabs" id="resultTabs">
-        <button class="active" data-result-tab="primary">小学部监考表</button>
-        <button data-result-tab="middle">初中部监考表</button>
-        <button data-result-tab="stats">教师统计表</button>
+      <div class="view-tabs" id="resultTabs" data-page-node-id="PSMJNW9XVRhFEPR0yQWyPJ">
+        <button class="active" data-result-tab="primary" data-page-node-id="7EirdAGOYFJ3A2R1jMcH2u">小学部监考表</button>
+        <button data-result-tab="middle" data-page-node-id="ydbArTHsHpHXMOhuLs7iBD">初中部监考表</button>
+        <button data-result-tab="stats" data-page-node-id="I0EtCQCRhtaWTLanEsOL6g">教师统计表</button>
       </div>
 
-      <div class="schedule-shell">
-        <div class="schedule-empty" id="scheduleEmpty"><div><i data-lucide="calendar-range"></i><strong>等待编排</strong><span>完成左侧人员、场次和规则设置</span></div></div>
-        <div class="schedule-scroll" id="scheduleScroll" hidden><div id="templateView"></div></div>
+      <div class="schedule-shell" data-page-node-id="2TbcL6Mx5eC2vsBSY344Jo">
+        <div class="schedule-empty" id="scheduleEmpty" data-page-node-id="6tCHmDAtIXitQeY15x73kE"><div data-page-node-id="5c740bGftnUVCwBOrBvpEh"><i data-lucide="calendar-range" data-page-node-id="Smd7Ka7UiHpQm6qEojKInT"></i><strong data-page-node-id="NJgVPfGEqBroG8ANCq3eDU">等待编排</strong><span data-page-node-id="jkpFHOGelbRxTQslKufm1v">完成左侧人员、场次和规则设置</span></div></div>
+        <div class="schedule-scroll" id="scheduleScroll" hidden data-page-node-id="rYDPX6QhUwLXJVCPKGsTRZ"><div id="templateView" data-page-node-id="P8LtP8uBivioFYFA654NWt"></div></div>
       </div>
 
-      <div class="lower-grid">
-        <section class="workload">
-          <div class="panel-head"><h3>教师工作量</h3><span class="count" id="workloadRange">0 - 0 场</span></div>
-          <div class="workload-list" id="workloadList"><div class="history-empty">暂无数据</div></div>
+      <div class="lower-grid" data-page-node-id="YXN5hnflWgdRAkkTRbIyjm">
+        <section class="workload" data-page-node-id="dYHHQduEEZ02dNCSYxS9GW">
+          <div class="panel-head" data-page-node-id="dqNAV7sQAs3g0x6PjbdwMa"><h3 data-page-node-id="hQGHU8ExBidyE1ZW22Oxc6">教师工作量</h3><span class="count" id="workloadRange" data-page-node-id="UtfxW34oXK3At0nYk030ul">0 - 0 场</span></div>
+          <div class="workload-list" id="workloadList" data-page-node-id="iGEoCj8ueftkBrAwXnQJzE"><div class="history-empty" data-page-node-id="woApK5WdLZXA4zxFY06tTC">暂无数据</div></div>
         </section>
-        <section class="history">
-          <div class="panel-head"><h3>版本记录</h3><span class="count" id="historyCount">0 版</span></div>
-          <div class="history-list" id="historyList"><div class="history-empty">生成后自动保存</div></div>
+        <section class="history" data-page-node-id="ClN5ND3VklxZTidemtbnFt">
+          <div class="panel-head" data-page-node-id="tSTvKMxJArswgJXhkFOonf"><h3 data-page-node-id="mgsEyOnUXtrmePEfF6UFYY">版本记录</h3><span class="count" id="historyCount" data-page-node-id="re5QigP87FAUVeEO7wD2z9">0 版</span></div>
+          <div class="history-list" id="historyList" data-page-node-id="GAchEexnTpoVvAcW9LCGUt"><div class="history-empty" data-page-node-id="BEEU5X2J2gF6zQ4kpe4IUg">生成后自动保存</div></div>
         </section>
       </div>
     </section>
   </main>
 
-  <dialog id="tablePasteDialog">
-    <div class="dialog-head"><h2>粘贴岗位表</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body"><label for="tablePasteInput">表格内容</label><textarea id="tablePasteInput" style="min-height:280px" placeholder="年级&#9;班级&#9;教师姓名&#10;七年级&#9;1班&#9;张 三"></textarea></div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="parseTableBtn"><i data-lucide="scan-text"></i>识别</button></div>
+  <dialog id="tablePasteDialog" data-page-node-id="jVYOWeyOTkaFD27cG6D0Q6">
+    <div class="dialog-head" data-page-node-id="jvPYRvaP5p70l1UwmhAGml"><h2 data-page-node-id="R7byssZIUOydHIyuloquv9">粘贴岗位表</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="HDDI6SNvEVnbISnx7pNOBI"><i data-lucide="x" data-page-node-id="VhiL8ilDJJVYBJuOYEEaxi"></i></button></div>
+    <div class="dialog-body" data-page-node-id="AXiEfJLf54TLVv4qxVUfMo"><label for="tablePasteInput" data-page-node-id="DheshibLBh6FecJASk0Qj6">表格内容</label><textarea id="tablePasteInput" style="min-height:280px" placeholder="年级&#9;班级&#9;教师姓名&#10;七年级&#9;1班&#9;张 三"></textarea></div>
+    <div class="dialog-foot" data-page-node-id="mblzJVE1pjCT1DjrpIu3Y2"><button class="btn" data-close-dialog data-page-node-id="oIfu9kjin5nVVhGkabE8PG">取消</button><button class="btn btn-primary" id="parseTableBtn" data-page-node-id="9axCyKo0CnBQ1v2zznZkTr"><i data-lucide="scan-text" data-page-node-id="p47BimlfgVtWTtd36uVgf0"></i>识别</button></div>
   </dialog>
 
-  <dialog id="sessionDialog">
-    <div class="dialog-head"><h2>考试场次</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <div class="field-row">
-        <div><label for="manualGrade">年级</label><select id="manualGrade"><option value="">请选择年级</option></select></div>
-        <div><label for="manualRoom">考场</label><select id="manualRoom"></select></div>
+  <dialog id="sessionDialog" data-page-node-id="tjpqnzCQ2OX6Jf0LDifdpF">
+    <div class="dialog-head" data-page-node-id="bechA7bIB8lwHnMM9WVLtM"><h2 data-page-node-id="M2Sza9WPTbQ5lh22UFeDEy">考试场次</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="fUp4WZ0i6Izz2vhMsi9i4r"><i data-lucide="x" data-page-node-id="lpU6nhS0GoYHauYz1nmMCy"></i></button></div>
+    <div class="dialog-body" data-page-node-id="d63UtQDjr9OZGN7jp4xPJ4">
+      <div class="field-row" data-page-node-id="DaNHEAVbTQnhc3fOuHKfwG">
+        <div data-page-node-id="C8mNmUVpf40dDVI5zO4CIV"><label for="manualGrade" data-page-node-id="mnJBViDxzJLL7ZQXoHmGVN">年级</label><select id="manualGrade" data-page-node-id="AZJ1uAlEmOZibH3JGCLk2R"><option value="" data-page-node-id="DzE6BJg6HytFQs0cjZs7sC">请选择年级</option></select></div>
+        <div data-page-node-id="lNRpK0WF41u16mR7mB2Goz"><label for="manualRoom" data-page-node-id="LKHn7r6ejT7AUzeQesXrj0">考场</label><select id="manualRoom" data-page-node-id="EXYL6VrKSSCJPr0PbyI2Fb"></select></div>
       </div>
-      <div style="margin-top:10px"><label for="manualSubject">考试科目</label><select id="manualSubject"><option value="">请先选择年级</option></select></div>
-      <div class="field-row" style="margin-top:10px">
-        <div><label for="manualDate">日期</label><input id="manualDate" type="date"></div>
-        <div><label for="manualTime">时间</label><input id="manualTime" placeholder="08:30-10:00"></div>
+      <div style="margin-top:10px" data-page-node-id="P1OTgBOVvKargTpZneOkU7"><label for="manualSubject" data-page-node-id="KVRA1W2KITfp1RXigdDpN7">考试科目</label><select id="manualSubject" data-page-node-id="B92fo1UHkkGlNz1Fvr6LN5"><option value="" data-page-node-id="utefWzr7jy7OukuQOUQsj8">请先选择年级</option></select></div>
+      <div class="field-row" style="margin-top:10px" data-page-node-id="Cek6N7m80Vn0VFnIL2z2PY">
+        <div data-page-node-id="dMqHkRUSN5Lzxso7a3Gz2O"><label for="manualDate" data-page-node-id="3qV0wGDl5XJrdI1gqHLRMs">日期</label><input id="manualDate" type="date" data-page-node-id="jqzutUabTEMWUAm8obugpd"></div>
+        <div data-page-node-id="w0wCsYnFcn9xMTeLL5C0mb"><label for="manualTime" data-page-node-id="u5GMBiTPwzo9ZfUwWxRDR9">时间</label><input id="manualTime" placeholder="08:30-10:00" data-page-node-id="OonoqA01nFvXDRcmAsuyny"></div>
       </div>
-      <div class="button-row"><button class="btn" id="manualAddBtn"><i data-lucide="plus"></i>加入一场</button></div>
-      <div class="field-row" style="margin-top:10px">
-        <div><label for="applyDateInput">统一改为日期</label><input id="applyDateInput" type="date"></div>
-        <div><label>&nbsp;</label><button class="btn" id="applyDateToAllBtn"><i data-lucide="calendar-sync"></i>应用到全部场次</button></div>
+      <div class="button-row" data-page-node-id="okZTGpK7Ax5uGwK7LnUimX"><button class="btn" id="manualAddBtn" data-page-node-id="OD5C7mtCZn9LDYOyZCW3IC"><i data-lucide="plus" data-page-node-id="9eeCZYbM4MgUJaPAdNnwL5"></i>加入一场</button></div>
+      <div class="field-row" style="margin-top:10px" data-page-node-id="AsUvL8JApCNgQHKmu16Vi8">
+        <div data-page-node-id="oNrGMki8KCVHbQXF0gZVhF"><label for="applyDateInput" data-page-node-id="gcZg13B2QBbfpGM808jllN">统一改为日期</label><input id="applyDateInput" type="date" data-page-node-id="xU6eT8g22iozNSiTnySG7u"></div>
+        <div data-page-node-id="gL5XP4PPQ5KVr3eeqzas9z"><label data-page-node-id="stQejiUqd14ggj1QecqIHh">&nbsp;</label><button class="btn" id="applyDateToAllBtn" data-page-node-id="89y31Z42qMhEuH4kX5I52G"><i data-lucide="calendar-sync" data-page-node-id="uhI4mwWt321lDsQHKSsG6A"></i>应用到全部场次</button></div>
       </div>
-      <div class="session-list" id="sessionList"></div>
+      <div class="session-list" id="sessionList" data-page-node-id="VGS4sPfXNcd6EcbWccaeCJ"></div>
     </div>
-    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+    <div class="dialog-foot" data-page-node-id="CBcsA0f1gzIqGpg19D8d2Z"><button class="btn btn-primary" data-close-dialog data-page-node-id="TcgD2xExYLsZ4ftFww6wQz">完成</button></div>
   </dialog>
 
-  <dialog id="historyDialog">
-    <div class="dialog-head"><h2 id="historyDialogTitle">版本详情</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body"><div class="modal-table"><table><thead><tr><th>日期</th><th>时间</th><th>科目</th><th>年级</th><th>考场</th><th>监考教师</th></tr></thead><tbody id="historyDialogBody"></tbody></table></div></div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>关闭</button><button class="btn btn-primary" id="restoreVersionBtn"><i data-lucide="history"></i>恢复此版本</button></div>
+  <dialog id="historyDialog" data-page-node-id="uDX4zFfyup4dICGJHa2Gkq">
+    <div class="dialog-head" data-page-node-id="CAGISEZg8Y3whrkvl0Vud4"><h2 id="historyDialogTitle" data-page-node-id="wsXQ4OQadg9xHnwvWsOk2c">版本详情</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="BEfVhknoY9n4eya4Di7VAJ"><i data-lucide="x" data-page-node-id="1U895MmSACG7WFOGfp0krt"></i></button></div>
+    <div class="dialog-body" data-page-node-id="sOUinZHVJOVHrr9rFqwGkQ"><div class="modal-table" data-page-node-id="hKKX7MHd0OSwKxr9HlTU1f"><table data-page-node-id="lrALOPkZTXS8TL4cBF6MT5"><thead data-page-node-id="2PTcMWvVy8aJHVxL6ZFcVi"><tr data-page-node-id="0wfkZNN0WqOd4VypmGPsZj"><th data-page-node-id="Xm8ESAlOyQb5ONsdX4wn0x">日期</th><th data-page-node-id="L3ArZYc29o2J4CgFz90lBf">时间</th><th data-page-node-id="BwQUAjzMwwlTFdHnnuqNTY">科目</th><th data-page-node-id="dORCqLqm9gGukLJeH3MUU9">年级</th><th data-page-node-id="bb7ZkqVEYSdpdjUZQUYpdB">考场</th><th data-page-node-id="XEQdOxWkkD7BQvWyfyIkI8">监考教师</th></tr></thead><tbody id="historyDialogBody" data-page-node-id="lzFlduB0fnkieEuPEKHEhr"></tbody></table></div></div>
+    <div class="dialog-foot" data-page-node-id="qbJ1UevE30Imd7b5eaGQKd"><button class="btn" data-close-dialog data-page-node-id="Oh9HiFHEESlrTej66b35sJ">关闭</button><button class="btn btn-primary" id="restoreVersionBtn" data-page-node-id="EvfCiZvH8DyEuHcOiynUR1"><i data-lucide="history" data-page-node-id="52Dmk6GZ2HM3KzDt89FT4y"></i>恢复此版本</button></div>
   </dialog>
 
-  <dialog id="confirmDialog">
-    <div class="dialog-head"><h2 id="confirmTitle">确认操作</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body"><p id="confirmText" style="margin:0"></p></div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-danger" id="confirmActionBtn">确认</button></div>
+  <dialog id="confirmDialog" data-page-node-id="Mb8ynZEudKxVKQDdfCOo8Y">
+    <div class="dialog-head" data-page-node-id="7fyDaHW4HrcJkTtShC6hYk"><h2 id="confirmTitle" data-page-node-id="0A0PbGqZSRa34iE4GLlHH6">确认操作</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="LFPFXfgpog2TtFIhPTyZiu"><i data-lucide="x" data-page-node-id="rqFUF16N4NLfs7EEATHu5A"></i></button></div>
+    <div class="dialog-body" data-page-node-id="fAi4uDmLdgweZu7kA3y3In"><p id="confirmText" style="margin:0" data-page-node-id="l6u1hikF2nfJGWFsfCGIo6"></p></div>
+    <div class="dialog-foot" data-page-node-id="vXuazya3gXaEPsPYetctNU"><button class="btn" data-close-dialog data-page-node-id="oByI0Ft6McuFw8mXMfkleG">取消</button><button class="btn btn-danger" id="confirmActionBtn" data-page-node-id="YPbNaSZc4GV4Y9LWJqa5FN">确认</button></div>
   </dialog>
 
-  <dialog id="assignmentDialog">
-    <div class="dialog-head"><h2>调整监考教师</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <p id="assignmentMeta" class="muted" style="margin:0 0 14px"></p>
-      <div class="field-row">
-        <div><label for="assignmentTeacher1">主监教师</label><select id="assignmentTeacher1"></select></div>
-        <div><label for="assignmentTeacher2">副监教师</label><select id="assignmentTeacher2"></select></div>
+  <dialog id="assignmentDialog" data-page-node-id="0TUFBek3GZZJGaWDY6WYcn">
+    <div class="dialog-head" data-page-node-id="HSd1DMCBwo6yn77KySahxm"><h2 data-page-node-id="PWD1ctxNbG5nh5obuPHpzE">调整监考教师</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="91peMD77VrQGyXEEZRrQ18"><i data-lucide="x" data-page-node-id="eCOkEH5tK5K64nwrHk5epD"></i></button></div>
+    <div class="dialog-body" data-page-node-id="zbQkdCj5YseFOL3ZWRYxmp">
+      <p id="assignmentMeta" class="muted" style="margin:0 0 14px" data-page-node-id="AMoFy0Im65I4WCv6lATfWC"></p>
+      <div class="field-row" data-page-node-id="A3V81Cz2DYFGTQrCII20FM">
+        <div data-page-node-id="PF0Tnxn2MGGaxNmKaLteRM"><label for="assignmentTeacher1" data-page-node-id="E6XARBjcCemumxGWC3m157">主监教师</label><select id="assignmentTeacher1" data-page-node-id="aRu7KzoPlulFt7LO7Nndtn"></select></div>
+        <div data-page-node-id="CBCKAigJW8UEGrsMHaRNEf"><label for="assignmentTeacher2" data-page-node-id="8JW5D3hy5jAIy9V8WcQl6g">副监教师</label><select id="assignmentTeacher2" data-page-node-id="YGluZC0MZqaB2anA7Dl0lG"></select></div>
       </div>
-      <div class="button-row" style="margin-top:8px"><button class="btn swap-btn" id="swapAssignmentBtn"><i data-lucide="arrow-left-right"></i>互换主副</button></div>
+      <div class="button-row" style="margin-top:8px" data-page-node-id="p02oxVjrfJIwB2u1UFZqkU"><button class="btn swap-btn" id="swapAssignmentBtn" data-page-node-id="dFlLfpl59TayLfKWlZV6Vg"><i data-lucide="arrow-left-right" data-page-node-id="jyjHn5hYftSHvjEzobLOYF"></i>互换主副</button></div>
     </div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveAssignmentBtn"><i data-lucide="save"></i>保存调整</button></div>
+    <div class="dialog-foot" data-page-node-id="xg8sNmiFzUw71MEBoes7IK"><button class="btn" data-close-dialog data-page-node-id="7Khe72buhqvVmqCaJ4hlE2">取消</button><button class="btn btn-primary" id="saveAssignmentBtn" data-page-node-id="maMeiODefblGHmH970c0nc"><i data-lucide="save" data-page-node-id="tuFGDXMKeH7jSVw2e5onP4"></i>保存调整</button></div>
   </dialog>
 
-  <dialog id="manageTeachersDialog">
-    <div class="dialog-head"><h2>人员管理</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <div class="field-row" style="margin-bottom:10px">
-        <div><label>姓名</label><input id="mtNameInput" placeholder="教师姓名"></div>
-        <div><label>学部</label><select id="mtDeptInput"><option value="">自动判断</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select></div>
-        <div><label>任教年级</label><select id="mtGradeInput"></select></div>
-        <div><label>&nbsp;</label><button class="btn btn-primary" id="mtAddBtn"><i data-lucide="user-plus"></i>添加</button></div>
+  <dialog id="manageTeachersDialog" data-page-node-id="U3hdyPwn3WzlvflFcuVCcC">
+    <div class="dialog-head" data-page-node-id="sDDDOPQ7KerKL54Wt9qU7s"><h2 data-page-node-id="aiBkPvx1J4SFAAWRsTnabF">人员管理</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="7ZDUkUSis5SFjp9Sooy5EU"><i data-lucide="x" data-page-node-id="3jsJvXT09cu7zbyAI4Li3m"></i></button></div>
+    <div class="dialog-body" data-page-node-id="zplKIkXq0fyKxTTM1LkaLg">
+      <div class="field-row" style="margin-bottom:10px" data-page-node-id="OrKJK2jha3KbbD4mKjm6cO">
+        <div data-page-node-id="pCU8YNYV2seDaVMzYrlPgT"><label data-page-node-id="jZk6CHDJzlhhWvVw568zOf">姓名</label><input id="mtNameInput" placeholder="教师姓名" data-page-node-id="sUlfFRgui6OjagykfPKDUw"></div>
+        <div data-page-node-id="1l1CvDQYOGOrBw8kScG6Hn"><label data-page-node-id="uTvI4FSDRP7zawNJEUDM4D">学部</label><select id="mtDeptInput" data-page-node-id="IyS92ms43jAMsTP9Fx2jYf"><option value="" data-page-node-id="2MMF1NydSGqhDTl6l6lXAV">自动判断</option><option value="小学部" data-page-node-id="Ur6dmNYElTVifRt2lcxLLW">小学部</option><option value="中学部" data-page-node-id="RkEmpzXMaHaIXEdXLpv4d3">中学部</option></select></div>
+        <div data-page-node-id="tKUFCFeKMQRpbFHYcImwIf"><label data-page-node-id="xGljv9FxHPd7RPedcUjm6G">任教年级</label><select id="mtGradeInput" data-page-node-id="UQIVARzHgBON2wQrl8YCl2"></select></div>
+        <div data-page-node-id="zuUCnnbA4u5KEhHSMyqz34"><label data-page-node-id="54CJNnTowEmGebZ9LUvA3r">&nbsp;</label><button class="btn btn-primary" id="mtAddBtn" data-page-node-id="ftUH5xCMeAp39HAHnVNcvg"><i data-lucide="user-plus" data-page-node-id="wUUBxJjYqcLomB8n4mbBvF"></i>添加</button></div>
       </div>
-      <div style="margin-bottom:10px"><label>任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="mtSubjectsBox"></div></div>
-      <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px">
-      <div class="modal-table"><table>
-        <thead><tr><th>姓名</th><th>学部</th><th>任教年级</th><th>任教科目</th><th>本次监考年级</th><th>本次场次</th><th>累计场次</th><th>操作</th></tr></thead>
-        <tbody id="mtTableBody"></tbody>
+      <div style="margin-bottom:10px" data-page-node-id="DRIOop2sHISccWwW2zmFkZ"><label data-page-node-id="YiDR0rpv9lcpXJIGYSLliI">任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="mtSubjectsBox" data-page-node-id="2mxn3xtaLX6MoQG5Xvzy6q"></div></div>
+      <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px" data-page-node-id="zzIrJTKVA6ggSAaqxRN08T">
+      <div class="modal-table" data-page-node-id="4W7cjFueek9n7sOIGwJ6aK"><table data-page-node-id="JSLO8qIFc82MGL5WzxYdGy">
+        <thead data-page-node-id="n5d3ZH9EXYGGnBC4MJ95Na"><tr data-page-node-id="7GcNBDced8MoXGboQFoE4W"><th data-page-node-id="H6wjeSV317GWKLc8m2WKZ0">姓名</th><th data-page-node-id="VsV9FcWvw6Yv4FLSN5vs5y">学部</th><th data-page-node-id="iX2xLTm5lomhFQwoTKjAjI">任教年级</th><th data-page-node-id="R9DROefVGzYdZCnRm5daHu">任教科目</th><th data-page-node-id="Aih3FOZ6O4D7kSx4OjM2HF">本次监考年级</th><th data-page-node-id="BURc9GL2h7fPhMpQenRdLm">本次场次</th><th data-page-node-id="93OXHnpdauljmKjbebuFPp">累计场次</th><th data-page-node-id="7gALCZG2f6zJXhtprG6hLS">操作</th></tr></thead>
+        <tbody id="mtTableBody" data-page-node-id="W25Uac8h0xjpLOBDvFTCCa"></tbody>
       </table></div>
-      <p class="muted" style="margin:8px 0 0">“累计场次”统计全部历史版本里该教师被安排的监考场次；“本次场次”为当前排表。点“明细”查看该教师监考过的具体场次。</p>
+      <p class="muted" style="margin:8px 0 0" data-page-node-id="OmRqbdcLWkJTcZehW592Q4">“累计场次”统计全部历史版本里该教师被安排的监考场次；“本次场次”为当前排表。点“明细”查看该教师监考过的具体场次。</p>
     </div>
-    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+    <div class="dialog-foot" data-page-node-id="esrhqrOn1Cil7r2N6XY4re"><button class="btn btn-primary" data-close-dialog data-page-node-id="BxxnsaFyFPfweQxjw3RGCq">完成</button></div>
   </dialog>
 
-  <dialog id="teacherEditDialog">
-    <div class="dialog-head"><h2>编辑人员</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <div class="field-row">
-        <div><label>姓名</label><input id="teNameInput"></div>
-        <div><label>学部</label><select id="teDeptInput"><option value="">自动判断</option><option value="小学部">小学部</option><option value="中学部">中学部</option></select></div>
+  <dialog id="teacherEditDialog" data-page-node-id="Al7lTTjgCHWIq5KZgvPJNB">
+    <div class="dialog-head" data-page-node-id="GsxALouF299DZi87st7vNW"><h2 data-page-node-id="C66cfU8eKy2Na46IblI8Ap">编辑人员</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="aa8hABWcXABnjxT9FGHN9K"><i data-lucide="x" data-page-node-id="y6VR2GhLl4pnBRoWRiQRG5"></i></button></div>
+    <div class="dialog-body" data-page-node-id="lgJ9sG0wNVXaXB67VzZeZu">
+      <div class="field-row" data-page-node-id="Gn5uxEH7HSePAgDVXUuLbK">
+        <div data-page-node-id="dR90Fv4NsGqq4IG6nuc75M"><label data-page-node-id="NzS34BjeWeSYybcVCvpNiF">姓名</label><input id="teNameInput" data-page-node-id="1aGVYJQB6EqvL1lRqKBDeZ"></div>
+        <div data-page-node-id="KfHRw2yYKnOfjU0EYL4zji"><label data-page-node-id="019El3RzZ82IoOW6TVXFFx">学部</label><select id="teDeptInput" data-page-node-id="EcZfLKUReoxCWazsJUZojQ"><option value="" data-page-node-id="00mTx5lXAhLX3x5jpjwbbX">自动判断</option><option value="小学部" data-page-node-id="KJPpdwVUPnIoIFahz8jHAh">小学部</option><option value="中学部" data-page-node-id="wbpdZdwcANlhQEhVqTqjnI">中学部</option></select></div>
       </div>
-      <div style="margin-top:10px"><label>任教年级</label><select id="teGradeInput"></select></div>
-      <div style="margin-top:10px"><label>任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="teSubjectsBox"></div></div>
+      <div style="margin-top:10px" data-page-node-id="CthjFQ5YlwpOqg0YrfUwZS"><label data-page-node-id="fi8uiSfOSBggoK9FJDwWsv">任教年级</label><select id="teGradeInput" data-page-node-id="37tjEHCMRg7nXKbVjnp65r"></select></div>
+      <div style="margin-top:10px" data-page-node-id="8pFwEjnl3xgzuz9NABCfM3"><label data-page-node-id="Sy2Pz8CgXEXX1xRdjBFQEC">任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="teSubjectsBox" data-page-node-id="a0vK89hME3NiVALDOaqxu1"></div></div>
     </div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="teSaveBtn"><i data-lucide="save"></i>保存</button></div>
+    <div class="dialog-foot" data-page-node-id="VcO8WcJVQKK46BD3bBrHH6"><button class="btn" data-close-dialog data-page-node-id="0Hr9B7iJxZGvLOeQLSvG0H">取消</button><button class="btn btn-primary" id="teSaveBtn" data-page-node-id="5YVRdEpv5AsaXu7ilyDzFU"><i data-lucide="save" data-page-node-id="7l6D35d47e7jdTAZ9Zg1Xa"></i>保存</button></div>
   </dialog>
 
-  <dialog id="teacherDetailDialog">
-    <div class="dialog-head"><h2 id="teacherDetailTitle">监考明细</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <p class="muted" style="margin:0 0 10px" id="teacherDetailSummary"></p>
-      <div class="modal-table"><table>
-        <thead><tr><th>日期</th><th>时间</th><th>科目</th><th>年级</th><th>考场</th><th>身份</th></tr></thead>
-        <tbody id="teacherDetailBody"></tbody>
+  <dialog id="teacherDetailDialog" data-page-node-id="Tvynnf81pJdVFByj9kcpiw">
+    <div class="dialog-head" data-page-node-id="fx8igFGoCSR5BGoDMP5NGh"><h2 id="teacherDetailTitle" data-page-node-id="y1abi8SuiuK5gFGZsxD5CO">监考明细</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="WERcnmvE1FfmSASuXFvzxT"><i data-lucide="x" data-page-node-id="hSXuR18h6j1lFcM1nr1bJV"></i></button></div>
+    <div class="dialog-body" data-page-node-id="jobYIlb1KX2Ee5BEr0J4E9">
+      <p class="muted" style="margin:0 0 10px" id="teacherDetailSummary" data-page-node-id="wBQcLZsGF1fyUI1Z5lvNDt"></p>
+      <div class="modal-table" data-page-node-id="AunwTdKy1JODH0FiDPFvq2"><table data-page-node-id="hoMndA4uVJjbR0Xs3nHOwB">
+        <thead data-page-node-id="OC1XWGarTW7GLY4TaMpwS7"><tr data-page-node-id="zqiyLWwuLrt0XSSE46H0No"><th data-page-node-id="MnVHWZZZsDFj5nxTfKTQnx">日期</th><th data-page-node-id="NkezgwGsPYM70JErq5pAFo">时间</th><th data-page-node-id="E6Wevk7Z9goYDfdaSA8QfF">科目</th><th data-page-node-id="nRiWn0OqRccVwmV1Gxekgg">年级</th><th data-page-node-id="cNlhmWX3kGnEV6RG5X4L7N">考场</th><th data-page-node-id="DRTVlOba93WSQqssRQ6r9C">身份</th></tr></thead>
+        <tbody id="teacherDetailBody" data-page-node-id="D1LuCByZMLeLi1A49YI4ZX"></tbody>
       </table></div>
     </div>
-    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>关闭</button></div>
+    <div class="dialog-foot" data-page-node-id="abeIbgIGW3vRkBY5LgZ43N"><button class="btn btn-primary" data-close-dialog data-page-node-id="vPtHe1mk6nlbvMiDLQoymW">关闭</button></div>
   </dialog>
 
-  <dialog id="planDialog">
-    <div class="dialog-head"><h2>考试方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <p class="muted" style="margin:0 0 12px">保存当前的人员勾选、场次、考场与编排规则。月考/期末各存一个方案，下次直接载入复用，载入时可一键把日期改成新日期。</p>
-      <div class="plan-save-box">
-        <input id="planNameInput" placeholder="方案名称，如：9月月考 / 期末考">
-        <button class="btn btn-primary" id="savePlanBtn"><i data-lucide="save"></i>保存</button>
+  <dialog id="planDialog" data-page-node-id="rbzyktM6kNRCBbiGbiPFrQ">
+    <div class="dialog-head" data-page-node-id="ZpiT7mSgiVt154BEkvI4pH"><h2 data-page-node-id="Pe9wYESw7vXijM3LG5aosW">考试方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="G2B77OC6DW7nkRBwYYNAwi"><i data-lucide="x" data-page-node-id="2vpKJ9RUYAXit1iApoyxFT"></i></button></div>
+    <div class="dialog-body" data-page-node-id="QfSgY56NWMeDZrGYWBLLEK">
+      <p class="muted" style="margin:0 0 12px" data-page-node-id="6hwxSXL4UHv571Gz5FwzFj">保存当前的人员勾选、场次、考场与编排规则。月考/期末各存一个方案，下次直接载入复用，载入时可一键把日期改成新日期。</p>
+      <div class="plan-save-box" data-page-node-id="5n6UaGGpCMJl3WMv3VVRYi">
+        <input id="planNameInput" placeholder="方案名称，如：9月月考 / 期末考" data-page-node-id="UX7YWlGC6gfrVosyAy2LA4">
+        <button class="btn btn-primary" id="savePlanBtn" data-page-node-id="OaQc0zkFc3fpQAOSYbhhex"><i data-lucide="save" data-page-node-id="ANbeYU3doeKFFavL9DngPK"></i>保存</button>
       </div>
-      <div class="plan-list" id="planList"><div class="plan-empty">暂无已保存方案</div></div>
+      <div class="plan-list" id="planList" data-page-node-id="eSVXgibZZjfUL9aPV7wWOO"><div class="plan-empty" data-page-node-id="Dm4zWrqg4Gi6Eb1zXIJLnR">暂无已保存方案</div></div>
     </div>
-    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+    <div class="dialog-foot" data-page-node-id="vxFja75NWcalsrsC3gByt5"><button class="btn btn-primary" data-close-dialog data-page-node-id="sqsulaYitwQFpHzlgnjemY">完成</button></div>
   </dialog>
 
-  <dialog id="planLoadDialog">
-    <div class="dialog-head"><h2 id="planLoadTitle">载入方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <div class="load-date-box">
-        <label class="check-line"><input type="checkbox" id="planUpdateDate" checked>载入后把全部场次日期改为：</label>
-        <input id="planLoadDate" type="date">
-        <p class="muted" style="margin:0">不勾选则保留方案里保存的日期。</p>
+  <dialog id="planLoadDialog" data-page-node-id="KhhjmHodnhqZU7BxB4x1JS">
+    <div class="dialog-head" data-page-node-id="4WV18HyNN3TG1ovUpNipN4"><h2 id="planLoadTitle" data-page-node-id="99fsUEtHDO9u4ftTVWgCIY">载入方案</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="fRHPRcHiKcNnD84QrSRrre"><i data-lucide="x" data-page-node-id="5JgnUWfAswHM7D0iT3jvj1"></i></button></div>
+    <div class="dialog-body" data-page-node-id="6JaOC4NYVxECS0x3MwDBrI">
+      <div class="load-date-box" data-page-node-id="ORCT16vITowaUWoYH0WY8G">
+        <label class="check-line" data-page-node-id="eEnIFSyszDTJqbBKKeL9KB"><input type="checkbox" id="planUpdateDate" checked data-page-node-id="3vrrgmRmKUHM2vc8KUQ7Yd">载入后把全部场次日期改为：</label>
+        <input id="planLoadDate" type="date" data-page-node-id="CLrHIajMk08Cpmp4pTzEa2">
+        <p class="muted" style="margin:0" data-page-node-id="2uVYHaLWi22HW7MNDpNIre">不勾选则保留方案里保存的日期。</p>
       </div>
     </div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="planLoadConfirmBtn">确认载入</button></div>
+    <div class="dialog-foot" data-page-node-id="ZBh8IeoGKKw13c2OubzRfY"><button class="btn" data-close-dialog data-page-node-id="b6LzzBcUum6AENHvvvM2yy">取消</button><button class="btn btn-primary" id="planLoadConfirmBtn" data-page-node-id="HiOByzB5jeJDCc1QZaK9pk">确认载入</button></div>
   </dialog>
 
-  <dialog id="backupDialog">
-    <div class="dialog-head"><h2>数据备份 / 恢复</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <div class="backup-actions">
-        <button class="btn btn-primary" id="exportBackupBtn"><i data-lucide="download"></i>导出备份（保存为 JSON 文件）</button>
-        <div>
-          <label>导入备份</label>
-          <div class="upload-zone" style="min-height:80px">
-            <input type="file" id="importBackupInput" accept=".json">
-            <div><i data-lucide="upload"></i><strong>选择备份 JSON 文件</strong><span>导入后将替换当前全部数据</span></div>
+  <dialog id="backupDialog" data-page-node-id="42TrzcTBswBKowO5yZjama">
+    <div class="dialog-head" data-page-node-id="mjYqvZyVb7hFd0Dut3rbZK"><h2 data-page-node-id="zvGRTX1wUIdgkN3dONAHXe">数据备份 / 恢复</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="q9U4LEZPcX4CBtggsOYLrF"><i data-lucide="x" data-page-node-id="gz8GHOh05YJTH9eZBVQavZ"></i></button></div>
+    <div class="dialog-body" data-page-node-id="623VIRZW8XayUK4T1eftxq">
+      <div class="backup-actions" data-page-node-id="JVwuctHzZgFxARJi8yuWrt">
+        <button class="btn btn-primary" id="exportBackupBtn" data-page-node-id="xtZZviAhHoo8EC5pi1xrHl"><i data-lucide="download" data-page-node-id="i2YO82AHqOv4V3gmqj4Xzf"></i>导出备份（保存为 JSON 文件）</button>
+        <div data-page-node-id="tnkojBsOnHZyYerpMliaCi">
+          <label data-page-node-id="lcI7bGgOh0uFFFCzs52UDM">导入备份</label>
+          <div class="upload-zone" style="min-height:80px" data-page-node-id="9IRYiVfownyxYnYKYAlcEn">
+            <input type="file" id="importBackupInput" accept=".json" data-page-node-id="97USQ7pXlLj86uAuwg1dBg">
+            <div data-page-node-id="jyLwQodMMMKSixaQ4R7Uww"><i data-lucide="upload" data-page-node-id="9mBXMYZ7wcJfBOXM0kEry6"></i><strong data-page-node-id="AwcqDy9t7kUIhTB0QJSov7">选择备份 JSON 文件</strong><span data-page-node-id="ObEy3zY3ldYCHS1NRODeql">导入后将替换当前全部数据</span></div>
           </div>
         </div>
-        <p class="backup-hint">提示：当前数据仅保存在本浏览器。建议每月导出一次备份，换电脑或清缓存后通过导入恢复。</p>
+        <p class="backup-hint" data-page-node-id="yAsNGv8bjbCIlr7U3ZJf91">提示：当前数据仅保存在本浏览器。建议每月导出一次备份，换电脑或清缓存后通过导入恢复。</p>
       </div>
     </div>
-    <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+    <div class="dialog-foot" data-page-node-id="0x2z2FfUG7rEtTVK3FT2pm"><button class="btn btn-primary" data-close-dialog data-page-node-id="QETEENgHsrEQjjue487rIx">完成</button></div>
   </dialog>
 
   <!-- 后台登录遮罩 -->
-  <div id="adminLoginOverlay" style="display:none;position:fixed;inset:0;background:rgba(244,243,238,0.97);z-index:10000;align-items:center;justify-content:center;">
-    <div style="background:#fff;border:1px solid #e4e3dd;border-radius:16px;padding:28px 24px;width:min(360px,90vw);text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.08)">
-      <h2 style="margin:0 0 6px;font-size:18px">监考编排台 · 后台登录</h2>
-      <p class="muted" style="margin:0 0 4px;font-size:13px">编排功能需要密码才能进入</p>
-      <p class="muted" style="margin:0 0 10px;font-size:12px">教师查看 / 换班的链接无需登录</p>
-      <input type="password" id="adminPassInput" placeholder="请输入后台密码" style="width:100%;margin:6px 0 10px;padding:10px 12px;border:1px solid #e4e3dd;border-radius:8px;font-size:14px;box-sizing:border-box">
-      <button class="btn btn-primary btn-block" id="adminLoginBtn" style="width:100%">进入后台</button>
-      <p id="adminLoginMsg" class="muted" style="margin:10px 0 0;font-size:12.5px;color:#ea6668"></p>
-      <p class="muted" style="margin:14px 0 0;font-size:12px">密码存在云端（Supabase），改一次所有设备通用<br>首次使用默认密码：admin123，登录后请到「设置」里修改</p>
+  <div id="adminLoginOverlay" style="display:none;position:fixed;inset:0;background:rgba(244,243,238,0.97);z-index:10000;align-items:center;justify-content:center;" data-page-node-id="xThkDtUY6hdN0qK7rVOwP9">
+    <div style="background:#fff;border:1px solid #e4e3dd;border-radius:16px;padding:28px 24px;width:min(360px,90vw);text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.08)" data-page-node-id="y6SbxInHBVduEQLvAHQ0NL">
+      <h2 id="adminLoginTitle" style="margin:0 0 6px;font-size:18px" data-page-node-id="aA0B9eODgJGqyX9rPh78D8">监考编排台 · 后台登录</h2>
+      <p class="muted" style="margin:0 0 4px;font-size:13px" data-page-node-id="ojYHatkl5EqJ9IMBK3YxK6">编排功能需要密码才能进入</p>
+      <p class="muted" style="margin:0 0 10px;font-size:12px" data-page-node-id="ZjyqwbxgFqQZ7jGxYcZoI6">教师查看 / 换班的链接无需登录</p>
+      <input type="password" id="adminPassInput" placeholder="请输入后台密码" style="width:100%;margin:6px 0 10px;padding:10px 12px;border:1px solid #e4e3dd;border-radius:8px;font-size:14px;box-sizing:border-box" data-page-node-id="okHN25pbdbLGPVdoFwbKx2">
+      <button class="btn btn-primary btn-block" id="adminLoginBtn" style="width:100%" data-page-node-id="q6oCyxfGhbt0RqF1YupJnv">进入后台</button>
+      <p id="adminLoginMsg" class="muted" style="margin:10px 0 0;font-size:12.5px;color:#ea6668" data-page-node-id="CKXF5NfW4hM211uv7vzqJg"></p>
+      <p id="adminLoginTip" class="muted" style="margin:14px 0 0;font-size:12px" data-page-node-id="Ylbenjwh4CKWHlw1uNnKlo">密码只以不可逆的哈希形式存在云端，改一次所有设备通用</p>
     </div>
   </div>
 
-  <dialog id="settingsDialog">
-    <div class="dialog-head"><h2>设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <label for="excludedInput">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
+  <dialog id="settingsDialog" data-page-node-id="77RxmuhXEq34NTpYmCM5U7">
+    <div class="dialog-head" data-page-node-id="EFMNvRWCpwqniHbwkyCSFZ"><h2 data-page-node-id="2amEtga8sdrqWMa1seegVe">设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="NUmt9rfYdbruGtqEOQQsWA"><i data-lucide="x" data-page-node-id="ul48y0o0QdwWPudyDpxW7l"></i></button></div>
+    <div class="dialog-body" data-page-node-id="bXGJXiWJz3LSpKuL0LFJEV">
+      <label for="excludedInput" data-page-node-id="4dLhgL0AkxHy3ADG8FB9Xr">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
       <textarea id="excludedInput" style="min-height:120px"></textarea>
-      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
-        <label>后台登录密码</label>
-        <p class="muted" style="font-size:12.5px;margin:4px 0 8px">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（首次默认 admin123，请改成你自己的）。</p>
-        <div class="field-row">
-          <div style="flex:1"><input id="oldPassInput" type="password" placeholder="当前密码" style="width:100%"></div>
+      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px" data-page-node-id="B79YNqtM5BiFeA9Isibbol">
+        <label data-page-node-id="WPZYq63qFThDsWhPLjwZcf">后台登录密码</label>
+        <p class="muted" style="font-size:12.5px;margin:4px 0 8px" data-page-node-id="KuPXmu0nQrZz3NZTsW6Q58">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（首次默认 admin123，请改成你自己的）。</p>
+        <div class="field-row" data-page-node-id="3SvAgQzKXV8xoeVWTVlHCW">
+          <div style="flex:1" data-page-node-id="Kdv0A1mIDy3wi90COACct6"><input id="oldPassInput" type="password" placeholder="当前密码" style="width:100%" data-page-node-id="uobX5VNVcOmkodgCBkiNyD"></div>
         </div>
-        <div class="field-row" style="margin-top:8px">
-          <div style="flex:1"><input id="newPassInput" type="password" placeholder="新密码（至少4位）" style="width:100%"></div>
-          <div style="flex:1"><input id="newPass2Input" type="password" placeholder="再次输入新密码" style="width:100%"></div>
+        <div class="field-row" style="margin-top:8px" data-page-node-id="e8GTcZXA4V3IAxKUzP7R5F">
+          <div style="flex:1" data-page-node-id="S58xcfG70ZoyPQbbTtWYG3"><input id="newPassInput" type="password" placeholder="新密码（至少4位）" style="width:100%" data-page-node-id="vTm1x8k4GDhGwr1t9KT3D6"></div>
+          <div style="flex:1" data-page-node-id="Z6BCHBFbmgMPICOJRZ9AQF"><input id="newPass2Input" type="password" placeholder="再次输入新密码" style="width:100%" data-page-node-id="hRD4e3HnX1TmlUKW5hLbP1"></div>
         </div>
-        <div class="button-row" style="margin-top:8px">
-          <button type="button" class="btn" id="changePassBtn">修改密码</button>
-          <button type="button" class="btn" id="logoutBtn" style="margin-left:8px">退出登录</button>
+        <div class="button-row" style="margin-top:8px" data-page-node-id="tbMoWjvFJvOyPUcLOECZqD">
+          <button type="button" class="btn" id="changePassBtn" data-page-node-id="Ywj4KxauNZBFPVozH14oYb">修改密码</button>
+          <button type="button" class="btn" id="logoutBtn" style="margin-left:8px" data-page-node-id="46rUzRGW2UBl868Wo2TIYG">退出登录</button>
         </div>
       </div>
     </div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveSettingsBtn">保存设置</button></div>
+    <div class="dialog-foot" data-page-node-id="LlNHVsOU7qbjlIaLKDMcVJ"><button class="btn" data-close-dialog data-page-node-id="W8enY4QNmLGBS0BFuUbuLO">取消</button><button class="btn btn-primary" id="saveSettingsBtn" data-page-node-id="W1XWZq92JhMeP2fxMbPOn5">保存设置</button></div>
   </dialog>
 
-  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <div class="toast-stack" id="toastStack" aria-live="polite" data-page-node-id="fDObgj3IC0xI9Tsiw5RoWc"></div>
 
-  <dialog id="timeMemoryDialog">
-    <div class="dialog-head"><h2>时间记忆</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-    <div class="dialog-body">
-      <p class="muted" style="font-size:12.5px;margin:0 0 10px">在这里查看/编辑系统记住的科目时间。第一次在"考试年级"行里填写时间后会自动记住，下次选同一科目/年级自动带出；特殊情况直接改这里或行里的时间，保存后下次按新的来。也可在下方快速填入常用时间。</p>
-      <label for="subjectTimesInput">记住的科目时间（每行：科目 时间 或 年级 科目 时间）</label>
+  <dialog id="timeMemoryDialog" data-page-node-id="0fYsefgw78HKhdiHtvZV3y">
+    <div class="dialog-head" data-page-node-id="NpwwFF1m8FBNeeq0jLGNVQ"><h2 data-page-node-id="cMIwmYCdw6e1gDStCWxfD3">时间记忆</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="Q2ebDBVia9H6PzCNY00JN2"><i data-lucide="x" data-page-node-id="E8BT0MkYfF0dHcHfjHxnO0"></i></button></div>
+    <div class="dialog-body" data-page-node-id="0FHP7XHWPpTcbG7EaivAfx">
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px" data-page-node-id="6WYmlSJP1NIbNvrAuQPZWu">在这里查看/编辑系统记住的科目时间。第一次在"考试年级"行里填写时间后会自动记住，下次选同一科目/年级自动带出；特殊情况直接改这里或行里的时间，保存后下次按新的来。也可在下方快速填入常用时间。</p>
+      <label for="subjectTimesInput" data-page-node-id="F1ICSpYr18V559ZNzHOnCl">记住的科目时间（每行：科目 时间 或 年级 科目 时间）</label>
       <textarea id="subjectTimesInput" style="min-height:150px" placeholder="语文 08:30-10:00&#10;五年级 语文 09:10-10:40&#10;历史+道德与法治（合卷） 14:00-15:30&#10;物理+化学（合卷） 15:50-17:20&#10;生物+地理（合卷） 16:30-18:00"></textarea>
-      <div style="margin-top:8px" class="button-row">
-        <button type="button" class="btn" id="clearTimesBtn">清空全部记忆</button>
-        <span class="muted" style="font-size:12px;align-self:center">清空后下次选科目时间框为空，重新填写即可再次记住</span>
+      <div style="margin-top:8px" class="button-row" data-page-node-id="CqmKSahlmPRSRiwly3UoDV">
+        <button type="button" class="btn" id="clearTimesBtn" data-page-node-id="leJNOvSMojm4TfRB1gJS0h">清空全部记忆</button>
+        <span class="muted" style="font-size:12px;align-self:center" data-page-node-id="zxLcqH0Dz1hSjgMgTBAIk9">清空后下次选科目时间框为空，重新填写即可再次记住</span>
       </div>
     </div>
-    <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="saveTimesBtn">保存时间记忆</button></div>
+    <div class="dialog-foot" data-page-node-id="pG1J0gJyGVHx3sD8Im7jEJ"><button class="btn" data-close-dialog data-page-node-id="iPWqAVTVhIJY6l0NRIsuFv">取消</button><button class="btn btn-primary" id="saveTimesBtn" data-page-node-id="evzFYfwJ7xObVqAHTDHFb8">保存时间记忆</button></div>
   </dialog>
 
 <!-- ================= 在线版：设置 ================= -->
-<dialog id="lcSettingsDialog">
-  <div class="dialog-head"><h2>在线版设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-  <div class="dialog-body">
-    <p class="muted" style="margin-top:0">在线版让老师通过链接看到监考表、自助换班。需要 Supabase（免费）作为云端数据库。在 supabase.com 控制台「Project Settings → API」里可找到下面两个值。未配置时可用「演示模式」先体验完整流程。</p>
-    <div class="field-row">
-      <div style="flex:1"><label>Project URL（项目地址）</label><input id="sbUrl" placeholder="https://xxxx.supabase.co"></div>
+<dialog id="lcSettingsDialog" data-page-node-id="Zj3Qt27VlKdFvXSrMrHrCm">
+  <div class="dialog-head" data-page-node-id="uzTHYM9ujhAtbg2GvJiMbY"><h2 data-page-node-id="t0Gfm0zVcinC8m3aDOLFmz">在线版设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="PZNQazdhKb7uSPX5BrunFd"><i data-lucide="x" data-page-node-id="5GJJlMtSTrGsiQoXCD34GF"></i></button></div>
+  <div class="dialog-body" data-page-node-id="9mFUFNfTyCBNRw0JrxAcCf">
+    <p class="muted" style="margin-top:0" data-page-node-id="CjZUJAfZ86RbXiUjPK2LRL">在线版让老师通过链接看到监考表、自助换班，云端用 Supabase（免费额度足够用）。这里只填接口地址和页面地址，不需要任何密钥——真正的权限在云端接口里校验。</p>
+    <div class="field-row" data-page-node-id="kRHCuqml15jWey6pAMSSiV">
+      <div style="flex:1" data-page-node-id="mZrwkyCTSg0WlIhAIv3dYI"><label data-page-node-id="3CDKIC9y7iXIBWGk1i0u9D">云端接口地址</label><input id="sbUrl" placeholder="https://xxxx.supabase.co/functions/v1/jk-api" data-page-node-id="eoCRjH7cB1HmuAjOH4iGiN"></div>
     </div>
-    <div class="field-row" style="margin-top:8px">
-      <div style="flex:1"><label>anon public key（匿名公钥）</label><input id="sbKey" placeholder="eyJhbGciOi..."></div>
+    <div class="field-row" style="margin-top:10px" data-page-node-id="LQ0TDTkummiSDIjAzuGxRz">
+      <div style="flex:1" data-page-node-id="W504rgsuBnJCfJ3Dnw4zQo"><label data-page-node-id="6KPkU9PrP1FmlfhfLlNqZD">线上页面地址（发布链接用的前缀，填托管后的网址）</label><input id="sbSiteUrl" placeholder="https://yemabuye.github.io/jiankao/" data-page-node-id="PWbum20qT7ddAyBGY7vDwJ"></div>
     </div>
-    <div class="field-row" style="margin-top:10px">
-      <div style="flex:1"><label>线上页面地址（发布链接用的前缀，填托管后的网址）</label><input id="sbSiteUrl" placeholder="https://xxxx.tcloudbaseapp.com/监考编排台.html"></div>
+    <div class="field-row" style="margin-top:10px" data-page-node-id="J1F5EfG9pYsBhq2pjoa9cn">
+      <div style="flex:1" data-page-node-id="vYmLPsHL7ShsU46EHgqKxt"><label data-page-node-id="B6mOyxEQYVt6M4jQg7nAdP">默认口令（给没登记手机号的老师兜底，4 位数字）</label><input id="lcDefaultCode" inputmode="numeric" maxlength="4" placeholder="0000" data-page-node-id="CbWS2pBQRjn5j0vK3cQo8E"></div>
     </div>
-    <div class="field-row" style="margin-top:10px">
-      <label class="check-line"><input type="checkbox" id="lcDemoMode">演示模式（无需注册，数据仅在本机模拟，用于体验/测试流程）</label>
+    <div class="field-row" style="margin-top:10px" data-page-node-id="3PC34CEaiNVzfspTkC39O6">
+      <div style="flex:1" data-page-node-id="GQsXikYbvYHZ68OGth7do0">
+        <label data-page-node-id="4y3PMWwlEtEvPHjDh5GjiJ">老师手机号（每行一条：姓名 手机号，可直接从花名册复制粘贴）</label>
+        <textarea id="lcPhoneBook" style="min-height:150px" placeholder="张三 13812345678&#10;李四 13900001111"></textarea>
+        <p class="muted" style="font-size:12px;margin:4px 0 0" data-page-node-id="LCeEnp9NBGlrJXCR7E4FaF">老师登录时用的就是手机号的<b data-page-node-id="Sp8dH26gzfFVUXxXzW1BQ6">后四位</b>。完整手机号只存在你自己的浏览器里，不会上传到云端——云端只保存后四位的不可逆哈希。</p>
+      </div>
     </div>
-    <p class="muted" style="margin:6px 0 0">凭证只保存在你自己的浏览器本机，不会上传到其他平台。演示模式与真实云端可随时切换。</p>
-    <p id="lcStatus" class="muted" style="margin:8px 0 0"></p>
+    <div class="field-row" style="margin-top:10px" data-page-node-id="N8po78vXXjNvG4uLGCvFtW">
+      <label class="check-line" data-page-node-id="IoHF0vvHFbsLzCsxdL4SWv"><input type="checkbox" id="lcDemoMode" data-page-node-id="wYlUSMIUgDzlBNGtRHvU0p">演示模式（数据仅在本机模拟，用于体验/测试流程）</label>
+    </div>
+    <p class="muted" style="margin:6px 0 0" data-page-node-id="GVWrcV7D4HyPQjDEtCh7UA">接口地址只保存在你自己的浏览器本机。演示模式与真实云端可随时切换。</p>
+    <p id="lcStatus" class="muted" style="margin:8px 0 0" data-page-node-id="FbEDbaV155oy7zcdgJ40RR"></p>
   </div>
-  <div class="dialog-foot">
-    <button class="btn" id="lcTestBtn"><i data-lucide="plug-zap"></i>测试连接</button>
-    <button class="btn btn-primary" id="lcSaveBtn"><i data-lucide="save"></i>保存</button>
+  <div class="dialog-foot" data-page-node-id="ESidUGIxrK4cx8ZGCfrXKT">
+    <button class="btn" id="lcTestBtn" data-page-node-id="Apt6y83i0MCYFgjyXB0QRF"><i data-lucide="plug-zap" data-page-node-id="p7vVOM9vmuvolNBdh2QYyi"></i>测试连接</button>
+    <button class="btn btn-primary" id="lcSaveBtn" data-page-node-id="cbdlvfjfNEF7mnTA9bn4rJ"><i data-lucide="save" data-page-node-id="1MoUY7sHzBiU7OFAH4GSeS"></i>保存</button>
   </div>
 </dialog>
 
 <!-- ================= 在线版：发布 ================= -->
-<dialog id="publishDialog">
-  <div class="dialog-head"><h2>发布到在线版</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-  <div class="dialog-body">
-    <p id="publishIntro" class="muted" style="margin-top:0">把当前监考表发布成在线版，把链接发到微信群，老师即可查看并自助换班。</p>
-    <div style="margin-top:12px" id="publishResult">
-      <label>在线链接（发到群里）</label>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <input id="publishLink" readonly style="flex:1">
-        <button class="btn btn-primary" id="publishCopyBtn"><i data-lucide="copy"></i>复制</button>
+<dialog id="publishDialog" data-page-node-id="xgk000ATxlTRToYgLVnkDp">
+  <div class="dialog-head" data-page-node-id="ZbBzEhiqjATBofAWmhFmSw"><h2 data-page-node-id="Dm2mIPaHEWiGVcsaWdbnAz">发布到在线版</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="dbpooiOEenikn3t5iT8PrW"><i data-lucide="x" data-page-node-id="sZJRx6pTAF2ViVy3SNAdCc"></i></button></div>
+  <div class="dialog-body" data-page-node-id="csuOOH8CoAboRLHq9MoVgn">
+    <p id="publishIntro" class="muted" style="margin-top:0" data-page-node-id="jdx2jqMo3Ec9QM6at5fhMM">把当前监考表发布成在线版，把链接发到微信群，老师即可查看并自助换班。</p>
+    <div style="margin-top:12px" id="publishResult" data-page-node-id="DLI8oDH2mbxIk27H8fzpEC">
+      <label data-page-node-id="1kWNVBVz7xPhCV0by12k6S">在线链接（发到群里）</label>
+      <div style="display:flex;gap:8px;margin-top:4px" data-page-node-id="VQUbrCilGQgiZ0Sfe93NOF">
+        <input id="publishLink" readonly style="flex:1" data-page-node-id="dVfpSrlSO28Sn4X09nqo0A">
+        <button class="btn btn-primary" id="publishCopyBtn" data-page-node-id="UvhgbdlUFACDvPXGcKS7Ud"><i data-lucide="copy" data-page-node-id="t82hqWHCYJGBdQGDJBn5Jk"></i>复制</button>
       </div>
-      <button class="btn btn-block" id="openOnlineBtn" style="margin-top:10px"><i data-lucide="external-link"></i>打开老师端预览（自己先体验）</button>
-      <p class="muted" style="margin:8px 0 0">重新生成后再次点「发布在线版」会更新同一链接，老师刷新即可看到最新表。</p>
+      <button class="btn btn-block" id="openOnlineBtn" style="margin-top:10px" data-page-node-id="zQDh5ER1OSaXYrfEsPhmqF"><i data-lucide="external-link" data-page-node-id="NXAOSuKCrRwUCQGIgLFZTm"></i>打开老师端预览（自己先体验）</button>
+      <div id="publishCodeInfo" class="muted" style="margin:10px 0 0;font-size:12.5px" data-page-node-id="fyGMeMnPlVaaowbFOhOYZh"></div>
+      <p class="muted" style="margin:8px 0 0" data-page-node-id="HdxEjdiDCP63QyiH7SxkFP">重新生成后再次点「发布在线版」会更新同一链接，老师刷新即可看到最新表。</p>
     </div>
   </div>
-  <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  <div class="dialog-foot" data-page-node-id="OHAGTKgsa9BXDQhhBNd2Ku"><button class="btn btn-primary" data-close-dialog data-page-node-id="5uMZyKT4xHwuv1f1MPkffc">完成</button></div>
 </dialog>
 
 <!-- ================= 在线版：老师端视图 ================= -->
-<div id="onlineView" style="display:none;position:fixed;inset:0;background:#f4f3ee;z-index:9999;overflow-y:auto;">
-  <div style="max-width:960px;margin:0 auto;padding:16px 14px 60px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <h2 id="onlineTitle" style="margin:0;font-size:18px;flex:1;min-width:180px">在线监考表</h2>
-      <select id="onlineIdentity" style="max-width:200px"><option value="">我是谁？</option></select>
-      <button class="btn" id="onlineRefreshBtn"><i data-lucide="refresh-cw"></i>刷新</button>
-      <button class="btn" id="onlineBackBtn"><i data-lucide="log-out"></i>退出</button>
+<div id="onlineView" style="display:none;position:fixed;inset:0;background:#f4f3ee;z-index:9999;overflow-y:auto;" data-page-node-id="iXiKRT3YBVQnr6XcH4K8to">
+  <div style="max-width:960px;margin:0 auto;padding:16px 14px 60px" data-page-node-id="hin5Wqj8DGMFgdZHOgCOGn">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px" data-page-node-id="39y9WGZ4y3CFIqbFyy4VRL">
+      <h2 id="onlineTitle" style="margin:0;font-size:18px;flex:1;min-width:180px" data-page-node-id="JK3whAuJw8gtMjzaDKrTPL">在线监考表</h2>
+      <select id="onlineIdentity" style="max-width:200px" data-page-node-id="RUHjiNwnQauzlBo9JQLvUE"><option value="" data-page-node-id="5UjEt4ObsV1s84Qm18Xilm">我是谁？</option></select>
+      <button class="btn" id="onlineRefreshBtn" data-page-node-id="BjqQtd7AGFeZQL4riqfEZS"><i data-lucide="refresh-cw" data-page-node-id="n7nBdqQXeJr1BP1kmwDxEf"></i>刷新</button>
+      <button class="btn" id="onlineBackBtn" data-page-node-id="m0nI3CrCmCFmkIp45OVLFn"><i data-lucide="log-out" data-page-node-id="Jfq0P95UF0E3hREptpqhIq"></i>退出</button>
     </div>
-    <div id="onlineHint" class="muted" style="font-size:12px;margin-bottom:10px">选择你的姓名后，你的场次会高亮显示，可向其他老师发起换班（对方同意后自动更新）。</div>
+    <div id="onlineAuthBar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px" data-page-node-id="Z3tALwGUfqc7C15brDJAyW">
+      <input id="onlineCode" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="手机号后4位" style="width:130px" data-page-node-id="PtaFTUTaK5KUIeHqqqS8FU">
+      <button class="btn btn-primary" id="onlineVerifyBtn" data-page-node-id="wINjCRUbrmhxaDNS6fxS75">验证身份</button>
+      <span id="onlineAuthMsg" class="muted" style="font-size:12.5px" data-page-node-id="3n7ACvLUs9OLPGgreyNBV8"></span>
+    </div>
+    <div id="onlineHint" class="muted" style="font-size:12px;margin-bottom:10px" data-page-node-id="8MW0rLphoYXmQjy3ucTxfS">选择你的姓名后，你的场次会高亮显示；填一次手机号后四位完成验证，就能发起和处理换班。</div>
 
-    <div id="onlinePending" style="display:none;background:rgba(250,173,20,0.10);border:1px solid rgba(250,173,20,0.5);border-radius:12px;padding:12px;margin-bottom:14px">
-      <div style="font-weight:600;margin-bottom:8px">待我处理的换班申请</div>
-      <div id="onlinePendingList"></div>
+    <div id="onlinePending" style="display:none;background:rgba(250,173,20,0.10);border:1px solid rgba(250,173,20,0.5);border-radius:12px;padding:12px;margin-bottom:14px" data-page-node-id="YXdyfOnYjuTO8v8IhvLSGz">
+      <div style="font-weight:600;margin-bottom:8px" data-page-node-id="BVwe7fFR2mPJRkM2csRJTI">待我处理的换班申请</div>
+      <div id="onlinePendingList" data-page-node-id="kXROvyBwv5LOVMHkq4Bupb"></div>
     </div>
 
-    <div id="onlineMine" style="display:none;margin-bottom:14px">
-      <div style="font-weight:600;margin-bottom:8px">我发出的申请</div>
-      <div id="onlineMineList"></div>
+    <div id="onlineMine" style="display:none;margin-bottom:14px" data-page-node-id="MbpCbRELDf3VRZQ3AUkHPs">
+      <div style="font-weight:600;margin-bottom:8px" data-page-node-id="iF74Y9Qoa560TFZ5ugwlC3">我发出的申请</div>
+      <div id="onlineMineList" data-page-node-id="Y2hA1hEUnUEBuaDCarJT6f"></div>
     </div>
 
-    <div id="onlineBoard"></div>
+    <div id="onlineBoard" data-page-node-id="i1HWshhqC2OSBkl59AUHYO"></div>
   </div>
 </div>
 
 <!-- ================= 在线版：换班记录（管理员） ================= -->
-<dialog id="swapLogDialog">
-  <div class="dialog-head"><h2>换班记录</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-  <div class="dialog-body">
-    <p class="muted" style="margin-top:0">老师自助换班的全部记录：谁和谁换了哪一场、结果如何，都在这里。打开后台即可随时查看。</p>
-    <div id="swapLogList" style="max-height:55vh;overflow-y:auto"></div>
+<dialog id="swapLogDialog" data-page-node-id="BYtgPQ0FZicWq1PPs7CAHj">
+  <div class="dialog-head" data-page-node-id="Z6r0TxGwDeAXXyD9XPQf94"><h2 data-page-node-id="6HOAGf5Sj7MmQUXTi9eZXe">换班记录</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="LGJHzNKlEuM7Dh1JRFt8cq"><i data-lucide="x" data-page-node-id="CeGHooyR2TjJE5HariIFWZ"></i></button></div>
+  <div class="dialog-body" data-page-node-id="maVmzFORB2UhwPDCbsPZcd">
+    <p class="muted" style="margin-top:0" data-page-node-id="zi1oiM0eREF7L0Wi9BnYng">老师自助换班的全部记录：谁和谁换了哪一场、结果如何，都在这里。打开后台即可随时查看。</p>
+    <p class="muted" style="margin:8px 0 0;font-size:12px">老师在手机上换班成功后，云端的表会立刻变；你本地这张表需要点「同步到本地表」（后台开着时也会自动同步）才会跟着变。</p>
+    <div id="swapLogList" style="max-height:55vh;overflow-y:auto" data-page-node-id="qtotFcIHPI3Ht9xkvFPvYU"></div>
   </div>
-  <div class="dialog-foot"><button class="btn btn-primary" data-close-dialog>完成</button></div>
+  <div class="dialog-foot" data-page-node-id="Y1n7ECu08Roqujkqk7eMJ2">
+    <button class="btn" id="swapLogSyncBtn">同步到本地表</button>
+    <button class="btn btn-primary" data-close-dialog data-page-node-id="BAMwPmHzju2dGIElP4bXz0">完成</button>
+  </div>
 </dialog>
 
 <!-- ================= 在线版：发起换班 ================= -->
-<dialog id="swapDialog">
-  <div class="dialog-head"><h2>发起换班</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
-  <div class="dialog-body">
-    <p id="swapFromInfo" class="muted" style="margin-top:0"></p>
-    <div class="field-row" style="margin-top:8px">
-      <div style="flex:1"><label>跟谁换（对方教师）</label><select id="swapToTeacher"></select></div>
+<dialog id="swapDialog" data-page-node-id="OQmicnSjdyCZiv7KUjRyea">
+  <div class="dialog-head" data-page-node-id="Be6GEpO0sG1Ef77S3sZOV3"><h2 data-page-node-id="NyA7B7eDV3KmOOpHtPAykw">发起换班</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="cBn3D3jS4f54C0HorjjVxR"><i data-lucide="x" data-page-node-id="ciFJbqARfri357EiooCpth"></i></button></div>
+  <div class="dialog-body" data-page-node-id="bmxqcEzlmd7vnR1xRLJoKK">
+    <p id="swapFromInfo" class="muted" style="margin-top:0" data-page-node-id="GNPYZigVTH4U7kurP8GhxX"></p>
+    <div class="field-row" style="margin-top:8px" data-page-node-id="qhUfCH3JHrcuBcxgqBC75e">
+      <div style="flex:1" data-page-node-id="hS33sEqGW9ksJ7IsSFcerA"><label data-page-node-id="IxykFQMpGAr6Fmx2dXQ9Dh">跟谁换（对方教师）</label><select id="swapToTeacher" data-page-node-id="vfNOxVWMSEtwkIlUev70vO"></select></div>
     </div>
-    <div class="field-row" style="margin-top:8px">
-      <div style="flex:1"><label>用对方的哪个场次交换</label><select id="swapToSession"></select></div>
+    <div class="field-row" style="margin-top:8px" data-page-node-id="iYicSaIy9ai5vqwHFKNIrm">
+      <div style="flex:1" data-page-node-id="uzj3T66hlHdPi6PE69JDrB"><label data-page-node-id="5mv8z2TTxJc5xsuNmPmGNI">用对方的哪个场次交换</label><select id="swapToSession" data-page-node-id="9JQfKQuowqHtuBvUzegG5r"></select></div>
     </div>
-    <p id="swapConflictInfo" class="muted" style="margin:8px 0 0;white-space:pre-line"></p>
+    <p id="swapConflictInfo" class="muted" style="margin:8px 0 0;white-space:pre-line" data-page-node-id="DfjeIeS58BZ685nnSgZsAT"></p>
   </div>
-  <div class="dialog-foot"><button class="btn" data-close-dialog>取消</button><button class="btn btn-primary" id="swapSendBtn"><i data-lucide="send"></i>发送申请</button></div>
+  <div class="dialog-foot" data-page-node-id="wi6PFkQKUwW1u2eeKzCu6E"><button class="btn" data-close-dialog data-page-node-id="KepsLzhxG4wzXzEZqS3ZpL">取消</button><button class="btn btn-primary" id="swapSendBtn" data-page-node-id="3Ck77SQKD3bUtHd9XGUj5T"><i data-lucide="send" data-page-node-id="PHmcgm6HM4v5QJfcpMNetM"></i>发送申请</button></div>
 </dialog>
 
 
@@ -1053,6 +1071,11 @@
         resultTab: 'primary',
         seedVersion: '',
         selectionVersion: 0,
+        teacherDefaultCode: '0000',
+        phoneBook: '',
+        publishedBoardId: null,
+        // 已经回写到本地监考表的换班记录 id，避免重复应用
+        syncedSwapIds: [],
         config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false }
       };
       let viewedHistoryId = null;
@@ -1501,6 +1524,7 @@
         teacher.monitorGrade = teacher.monitorGrade || '';
         teacher.source = teacher.source || '手动添加';
         teacher.subjects = Array.isArray(teacher.subjects) ? teacher.subjects.filter(subject => TEACHER_SUBJECTS.includes(subject)) : [];
+        teacher.phone = String(teacher.phone || '').replace(/\D/g, '');
         return teacher;
       }
 
@@ -2264,6 +2288,7 @@
         $('#exportShiftsBtn').disabled = !has;
         $('#publishBtn').disabled = !has;
         $('#swapLogBtn').disabled = !has;
+        $('#syncSwapBtn').disabled = !has;
         $('#printBtn').disabled = !has;
         $('#clearResultBtn').disabled = !has;
         $$('#resultTabs button').forEach(button => button.classList.toggle('active', button.dataset.resultTab === state.resultTab));
@@ -2733,6 +2758,22 @@
       function confirmAction(title, text, callback) {
         $('#confirmTitle').textContent = title; $('#confirmText').textContent = text; confirmCallback = callback; $('#confirmDialog').showModal();
       }
+      // 需要等待用户选择时用的版本（点确认返回 true，取消返回 false）
+      function confirmAsync(title, text) {
+        return new Promise(resolve => {
+          const dlg = $('#confirmDialog');
+          let done = false;
+          $('#confirmTitle').textContent = title;
+          $('#confirmText').textContent = text;
+          confirmCallback = () => { done = true; resolve(true); };
+          const onClose = () => {
+            dlg.removeEventListener('close', onClose);
+            setTimeout(() => { if (!done) resolve(false); }, 0);
+          };
+          dlg.addEventListener('close', onClose);
+          dlg.showModal();
+        });
+      }
 
       function showNotice(message, type = '') {
         const notice = $('#notice'); notice.className = `notice show ${type}`; $('#noticeText').textContent = message;
@@ -2775,9 +2816,12 @@
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
             state.activeVersionId = raw.activeVersionId || null;
             state.publishedBoardId = raw.publishedBoardId || null;
+            state.syncedSwapIds = Array.isArray(raw.syncedSwapIds) ? raw.syncedSwapIds : [];
             state.resultTab = raw.resultTab || 'primary';
             state.seedVersion = raw.seedVersion || '';
             state.selectionVersion = raw.selectionVersion || 0;
+            state.teacherDefaultCode = raw.teacherDefaultCode || '0000';
+            state.phoneBook = typeof raw.phoneBook === 'string' ? raw.phoneBook : '';
             state.config = { ...state.config, ...(raw.config || {}) };
           } else {
             state.timeTemplate = DEFAULT_TIME_TEMPLATE;
@@ -2793,156 +2837,365 @@
         } catch (error) {
           localStorage.removeItem(STORAGE_KEY);
           state.teachers = []; state.sessions = []; state.result = []; state.history = [];
-          state.plans = []; state.excludedNames = [...DEFAULT_EXCLUDED]; state.customRooms = []; state.gradeRows = []; state.timeTemplate = ''; state.combinedTimes = {};
+          state.plans = []; state.excludedNames = [...DEFAULT_EXCLUDED]; state.customRooms = []; state.gradeRows = []; state.timeTemplate = ''; state.combinedTimes = {}; state.teacherDefaultCode = '0000';
           mergeBuiltinTeachers(true);
         }
       }
 
 
-      // ===================== 在线版（Supabase + 演示模式） =====================
-      const ONLINE_KEY = 'invigilation-online-v1';
-      const DEFAULT_ONLINE = { url: 'https://nbstxnatuxaasvzmllpw.supabase.co', key: 'sb_publishable_6_7WmOsDi5HQBV8FtpsiNw_91srnhrw', siteUrl: 'https://yemabuye.github.io/jiankao/' };
+      // ===================== 在线版（云端接口 + 演示模式） =====================
+      const ONLINE_KEY = 'invigilation-online-v2';
+      // 这里只放接口地址。接口本身是公开的，真正的身份校验在服务端完成，
+      // 所以把地址写在页面里是安全的（数据库钥匙不在这里）。
+      const DEFAULT_ONLINE = { fnUrl: 'https://nbstxnatuxaasvzmllpw.supabase.co/functions/v1/quick-processor', siteUrl: 'https://yemabuye.github.io/jiankao/' };
       const DEMO_KEY = 'invigilation-demo-v1';
-      const SB_TABLES = { boards: 'schedule_boards', swaps: 'swap_requests' };
 
       function onlineLoadConfig() {
         try {
           const saved = JSON.parse(localStorage.getItem(ONLINE_KEY)) || {};
-          if (saved.demoMode) return saved;
-          if (saved.url && saved.key) return saved;
+          if (saved.demoMode) return { ...DEFAULT_ONLINE, ...saved };
+          if (saved.fnUrl) return saved;
         } catch (e) {}
         return DEFAULT_ONLINE;
       }
       function onlineSaveConfig(cfg) { localStorage.setItem(ONLINE_KEY, JSON.stringify(cfg)); }
-      function sbClient() {
+
+      // 所有云端操作统一走这里，由服务端判定有没有权限
+      async function apiCall(action, payload = {}) {
         const cfg = onlineLoadConfig();
-        if (!cfg.url || !cfg.key || typeof supabase === 'undefined') return null;
-        return supabase.createClient(cfg.url, cfg.key);
+        if (!cfg.fnUrl) throw new Error('还没填写云端接口地址，请到「在线版设置」里配置');
+        let res;
+        try {
+          res = await fetch(cfg.fnUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, ...payload })
+          });
+        } catch (e) { throw new Error('连不上云端服务，请检查网络或接口地址是否正确'); }
+        let data = {};
+        try { data = await res.json(); } catch (e) { throw new Error('云端返回异常（HTTP ' + res.status + '）'); }
+        if (!data.ok) throw new Error(data.error || '云端操作失败');
+        return data;
       }
       function demoRead() { try { return JSON.parse(localStorage.getItem(DEMO_KEY)) || { boards: {}, swaps: [] } } catch (e) { return { boards: {}, swaps: [] } } }
       function demoWrite(d) { localStorage.setItem(DEMO_KEY, JSON.stringify(d)); }
 
+      // 后台登录凭据由服务端签发，12 小时有效
+      const ADMIN_TOKEN_KEY = 'invigilation-admin-token';
+      function adminToken() { return localStorage.getItem(ADMIN_TOKEN_KEY) || ''; }
+      function setAdminToken(t) { t ? localStorage.setItem(ADMIN_TOKEN_KEY, t) : localStorage.removeItem(ADMIN_TOKEN_KEY); }
+      // 老师的身份凭据只放在内存里，关掉页面就失效
+      let teacherToken = '';
+
       const onlineBackend = {
-        isDemo() { return !!onlineLoadConfig().demoMode || !onlineLoadConfig().url; },
+        isDemo() { return !!onlineLoadConfig().demoMode; },
+
         async test() {
-          const cfg = onlineLoadConfig();
-          if (cfg.demoMode) return { ok: true, mode: '演示模式（本机模拟）' };
+          if (this.isDemo()) return { ok: true, mode: '演示模式（本机模拟）' };
           try {
-            const c = supabase.createClient(cfg.url, cfg.key);
-            const { error } = await c.from(SB_TABLES.boards).select('id').limit(1);
-            if (error) return { ok: false, error: error.message };
-            return { ok: true, mode: 'Supabase 云端' };
+            const r = await apiCall('ping');
+            return { ok: true, mode: '云端接口已连通' + (r.mode ? ' · ' + r.mode : '') };
           } catch (e) { return { ok: false, error: e.message }; }
         },
-        async createBoard(board) {
+
+        // ---------- 后台身份 ----------
+        async adminStatus() {
+          if (this.isDemo()) return { needInit: false };
+          return apiCall('adminStatus');
+        },
+        async adminInit(pass) {
+          const r = await apiCall('adminInit', { pass });
+          setAdminToken(r.token || '');
+          return r;
+        },
+        async adminLogin(pass) {
+          const r = await apiCall('adminLogin', { pass });
+          if (r.needInit) return r;
+          setAdminToken(r.token || '');
+          return r;
+        },
+        async adminChangePass(oldPass, newPass) {
+          const r = await apiCall('adminChangePass', { oldPass, newPass, token: adminToken() });
+          setAdminToken(r.token || '');
+          return r;
+        },
+
+        // ---------- 发布 ----------
+        async publish({ boardId, title, rows, teachers }) {
           if (this.isDemo()) {
             const d = demoRead();
-            const id = 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-            d.boards[id] = { id, title: board.title, data: board.data, version: 1, publishedAt: new Date().toISOString() };
-            demoWrite(d); return id;
+            const id = boardId && d.boards[boardId] ? boardId : 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            if (d.boards[id]) {
+              d.boards[id].title = title;
+              d.boards[id].data = { rows };
+              d.boards[id].version = (d.boards[id].version || 0) + 1;
+              d.boards[id].updatedAt = new Date().toISOString();
+            } else {
+              d.boards[id] = { id, title, data: { rows }, version: 1, publishedAt: new Date().toISOString() };
+            }
+            demoWrite(d);
+            return { boardId: id, teacherCount: (teachers || []).length };
           }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { data, error } = await c.from(SB_TABLES.boards).insert({ title: board.title, data: board.data, version: 1 }).select('id').single();
-          if (error) throw new Error(error.message);
-          return data.id;
+          return apiCall('publish', { boardId, title, rows, teachers, token: adminToken() });
         },
+
         async getBoard(id) {
           if (this.isDemo()) { const d = demoRead(); return d.boards[id] || null; }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { data, error } = await c.from(SB_TABLES.boards).select('*').eq('id', id).maybeSingle();
-          if (error) throw new Error(error.message);
-          return data || null;
+          const r = await apiCall('getBoard', { boardId: id });
+          return r.board || null;
         },
-        async saveBoard(board) {
-          if (this.isDemo()) {
-            const d = demoRead(); const b = d.boards[board.id];
-            if (!b) throw new Error('表不存在');
-            b.data = board.data; b.version = (b.version || 0) + 1; b.updatedAt = new Date().toISOString(); demoWrite(d); return;
-          }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { error } = await c.from(SB_TABLES.boards).update({ data: board.data, version: (board.version || 0) + 1, updated_at: new Date().toISOString() }).eq('id', board.id);
-          if (error) throw new Error(error.message);
-        },
-        async createSwap(swap) {
-          if (this.isDemo()) {
-            const d = demoRead();
-            const id = 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-            d.swaps.push({ ...swap, id, createdAt: new Date().toISOString() }); demoWrite(d); return id;
-          }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { data, error } = await c.from(SB_TABLES.swaps).insert({ ...swap, createdAt: new Date().toISOString() }).select('id').single();
-          if (error) throw new Error(error.message);
-          return data.id;
-        },
+
+        // ---------- 换班 ----------
         async listSwaps(boardId) {
           if (this.isDemo()) { const d = demoRead(); return d.swaps.filter(s => s.boardId === boardId).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')); }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { data, error } = await c.from(SB_TABLES.swaps).select('*').eq('boardId', boardId).order('createdAt', { ascending: false });
-          if (error) throw new Error(error.message);
-          return data || [];
+          const r = await apiCall('adminListSwaps', { boardId, token: adminToken() });
+          return r.swaps || [];
         },
-        async updateSwap(id, patch) {
-          if (this.isDemo()) {
-            const d = demoRead(); const s = d.swaps.find(x => x.id === id);
-            if (s) { Object.assign(s, patch); s.updatedAt = new Date().toISOString(); demoWrite(d); }
-            return;
-          }
-          const c = sbClient(); if (!c) throw new Error('未配置 Supabase');
-          const { error } = await c.from(SB_TABLES.swaps).update({ ...patch, updatedAt: new Date().toISOString() }).eq('id', id);
-          if (error) throw new Error(error.message);
+        async listMySwaps(boardId) {
+          if (this.isDemo()) { const d = demoRead(); return d.swaps.filter(s => s.boardId === boardId).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')); }
+          const r = await apiCall('listSwaps', { boardId, token: teacherToken });
+          return r.swaps || [];
         },
-        async subscribe(boardId, onChange) {
+        async verifyTeacher(boardId, name, code4) {
+          if (this.isDemo()) { teacherToken = 'demo'; return { ok: true }; }
+          const r = await apiCall('verifyTeacher', { boardId, name, code4 });
+          teacherToken = r.token || '';
+          return r;
+        },
+        async createSwap({ boardId, fromTeacher, toTeacher, fromSessionId, toSessionId }) {
           if (this.isDemo()) {
-            let last = JSON.stringify([demoRead().boards[boardId]?.version, demoRead().swaps.length]);
-            const timer = setInterval(() => {
-              const now = JSON.stringify([demoRead().boards[boardId]?.version, demoRead().swaps.length]);
-              if (now !== last) { last = now; onChange(); }
-            }, 2500);
-            return () => clearInterval(timer);
+            const d = demoRead();
+            d.swaps.push({ id: 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), boardId, fromTeacher, toTeacher, fromSessionId, toSessionId, status: 'pending', createdAt: new Date().toISOString() });
+            demoWrite(d); return;
           }
-          const c = sbClient(); if (!c) return () => {};
-          const channel = c.channel('board-' + boardId);
-          channel.on('postgres_changes', { event: '*', schema: 'public', table: SB_TABLES.boards, filter: 'id=eq.' + boardId }, () => onChange())
-                 .on('postgres_changes', { event: '*', schema: 'public', table: SB_TABLES.swaps, filter: 'boardId=eq.' + boardId }, () => onChange())
-                 .subscribe();
-          return () => { try { c.removeChannel(channel); } catch (e) {} };
+          await apiCall('createSwap', { boardId, toTeacher, fromSessionId, toSessionId, token: teacherToken });
+        },
+        async resolveSwap(boardId, swapId, action) {
+          if (this.isDemo()) {
+            const d = demoRead(); const s = d.swaps.find(x => x.id === swapId);
+            if (!s) return;
+            s.status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'canceled';
+            s.resolvedAt = new Date().toISOString();
+            if (action === 'approve') {
+              const b = d.boards[boardId];
+              if (b) {
+                const rows = b.data.rows || [];
+                const fr = rows.find(r => r.sessionId === s.fromSessionId);
+                const tr = rows.find(r => r.sessionId === s.toSessionId);
+                if (fr) fr.teachers = (fr.teachers || []).map(t => t === s.fromTeacher ? s.toTeacher : t);
+                if (tr) tr.teachers = (tr.teachers || []).map(t => t === s.toTeacher ? s.fromTeacher : t);
+                b.version = (b.version || 0) + 1;
+              }
+            }
+            demoWrite(d); return;
+          }
+          await apiCall('resolveSwap', { boardId, swapId, action, token: teacherToken });
+        },
+
+        // 改用定时刷新，不再依赖实时通道：兼容性更好，也省云端额度
+        // 页面切到后台就不刷新，切回来立刻补一次
+        poll(boardId, onChange) {
+          const tick = () => { if (!document.hidden) onChange(); };
+          const timer = setInterval(tick, 15000);
+          document.addEventListener('visibilitychange', tick);
+          return () => { clearInterval(timer); document.removeEventListener('visibilitychange', tick); };
         }
       };
 
       // ---------- 发布 ----------
+      // 手机号对照表：每行「姓名 手机号」，直接从花名册粘贴即可
+      function phoneMap() {
+        const map = new Map();
+        String(state.phoneBook || '').split(/\r?\n/).forEach(line => {
+          const m = line.trim().match(/^(\S+?)\s+(\d{6,})$/);
+          if (m) map.set(m[1], m[2].slice(-4));
+        });
+        return map;
+      }
+      // 每位老师的登录口令 = 手机号后四位；没登记手机号的用默认口令兜底
+      function teacherCodeList() {
+        const phones = phoneMap();
+        const names = new Set();
+        state.result.forEach(r => (r.teachers || []).forEach(t => names.add(t.name)));
+        const fallback = String(state.teacherDefaultCode || '0000');
+        return [...names].map(name => {
+          const ownDigits = String((state.teachers.find(x => x.name === name) || {}).phone || '').replace(/\D/g, '');
+          const fromBook = phones.get(name);
+          const code4 = ownDigits ? ownDigits.slice(-4) : (fromBook || fallback);
+          return { name, code4, hasPhone: !!(ownDigits || fromBook) };
+        });
+      }
+      function renderPublishCodeInfo(list) {
+        const el = $('#publishCodeInfo');
+        if (!el) return;
+        const withPhone = list.filter(x => x.hasPhone).length;
+        const without = list.length - withPhone;
+        el.innerHTML = without
+          ? `登录方式：老师选自己的姓名 + 输入手机号后四位。<br>本次 <b>${withPhone}</b> 位老师已能凭手机号登录，<b>${without}</b> 位没填手机号，暂用默认口令 <b>${esc(String(state.teacherDefaultCode || '0000'))}</b>（可在「在线版设置」里改）。`
+          : `登录方式：老师选自己的姓名 + 输入手机号后四位。<br>本次 <b>${withPhone}</b> 位老师全部已登记手机号。`;
+      }
+
       async function publishOnline() {
         if (!state.result.length) return toast('请先生成监考表，再发布在线版', 'error');
+        if (!onlineBackend.isDemo() && !adminToken()) {
+          showLoginOverlay();
+          return toast('请先用后台密码登录，再发布在线版', 'error');
+        }
+        // 云端已经有换班结果时先问一句，别让本地数据把老师的换班冲掉
+        if (!onlineBackend.isDemo() && state.publishedBoardId) {
+          try {
+            const swaps = await onlineBackend.listSwaps(state.publishedBoardId);
+            const approved = (swaps || []).filter(s => s.status === 'approved').length;
+            if (approved) {
+              const go = await confirmAsync('确认覆盖云端换班结果', `云端已有 ${approved} 条老师自助换班（已同意）。再次发布会用你本地的监考表覆盖它们，这些换班结果将丢失。确定继续吗？`);
+              if (!go) return;
+            }
+          } catch (e) { /* 查不到记录就按正常发布处理 */ }
+        }
         const rows = state.result.map(r => ({
           sessionId: r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className),
           date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
           teachers: (r.teachers || []).map(t => t.name)
         }));
         const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
+        const teachers = teacherCodeList();
         try {
           const isDemo = onlineBackend.isDemo();
-          let boardId = state.publishedBoardId;
-          if (boardId) {
-            const b = await onlineBackend.getBoard(boardId);
-            if (b) { b.data = { rows, config: state.config }; await onlineBackend.saveBoard(b); }
-            else boardId = null;
+          const r = await onlineBackend.publish({ boardId: state.publishedBoardId, title, rows, teachers });
+          const boardId = r.boardId;
+          if (boardId !== state.publishedBoardId) {
+            // 换了一张新表，旧的换班记录跟新表无关了
+            state.publishedBoardId = boardId; state.syncedSwapIds = [];
+          } else {
+            // 发布后云端以本地为准，把已同意的换班记成已处理，免得回头又被回写覆盖你的表
+            try {
+              const after = await onlineBackend.listSwaps(boardId);
+              const done = new Set(state.syncedSwapIds || []);
+              (after || []).forEach(s => { if (s.status === 'approved') done.add(s.id); });
+              state.syncedSwapIds = [...done];
+            } catch (e) {}
           }
-          if (!boardId) {
-            boardId = await onlineBackend.createBoard({ title, data: { rows, config: state.config } });
-            state.publishedBoardId = boardId; saveState();
-          }
+          saveState(); syncBadge(0);
           const siteUrl = (onlineLoadConfig().siteUrl || location.href.split('#')[0]).replace(/\/$/, '');
           const sep = siteUrl.indexOf('?') >= 0 ? '&' : '?';
           const link = siteUrl + sep + 'view=teacher#board=' + boardId;
           $('#publishLink').value = link;
+          renderPublishCodeInfo(teachers);
           $('#publishIntro').innerHTML = isDemo
-            ? '已用<b>演示模式</b>发布（数据仅在本机，仅供体验流程）。配置 Supabase 后重新发布即为真实云端，链接可发给老师。'
-            : '已发布到 <b>Supabase 云端</b>。把链接发到微信群，老师打开即可查看并自助换班。';
+            ? '已用<b>演示模式</b>发布（数据仅在本机，仅供体验流程）。配好云端接口后重新发布即为真实在线版，链接可发给老师。'
+            : '已发布到<b>云端</b>。把链接发到微信群，老师打开即可查看并自助换班。';
           $('#publishDialog').showModal();
-        } catch (e) { toast('发布失败：' + e.message, 'error'); }
+        } catch (e) { if (!handleAuthError(e)) toast('发布失败：' + e.message, 'error'); }
+      }
+
+      // ---------- 云端换班结果回写本地监考表 ----------
+      // 场次在本地和云端用同一个 key，才能把换班对上号
+      function sessionKeyOf(r) { return r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className); }
+
+      // 判断一条换班在本地是什么状态：待应用 / 已应用 / 对不上
+      function localSwapState(s) {
+        const fromRow = state.result.find(r => sessionKeyOf(r) === s.fromSessionId);
+        const toRow = state.result.find(r => sessionKeyOf(r) === s.toSessionId);
+        if (!fromRow || !toRow) return { status: 'no-session' };
+        const names = row => (row.teachers || []).map(t => t.name);
+        const fn = names(fromRow), tn = names(toRow);
+        if (fn.includes(s.fromTeacher) && tn.includes(s.toTeacher)) return { status: 'todo', fromRow, toRow };
+        // 两边已经换过来了，说明本地早就改好了（可能是你自己手工改的），别再换一次
+        if (fn.includes(s.toTeacher) && tn.includes(s.fromTeacher)) return { status: 'done', fromRow, toRow };
+        return { status: 'mismatch', fromRow, toRow };
+      }
+
+      function applySwapToLocal(s, ctx) {
+        const fi = ctx.fromRow.teachers.findIndex(t => t.name === s.fromTeacher);
+        const ti = ctx.toRow.teachers.findIndex(t => t.name === s.toTeacher);
+        const tmp = ctx.fromRow.teachers[fi];
+        ctx.fromRow.teachers[fi] = ctx.toRow.teachers[ti];
+        ctx.toRow.teachers[ti] = tmp;
+      }
+
+      // 还没回写到本地的换班条数（发布前用它判断会不会覆盖老师的换班）
+      function pendingSwapCount(swaps) {
+        const done = new Set(state.syncedSwapIds || []);
+        return (swaps || []).filter(s => s.status === 'approved' && !done.has(s.id)).length;
+      }
+
+      // 老师换班成功后，本地监考表跟着变，不用你手工改
+      // silent=true 时只在真的改了东西才提示，避免定时轮询老弹窗
+      async function syncSwapsFromCloud({ silent = false } = {}) {
+        if (onlineBackend.isDemo() || isTeacherMode()) return null;
+        const boardId = state.publishedBoardId;
+        if (!boardId || !state.result.length || !adminToken()) return null;
+        let swaps = [];
+        try { swaps = await onlineBackend.listSwaps(boardId); }
+        catch (e) { if (!silent && !handleAuthError(e)) toast('读取换班记录失败：' + e.message, 'error'); return null; }
+        const approved = (swaps || []).filter(s => s.status === 'approved');
+        if (!approved.length) return { applied: 0, skipped: 0, unchanged: 0 };
+        const done = new Set(state.syncedSwapIds || []);
+        let applied = 0, skipped = 0, unchanged = 0;
+        approved.slice()
+          .sort((a, b) => String(a.resolvedAt || a.createdAt || '').localeCompare(String(b.resolvedAt || b.createdAt || '')))
+          .forEach(s => {
+            if (done.has(s.id)) return;
+            const ctx = localSwapState(s);
+            if (ctx.status === 'todo') { applySwapToLocal(s, ctx); applied++; done.add(s.id); }
+            else if (ctx.status === 'done') { unchanged++; done.add(s.id); }
+            else skipped++;
+          });
+        state.syncedSwapIds = [...done];
+        if (applied) persistAndRender();
+        else if (unchanged || skipped) saveState();
+        if (!silent) {
+          if (applied) toast(`已把 ${applied} 条换班结果同步到本地监考表`);
+          else if (skipped) toast(`有 ${skipped} 条换班对不上本地场次，已跳过，请打开换班记录核对`, 'error');
+          else toast('本地监考表已是最新，没有新的换班');
+        } else if (applied) {
+          toast(`老师刚完成 ${applied} 处换班，本地监考表已自动更新`);
+        }
+        syncBadge();
+        return { applied, skipped, unchanged };
+      }
+
+      // 「换班记录」按钮上挂个小红点，提示有新的换班
+      function syncBadge(n) {
+        const btn = $('#swapLogBtn');
+        if (!btn) return;
+        let el = $('#swapLogBadge');
+        if (n === undefined) return;
+        if (!n) { if (el) el.remove(); return; }
+        if (!el) {
+          el = document.createElement('span');
+          el.id = 'swapLogBadge';
+          el.style.cssText = 'display:inline-block;margin-left:4px;min-width:16px;padding:0 4px;border-radius:8px;background:#ea6668;color:#fff;font-size:11px;line-height:16px;text-align:center';
+          btn.appendChild(el);
+        }
+        el.textContent = n;
+      }
+      async function refreshSwapBadge() {
+        if (onlineBackend.isDemo() || isTeacherMode() || !state.publishedBoardId || !adminToken()) return syncBadge(0);
+        try {
+          const swaps = await onlineBackend.listSwaps(state.publishedBoardId);
+          syncBadge(pendingSwapCount(swaps));
+        } catch (e) { syncBadge(0); }
       }
 
       // ---------- 在线视图 ----------
-      const onlineView = { boardId: null, board: null, swaps: [], identity: '', unsubscribe: null };
+      const onlineView = { boardId: null, board: null, swaps: [], identity: '', verifiedName: '', stopPoll: null };
+      function isVerified() { return !!onlineView.identity && onlineView.verifiedName === onlineView.identity; }
+
+      function renderOnlineAuth() {
+        const bar = $('#onlineAuthBar');
+        if (!onlineView.boardId || !onlineView.identity) { bar.style.display = 'none'; return; }
+        bar.style.display = 'flex';
+        if (isVerified()) {
+          $('#onlineCode').style.display = 'none';
+          $('#onlineVerifyBtn').style.display = 'none';
+          $('#onlineAuthMsg').textContent = '已验证身份：' + onlineView.identity;
+        } else {
+          $('#onlineCode').style.display = '';
+          $('#onlineVerifyBtn').style.display = '';
+          $('#onlineAuthMsg').textContent = '填手机号后四位验证身份，之后就能发起和处理换班';
+        }
+      }
 
       function setBackendVisible(show) {
         const h = document.querySelector('header.app-header');
@@ -2971,16 +3224,19 @@
         const isT = isTeacherMode();
         $('#onlineBackBtn').style.display = isT ? 'none' : '';
         $('#onlineHint').textContent = isT
-          ? '这是监考表页面：选择你的姓名后，你的场次会高亮显示。想和其他老师调换监考，点自己场次上的「申请换班」，对方同意后自动更新。'
-          : '选择你的姓名后，你的场次会高亮显示，可向其他老师发起换班（对方同意后自动更新）。';
+          ? '这是监考表页面：先选自己的姓名，再填一次手机号后四位完成验证。之后你的场次会高亮，点场次上的「申请换班」即可跟同事调换，对方同意后自动更新。'
+          : '选择你的姓名后，你的场次会高亮显示；填一次手机号后四位完成验证，就能发起和处理换班。';
         $('#onlineView').style.display = 'block';
+        $('#onlineAuthBar').style.display = 'none';
         if (!boardId) { showTeacherEmpty(); return; }
         await refreshOnline();
-        if (onlineView.unsubscribe) onlineView.unsubscribe();
-        onlineView.unsubscribe = await onlineBackend.subscribe(boardId, () => { refreshOnline().catch(() => {}); });
+        if (onlineView.stopPoll) onlineView.stopPoll();
+        onlineView.stopPoll = onlineBackend.poll(boardId, () => { refreshOnline().catch(() => {}); });
       }
       function hideOnlineView() {
-        if (onlineView.unsubscribe) { onlineView.unsubscribe(); onlineView.unsubscribe = null; }
+        if (onlineView.stopPoll) { onlineView.stopPoll(); onlineView.stopPoll = null; }
+        teacherToken = '';
+        onlineView.verifiedName = '';
         $('#onlineView').style.display = 'none';
         if (!isTeacherMode()) { setBackendVisible(true); ensureBackendLogin(); }
         if (location.hash) history.replaceState(null, '', location.pathname + location.search);
@@ -2990,9 +3246,11 @@
           const b = await onlineBackend.getBoard(onlineView.boardId);
           if (!b) { $('#onlineBoard').innerHTML = '<p class="muted">未找到该监考表，可能已被删除。</p>'; return; }
           onlineView.board = b;
-          onlineView.swaps = await onlineBackend.listSwaps(onlineView.boardId);
+          onlineView.swaps = isVerified()
+            ? await onlineBackend.listMySwaps(onlineView.boardId).catch(() => [])
+            : [];
           $('#onlineTitle').textContent = b.title || '在线监考表';
-          renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
+          renderOnlineIdentity(); renderOnlineAuth(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
         } catch (e) { $('#onlineBoard').innerHTML = '<p class="muted">加载失败：' + esc(e.message) + '</p>'; }
       }
       function allTeacherNames(board) {
@@ -3007,7 +3265,8 @@
       }
       function descOf(sessionId) {
         const r = ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []).find(x => x.sessionId === sessionId);
-        return r ? `${r.grade}${r.subject} ${r.className}（${r.date} ${r.time}）` : '已删除的场次';
+        if (!r) return '已删除的场次';
+        return `${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）`;
       }
       function renderOnlineBoard() {
         const rows = ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []);
@@ -3032,7 +3291,7 @@
           const isMe = t === identity;
           return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0;font-size:12px;${isMe ? 'background:#4c7dff;color:#fff;font-weight:600' : 'background:rgba(0,0,0,0.05);color:#1a1b1c'}">${esc(t)}${isMe ? '（我）' : ''}</span>`;
         }).join('');
-        const swapBtn = mine ? `<button class="btn btn-sm swap-btn" data-swap-from="${esc(r.sessionId)}" style="margin-left:auto">申请换班</button>` : '';
+        const swapBtn = (mine && isVerified()) ? `<button class="btn btn-sm swap-btn" data-swap-from="${esc(r.sessionId)}" style="margin-left:auto">申请换班</button>` : '';
         return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:${border};border-radius:10px;margin-bottom:6px;flex-wrap:wrap;background:#fff">
           <div style="font-size:13px;min-width:150px">${esc(r.grade)}${esc(r.subject)} · ${esc(r.className)}</div>
           <div style="font-size:12px;color:#6b7280;flex:1;min-width:160px">${teachers}</div>${swapBtn}
@@ -3109,13 +3368,16 @@
         el.style.color = conflict ? '#ea6668' : '#52c41a';
       }
       async function sendSwap() {
+        if (!isVerified()) return toast('请先填手机号后四位验证身份', 'error');
         const to = $('#swapToTeacher').value; const toSid = $('#swapToSession').value;
         const conflict = swapConflictCheck(onlineView.board, onlineView.identity, swapFromSessionId, to, toSid);
         if (conflict) return toast('无法发送：' + conflict, 'error');
-        await onlineBackend.createSwap({ boardId: onlineView.boardId, fromTeacher: onlineView.identity, toTeacher: to, fromSessionId: swapFromSessionId, toSessionId: toSid, status: 'pending' });
-        $('#swapDialog').close();
-        toast('申请已发送，等对方同意');
-        await refreshOnline();
+        try {
+          await onlineBackend.createSwap({ boardId: onlineView.boardId, fromTeacher: onlineView.identity, toTeacher: to, fromSessionId: swapFromSessionId, toSessionId: toSid });
+          $('#swapDialog').close();
+          toast('申请已发送，等对方同意');
+          await refreshOnline();
+        } catch (e) { toast('发送失败：' + e.message, 'error'); }
       }
       function applySwap(board, s) {
         const rows = board.data.rows;
@@ -3125,44 +3387,54 @@
         fromRow.teachers = fromRow.teachers.map(t => t === s.fromTeacher ? s.toTeacher : t);
         toRow.teachers = toRow.teachers.map(t => t === s.toTeacher ? s.fromTeacher : t);
       }
+      // 同意 / 拒绝 / 撤回统一交给服务端处理，服务端会重新核对冲突和身份
       async function approveSwap(id) {
-        const s = onlineView.swaps.find(x => x.id === id); if (!s) return;
-        const conflict = swapConflictCheck(onlineView.board, s.fromTeacher, s.fromSessionId, s.toTeacher, s.toSessionId);
-        if (conflict) return toast('无法同意：' + conflict, 'error');
-        const fresh = await onlineBackend.getBoard(onlineView.boardId);
-        if (!fresh) return toast('监考表不存在', 'error');
-        applySwap(fresh, s);
-        await onlineBackend.saveBoard(fresh);
-        await onlineBackend.updateSwap(id, { status: 'approved', resolvedAt: new Date().toISOString() });
-        toast('已同意，双方场次已自动互换');
-        await refreshOnline();
+        if (!isVerified()) return toast('请先填手机号后四位验证身份', 'error');
+        try {
+          await onlineBackend.resolveSwap(onlineView.boardId, id, 'approve');
+          toast('已同意，双方场次已自动互换');
+          await refreshOnline();
+        } catch (e) { toast('无法同意：' + e.message, 'error'); }
       }
       async function rejectSwap(id) {
-        await onlineBackend.updateSwap(id, { status: 'rejected', resolvedAt: new Date().toISOString() });
-        toast('已拒绝');
-        await refreshOnline();
+        if (!isVerified()) return toast('请先填手机号后四位验证身份', 'error');
+        try { await onlineBackend.resolveSwap(onlineView.boardId, id, 'reject'); toast('已拒绝'); await refreshOnline(); }
+        catch (e) { toast('操作失败：' + e.message, 'error'); }
       }
       async function cancelSwap(id) {
-        await onlineBackend.updateSwap(id, { status: 'canceled' });
-        toast('已撤回');
-        await refreshOnline();
+        if (!isVerified()) return toast('请先填手机号后四位验证身份', 'error');
+        try { await onlineBackend.resolveSwap(onlineView.boardId, id, 'cancel'); toast('已撤回'); await refreshOnline(); }
+        catch (e) { toast('操作失败：' + e.message, 'error'); }
       }
 
       // ---------- 绑定 ----------
       function bindOnline() {
+        const saveOnlineCfg = () => {
+          onlineSaveConfig({ fnUrl: $('#sbUrl').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          const code = ($('#lcDefaultCode').value.trim() || '0000').replace(/\D/g, '').slice(0, 4);
+          state.teacherDefaultCode = code || '0000';
+          const pb = $('#lcPhoneBook');
+          if (pb) state.phoneBook = pb.value;
+          saveState();
+        };
         $('#onlineBtn').addEventListener('click', () => {
           const cfg = onlineLoadConfig();
-          $('#sbUrl').value = cfg.url || ''; $('#sbKey').value = cfg.key || ''; $('#sbSiteUrl').value = cfg.siteUrl || ''; $('#lcDemoMode').checked = !!cfg.demoMode;
-          $('#lcStatus').textContent = cfg.demoMode ? '当前：演示模式（本机模拟）' : (cfg.url ? '当前：Supabase 云端（未测试）' : '当前：未配置（将使用演示模式）');
+          $('#sbUrl').value = cfg.fnUrl || '';
+          $('#sbSiteUrl').value = cfg.siteUrl || '';
+          $('#lcDemoMode').checked = !!cfg.demoMode;
+          $('#lcDefaultCode').value = state.teacherDefaultCode || '0000';
+          $('#lcPhoneBook').value = state.phoneBook || '';
+          $('#lcStatus').textContent = cfg.demoMode ? '当前：演示模式（数据仅在本机模拟）' : (cfg.fnUrl ? '当前：云端接口（未测试）' : '当前：尚未填写接口地址');
           $('#lcSettingsDialog').showModal();
         });
         $('#lcSaveBtn').addEventListener('click', () => {
-          onlineSaveConfig({ url: $('#sbUrl').value.trim(), key: $('#sbKey').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          saveOnlineCfg();
           toast('在线版设置已保存');
           $('#lcSettingsDialog').close();
         });
         $('#lcTestBtn').addEventListener('click', async () => {
-          onlineSaveConfig({ url: $('#sbUrl').value.trim(), key: $('#sbKey').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          saveOnlineCfg();
+          $('#lcStatus').textContent = '正在连接…';
           const r = await onlineBackend.test();
           $('#lcStatus').textContent = r.ok ? '连接成功：' + r.mode : '连接失败：' + (r.error || '未知错误');
         });
@@ -3183,7 +3455,7 @@
             else {
               list.innerHTML = swaps.map(x => {
                 const color = x.status === 'approved' ? '#52c41a' : x.status === 'rejected' ? '#ea6668' : x.status === 'pending' ? '#faad14' : '#6b7280';
-                const desc = id => { const r = boardRows.find(rr => rr.sessionId === id); return r ? `${r.grade}${r.subject} ${r.className}（${r.date} ${r.time}）` : '已删除场次'; };
+                const desc = id => { const r = boardRows.find(rr => rr.sessionId === id); return r ? `${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）` : '已删除场次'; };
                 return `<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
                   <div style="font-size:13px"><b>${esc(x.fromTeacher)}</b> 换 <b>${esc(x.toTeacher)}</b></div>
                   <div style="font-size:12px;color:#6b7280;margin-top:2px">${desc(x.fromSessionId)} ⇄ ${desc(x.toSessionId)}</div>
@@ -3191,8 +3463,26 @@
                 </div>`;
               }).join('');
             }
+            syncBadge(0);
             $('#swapLogDialog').showModal();
-          } catch (e) { toast('加载换班记录失败：' + e.message, 'error'); }
+          } catch (e) { if (!handleAuthError(e)) toast('加载换班记录失败：' + e.message, 'error'); }
+        });
+        $('#syncSwapBtn').addEventListener('click', async () => {
+          if (!state.publishedBoardId) return toast('请先发布在线版，再同步换班结果', 'error');
+          if (!adminToken()) { showLoginOverlay(); return toast('请先用后台密码登录', 'error'); }
+          const btn = $('#syncSwapBtn');
+          btn.disabled = true; btn.textContent = '同步中…';
+          try { await syncSwapsFromCloud({ silent: false }); refreshSwapBadge(); }
+          finally { btn.disabled = false; btn.textContent = '同步换班'; }
+        });
+        $('#swapLogSyncBtn').addEventListener('click', async () => {
+          const btn = $('#swapLogSyncBtn');
+          btn.disabled = true; btn.textContent = '同步中…';
+          try {
+            const r = await syncSwapsFromCloud({ silent: false });
+            if (r && r.applied) { $('#swapLogDialog').close(); }
+            refreshSwapBadge();
+          } finally { btn.disabled = false; btn.textContent = '同步到本地表'; }
         });
         $('#publishCopyBtn').addEventListener('click', () => {
           const link = $('#publishLink').value;
@@ -3207,39 +3497,70 @@
         $('#onlineRefreshBtn').addEventListener('click', () => refreshOnline().catch(() => {}));
         $('#onlineIdentity').addEventListener('change', e => {
           onlineView.identity = e.target.value;
+          teacherToken = '';
+          onlineView.verifiedName = '';
+          onlineView.swaps = [];
           if (e.target.value) localStorage.setItem('invigilation-online-id-' + onlineView.boardId, e.target.value);
-          renderOnlineIdentity(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
+          renderOnlineIdentity(); renderOnlineAuth(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
+          if (e.target.value) refreshOnline().catch(() => {});
         });
+        $('#onlineVerifyBtn').addEventListener('click', async () => {
+          const name = onlineView.identity;
+          const code4 = $('#onlineCode').value.trim();
+          if (!name) return toast('请先选择你的姓名', 'error');
+          if (!/^\d{4}$/.test(code4)) return toast('请填写手机号后四位（4 位数字）', 'error');
+          $('#onlineAuthMsg').textContent = '验证中…';
+          try {
+            await onlineBackend.verifyTeacher(onlineView.boardId, name, code4);
+            onlineView.verifiedName = name;
+            $('#onlineCode').value = '';
+            $('#onlineAuthMsg').textContent = '';
+            toast('验证成功');
+            await refreshOnline();
+          } catch (e) { $('#onlineAuthMsg').textContent = e.message || '验证失败'; }
+        });
+        const ocInput = $('#onlineCode');
+        if (ocInput) ocInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#onlineVerifyBtn').click(); });
         $('#adminLoginBtn').addEventListener('click', async () => {
           const input = $('#adminPassInput').value;
           if (!input) { $('#adminLoginMsg').textContent = '请输入密码'; return; }
           $('#adminLoginMsg').textContent = '验证中…';
-          const ok = await checkPassAsync(input);
-          if (ok) {
-            localStorage.setItem(AUTH_KEY, String(Date.now()));
+          try {
+            if (adminNeedInit) {
+              if (input.length < 4) { $('#adminLoginMsg').textContent = '密码至少 4 位'; return; }
+              await onlineBackend.adminInit(input);
+            } else {
+              const r = await onlineBackend.adminLogin(input);
+              if (r.needInit) { adminNeedInit = true; applyLoginMode(); $('#adminLoginMsg').textContent = '请先设置后台密码'; return; }
+            }
             hideLoginOverlay();
             toast('欢迎回来');
-          } else { $('#adminLoginMsg').textContent = '密码错误，请重试'; }
+            afterLogin();
+          } catch (e) { $('#adminLoginMsg').textContent = e.message || '密码错误，请重试'; }
         });
         const apInput = $('#adminPassInput');
         if (apInput) apInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#adminLoginBtn').click(); });
+        // 登录进来先补一次：把不在时老师完成的换班同步到本地
+        const afterLogin = () => {
+          setTimeout(() => {
+            refreshSwapBadge();
+            syncSwapsFromCloud({ silent: true }).catch(() => {});
+          }, 500);
+        };
         $('#changePassBtn').addEventListener('click', async () => {
           const oldP = $('#oldPassInput').value, p1 = $('#newPassInput').value, p2 = $('#newPass2Input').value;
-          if (!await checkPassAsync(oldP)) return toast('当前密码不正确', 'error');
           if (p1.length < 4) return toast('新密码至少 4 位', 'error');
           if (p1 !== p2) return toast('两次输入的新密码不一致', 'error');
-          const salt = Math.random().toString(36).slice(2, 10);
-          const hash = hashPass(p1 + ':' + salt);
           try {
-            await saveRemotePass(hash, salt);
-          } catch (e) { return toast('云端保存失败：' + e.message + '（请确认已建 admin_config 表）', 'error'); }
-          localStorage.setItem(PASS_KEY, hash + ':' + salt);
-          localStorage.setItem(AUTH_KEY, String(Date.now()));
-          $('#oldPassInput').value = ''; $('#newPassInput').value = ''; $('#newPass2Input').value = '';
-          toast('密码已修改（云端生效，所有设备通用），请记住新密码');
+            await onlineBackend.adminChangePass(oldP, p1);
+            $('#oldPassInput').value = ''; $('#newPassInput').value = ''; $('#newPass2Input').value = '';
+            toast('密码已修改（云端生效，所有设备通用），请记住新密码');
+          } catch (e) {
+            if (!handleAuthError(e)) toast(e.message || '修改失败', 'error');
+          }
         });
         $('#logoutBtn').addEventListener('click', () => {
-          localStorage.removeItem(AUTH_KEY);
+          setAdminToken('');
           const sd = $('#settingsDialog');
           if (sd && sd.open) sd.close();
           showLoginOverlay();
@@ -3259,51 +3580,64 @@
         });
       }
       // ---------- 后台登录 ----------
-      const AUTH_KEY = 'invigilation-admin-auth';
-      const PASS_KEY = 'invigilation-admin-pass';
-      const DEFAULT_PASS = 'admin123';
-      function hashPass(p) {
-        let h = 5381;
-        for (let i = 0; i < p.length; i++) h = ((h << 5) + h + p.charCodeAt(i)) | 0;
-        return 'h' + Math.abs(h).toString(36);
-      }
-      async function fetchRemotePass() {
-        if (onlineBackend.isDemo()) return null;
-        const c = sbClient();
-        if (!c) return null;
+      // 密码不再存在浏览器里，也不再有默认密码。
+      // 全部由云端校验，通过后才发一张 12 小时有效的通行证。
+      let adminNeedInit = false;
+
+      async function refreshLoginMode() {
+        if (onlineBackend.isDemo()) { adminNeedInit = false; applyLoginMode(); return; }
         try {
-          const { data, error } = await c.from('admin_config').select('pass_hash,salt').eq('id', 1).maybeSingle();
-          if (error || !data) return null;
-          return { hash: data.pass_hash, salt: data.salt || '' };
-        } catch (e) { return null; }
+          const s = await onlineBackend.adminStatus();
+          adminNeedInit = !!s.needInit;
+        } catch (e) { adminNeedInit = false; }
+        applyLoginMode();
       }
-      async function saveRemotePass(hash, salt) {
-        if (onlineBackend.isDemo()) return;
-        const c = sbClient();
-        if (!c) return;
-        await c.from('admin_config').upsert({ id: 1, pass_hash: hash, salt: salt, updated_at: new Date().toISOString() });
-      }
-      async function checkPassAsync(input) {
-        const remote = await fetchRemotePass();
-        if (remote) return hashPass(input + ':' + remote.salt) === remote.hash;
-        const stored = localStorage.getItem(PASS_KEY);
-        if (stored) {
-          if (stored.indexOf(':') >= 0) { const parts = stored.split(':'); return hashPass(input + ':' + parts[1]) === parts[0]; }
-          return hashPass(input) === stored;
+      function applyLoginMode() {
+        const h = $('#adminLoginTitle'), btn = $('#adminLoginBtn'), tip = $('#adminLoginTip'), input = $('#adminPassInput');
+        if (adminNeedInit) {
+          if (h) h.textContent = '监考编排台 · 设置后台密码';
+          if (btn) btn.textContent = '设置密码并进入';
+          if (input) input.placeholder = '请设置后台密码（至少 4 位）';
+          if (tip) tip.innerHTML = '首次使用，请设置一个后台密码（至少 4 位）。<br>密码只以哈希形式存云端，之后在手机和电脑上通用。';
+        } else {
+          if (h) h.textContent = '监考编排台 · 后台登录';
+          if (btn) btn.textContent = '进入后台';
+          if (input) input.placeholder = '请输入后台密码';
+          if (tip) tip.innerHTML = '密码只以不可逆的哈希形式存在云端，改一次所有设备通用';
         }
-        return input === DEFAULT_PASS;
       }
-      function isAuthed() { return !!localStorage.getItem(AUTH_KEY); }
+      function isAuthed() { return onlineBackend.isDemo() || !!adminToken(); }
       function showLoginOverlay() {
         const el = $('#adminPassInput');
         if (el) el.value = '';
         const msg = $('#adminLoginMsg');
         if (msg) msg.textContent = '';
         $('#adminLoginOverlay').style.display = 'flex';
+        refreshLoginMode();
       }
       function hideLoginOverlay() { $('#adminLoginOverlay').style.display = 'none'; }
       function ensureBackendLogin() {
         if (!isTeacherMode() && !isAuthed()) showLoginOverlay();
+      }
+      // 通行证实效时统一退回登录界面
+      function handleAuthError(e) {
+        if (!/过期|重新登录|登录/.test(String(e && e.message))) return false;
+        setAdminToken('');
+        showLoginOverlay();
+        return true;
+      }
+
+      // 后台开着时，定时把老师刚同意的换班结果自动同步回本地监考表。
+      // 页面切到后台时不请求，切回来立刻补一次，省流量也省云端额度。
+      function startAutoSync() {
+        const tick = () => {
+          if (document.hidden || isTeacherMode()) return;
+          if (!state.publishedBoardId || !adminToken() || !state.result.length) return;
+          syncSwapsFromCloud({ silent: true }).catch(() => {});
+        };
+        setInterval(tick, 45000);
+        document.addEventListener('visibilitychange', tick);
+        setTimeout(() => { tick(); refreshSwapBadge(); }, 4000);
       }
 
       function initOnlineRouting() {
@@ -3321,6 +3655,7 @@
       }
       bindOnline();
       initOnlineRouting();
+      startAutoSync();
 
       init();
     })();
