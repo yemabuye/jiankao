@@ -864,7 +864,7 @@
       <textarea id="excludedInput" style="min-height:120px"></textarea>
       <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px" data-page-node-id="B79YNqtM5BiFeA9Isibbol">
         <label data-page-node-id="WPZYq63qFThDsWhPLjwZcf">后台登录密码</label>
-        <p class="muted" style="font-size:12.5px;margin:4px 0 8px" data-page-node-id="KuPXmu0nQrZz3NZTsW6Q58">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（首次默认 admin123，请改成你自己的）。</p>
+        <p class="muted" style="font-size:12.5px;margin:4px 0 8px" data-page-node-id="KuPXmu0nQrZz3NZTsW6Q58">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（<b>云端没有默认密码，第一次打开后台时自己设一个</b>）。</p>
         <div class="field-row" data-page-node-id="3SvAgQzKXV8xoeVWTVlHCW">
           <div style="flex:1" data-page-node-id="Kdv0A1mIDy3wi90COACct6"><input id="oldPassInput" type="password" placeholder="当前密码" style="width:100%" data-page-node-id="uobX5VNVcOmkodgCBkiNyD"></div>
         </div>
@@ -2869,7 +2869,7 @@
           res = await fetch(cfg.fnUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, ...payload })
+            body: JSON.stringify({ ...payload, action })
           });
         } catch (e) { throw new Error('连不上云端服务，请检查网络或接口地址是否正确'); }
         let data = {};
@@ -2989,7 +2989,8 @@
             }
             demoWrite(d); return;
           }
-          await apiCall('resolveSwap', { boardId, swapId, action, token: teacherToken });
+          // 具体动作单独用 decision 传，避免和用来挑函数的 action 撞名
+          await apiCall('resolveSwap', { boardId, swapId, decision: action, token: teacherToken });
         },
 
         // 改用定时刷新，不再依赖实时通道：兼容性更好，也省云端额度
