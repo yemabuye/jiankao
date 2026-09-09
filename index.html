@@ -854,8 +854,49 @@
       <button class="btn btn-primary btn-block" id="adminLoginBtn" style="width:100%" data-page-node-id="q6oCyxfGhbt0RqF1YupJnv">进入后台</button>
       <p id="adminLoginMsg" class="muted" style="margin:10px 0 0;font-size:12.5px;color:#ea6668" data-page-node-id="CKXF5NfW4hM211uv7vzqJg"></p>
       <p id="adminLoginTip" class="muted" style="margin:14px 0 0;font-size:12px" data-page-node-id="Ylbenjwh4CKWHlw1uNnKlo">密码只以不可逆的哈希形式存在云端，改一次所有设备通用</p>
+      <p style="margin:10px 0 0;font-size:12.5px"><a href="#" id="forgotPassLink" style="color:#8a8a82;text-decoration:underline">忘记密码？点这里重置</a></p>
     </div>
   </div>
+
+  <!-- 忘记密码：微信验证码 / SQL 两种方式 -->
+  <dialog id="forgotPassDialog">
+    <div class="dialog-head"><h2>重置后台密码</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="margin:0 0 12px;font-size:12.5px">密码用不可逆加密存在云端，谁都还原不出原文，所以只能<b>验证身份后重设</b>。两种方式都不会影响监考表和换班记录。</p>
+
+      <!-- 方式一：微信验证码 -->
+      <div style="border:1px solid #e4e3dd;border-radius:10px;padding:12px 14px">
+        <p style="margin:0 0 8px;font-size:13.5px"><b>方式一　微信收验证码</b> <span class="muted" style="font-size:12px">（推荐，手机上就能搞定）</span></p>
+        <div id="fpNoPush" style="display:none">
+          <p style="margin:0;font-size:13px">还没配置微信推送，所以暂时用不了这个方式。</p>
+          <p style="margin:6px 0 0;font-size:13px">配置方法：登录后打开「<b>设置 → 微信推送</b>」，选 PushPlus 或 Server酱，按指引粘一个 Key 就好，两分钟搞定。之后再忘密码，就能在这里直接收码了。</p>
+        </div>
+        <div id="fpHasPush" style="display:none">
+          <button class="btn btn-primary btn-sm" id="fpSendCodeBtn"><i data-lucide="send"></i>发送验证码到微信</button>
+          <p id="fpSendMsg" class="muted" style="margin:8px 0 0;font-size:12.5px"></p>
+          <div id="fpCodeArea" style="display:none;margin-top:10px">
+            <div class="field-row">
+              <div style="flex:1"><input id="fpCodeInput" inputmode="numeric" maxlength="6" placeholder="微信收到的 6 位验证码"></div>
+            </div>
+            <div class="field-row" style="margin-top:8px">
+              <div style="flex:1"><input id="fpNewPassInput" type="password" placeholder="新密码（至少 4 位）"></div>
+            </div>
+            <button class="btn btn-primary btn-block" id="fpResetBtn" style="margin-top:10px">验证并重设密码</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方式二：SQL -->
+      <div style="border:1px solid #e4e3dd;border-radius:10px;padding:12px 14px;margin-top:12px">
+        <p style="margin:0 0 8px;font-size:13.5px"><b>方式二　用命令清掉重设</b> <span class="muted" style="font-size:12px">（微信也收不到时用这个）</span></p>
+        <p style="margin:0 0 6px;font-size:13px">打开 <a href="https://supabase.com/dashboard" target="_blank" rel="noopener">supabase.com/dashboard</a> → 左侧 <b>SQL Editor</b> → <b>New query</b>，粘进去点 <b>Run</b>：</p>
+        <textarea id="forgotPassSql" readonly style="width:100%;min-height:48px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#fff;box-sizing:border-box">delete from public.admin_config where id = 1;</textarea>
+        <button class="btn btn-sm" id="forgotPassCopyBtn" style="margin-top:6px"><i data-lucide="copy"></i>复制这段命令</button>
+        <p class="muted" style="margin:8px 0 0;font-size:12.5px">看到绿色的 <b>Success</b> 就成了，然后<b>刷新本页面</b>重新设密码。这行只删密码那一条记录，别的都不动。</p>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn" data-close-dialog>关闭</button></div>
+  </dialog>
 
   <dialog id="settingsDialog" data-page-node-id="77RxmuhXEq34NTpYmCM5U7">
     <div class="dialog-head" data-page-node-id="EFMNvRWCpwqniHbwkyCSFZ"><h2 data-page-node-id="2amEtga8sdrqWMa1seegVe">设置</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="NUmt9rfYdbruGtqEOQQsWA"><i data-lucide="x" data-page-node-id="ul48y0o0QdwWPudyDpxW7l"></i></button></div>
@@ -876,6 +917,26 @@
           <button type="button" class="btn" id="changePassBtn" data-page-node-id="Ywj4KxauNZBFPVozH14oYb">修改密码</button>
           <button type="button" class="btn" id="logoutBtn" style="margin-left:8px" data-page-node-id="46rUzRGW2UBl868Wo2TIYG">退出登录</button>
         </div>
+        <p style="margin:10px 0 0;font-size:12.5px"><a href="#" id="forgotPassLink2" style="color:#8a8a82;text-decoration:underline">万一密码忘了怎么办？点这里看重置方法</a></p>
+      </div>
+      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
+        <label>微信推送（忘记密码时收验证码用）</label>
+        <p class="muted" style="font-size:12.5px;margin:4px 0 8px">配置一次，以后忘密码点「忘记密码」就能在<b>微信里收到 6 位验证码</b>，手机上直接改，不用开电脑。</p>
+        <div class="field-row" style="margin-bottom:8px">
+          <div style="flex:1">
+            <select id="pushChannelSel" style="width:100%">
+              <option value="pushplus">PushPlus（推荐 · 免费额度每天 200 条）</option>
+              <option value="sct">Server酱（免费额度每天 5 条，无需实名）</option>
+            </select>
+          </div>
+        </div>
+        <div id="pushGuide" style="font-size:12.5px;line-height:1.9;margin:0 0 10px;padding-left:20px"></div>
+        <div class="field-row">
+          <div style="flex:1"><input id="pushKeyInput" placeholder="把 Key 粘到这里" style="width:100%"></div>
+          <button type="button" class="btn" id="pushKeySaveBtn" style="margin-left:8px;white-space:nowrap"><i data-lucide="check"></i>保存并测试</button>
+        </div>
+        <p id="pushKeyMsg" class="muted" style="margin:8px 0 0;font-size:12.5px"></p>
+        <p id="pushFootNote" class="muted" style="margin:6px 0 0;font-size:12px"></p>
       </div>
     </div>
     <div class="dialog-foot" data-page-node-id="LlNHVsOU7qbjlIaLKDMcVJ"><button class="btn" data-close-dialog data-page-node-id="W8enY4QNmLGBS0BFuUbuLO">取消</button><button class="btn btn-primary" id="saveSettingsBtn" data-page-node-id="W1XWZq92JhMeP2fxMbPOn5">保存设置</button></div>
@@ -1438,9 +1499,51 @@
         return combined;
       }
 
+      // 推送渠道的注册指引随选择切换
+      const PUSH_GUIDE = {
+        pushplus: {
+          steps: '<li>打开 <a href="https://www.pushplus.plus" target="_blank" rel="noopener">pushplus.plus</a>，<b>微信扫码登录</b></li>'
+            + '<li>进「个人中心」，复制你的 <b>token</b>（32 位字母数字）</li>'
+            + '<li>微信里关注「<b>pushplus 推送加</b>」公众号才收得到消息</li>'
+            + '<li>首次使用需完成<b>实名认证</b>（一次性约 3.9 元，终身有效）</li>',
+          ph: '把 token 粘到这里（32 位字母数字）',
+          foot: '免费额度每天 200 条，一年用不了几次。留空并保存可以关掉这个功能。',
+        },
+        sct: {
+          steps: '<li>打开 <a href="https://sct.ftqq.com" target="_blank" rel="noopener">sct.ftqq.com</a>，<b>微信扫码登录</b></li>'
+            + '<li>页面上找到 <b>SendKey</b>（一串 SCT 开头的字符），点复制</li>',
+          ph: '把 SendKey 粘到这里（SCT 开头）',
+          foot: '免费额度每天 5 条，无需实名认证。留空并保存可以关掉这个功能。',
+        },
+      };
+      function renderPushGuide(ch) {
+        const g = PUSH_GUIDE[ch] || PUSH_GUIDE.pushplus;
+        const guide = $('#pushGuide');
+        if (guide) guide.innerHTML = '<ol style="margin:0;padding-left:20px">' + g.steps + '</ol>';
+        const input = $('#pushKeyInput'); if (input) input.placeholder = g.ph;
+        const foot = $('#pushFootNote'); if (foot) foot.textContent = g.foot;
+      }
+
       function openSettingsDialog() {
         $('#excludedInput').value = state.excludedNames.join('\n');
         $('#settingsDialog').showModal();
+        // 顺带读一下微信推送配好了没
+        try {
+          const msg = $('#pushKeyMsg');
+          if (msg && !onlineBackend.isDemo() && adminToken()) {
+            msg.textContent = '读取配置状态…';
+            onlineBackend.adminPushStatus()
+              .then(s => {
+                const ch = s.channel || 'pushplus';
+                const sel = $('#pushChannelSel'); if (sel) sel.value = ch;
+                renderPushGuide(ch);
+                msg.textContent = s.configured ? `当前状态：已配置 ✓（${ch === 'sct' ? 'Server酱' : 'PushPlus'}，Key 不外显，要换就重新粘一个）` : '当前状态：还没配置';
+                const input = $('#pushKeyInput');
+                if (input && s.configured) input.placeholder = '已配置，留空保存则保持不变';
+              })
+              .catch(() => { renderPushGuide('pushplus'); msg.textContent = ''; });
+          }
+        } catch (e) { /* 读不到就算了，不影响其他设置 */ }
       }
 
       function saveSettings() {
@@ -2903,6 +3006,24 @@
           if (this.isDemo()) return { needInit: false };
           return apiCall('adminStatus');
         },
+        async adminPushStatus() {
+          if (this.isDemo()) return { configured: false };
+          return apiCall('adminPushStatus');
+        },
+        async adminSetPushKey(pushKey, channel) {
+          return apiCall('adminSetPushKey', { pushKey, channel: channel || 'pushplus', token: adminToken() });
+        },
+        async adminTestPush() {
+          return apiCall('adminTestPush', { token: adminToken() });
+        },
+        async adminSendOtp() {
+          return apiCall('adminSendOtp');
+        },
+        async adminResetByCode(code, newPass, token) {
+          const r = await apiCall('adminResetByCode', { code, newPass, token });
+          if (r.token) setAdminToken(r.token);
+          return r;
+        },
         async adminInit(pass) {
           const r = await apiCall('adminInit', { pass });
           setAdminToken(r.token || '');
@@ -3152,7 +3273,8 @@
         } else if (applied) {
           toast(`老师刚完成 ${applied} 处换班，本地监考表已自动更新`);
         }
-        syncBadge();
+        // 同步完重新数一次，别让红点赖着不走（无参调用不会刷新）
+        syncBadge(pendingSwapCount(swaps));
         return { applied, skipped, unchanged };
       }
 
@@ -3335,6 +3457,7 @@
         const toRow = rows.find(r => r.sessionId === toSessionId);
         if (!fromRow || !toRow) return '找不到对应场次';
         if (fromTeacher === toTeacher) return '不能跟自己换';
+        if (fromSessionId === toSessionId) return '不能选同一场，请选对方老师的另一场';
         if (!(toRow.teachers || []).includes(toTeacher)) return `${toTeacher} 不在所选场次【${toRow.grade}${toRow.subject} ${toRow.className}】中`;
         const fromHasToSlot = rows.some(r => r.sessionId !== fromSessionId && r.date === toRow.date && r.time === toRow.time && (r.teachers || []).includes(fromTeacher));
         const toHasFromSlot = rows.some(r => r.sessionId !== toSessionId && r.date === fromRow.date && r.time === fromRow.time && (r.teachers || []).includes(toTeacher));
@@ -3541,6 +3664,93 @@
         });
         const apInput = $('#adminPassInput');
         if (apInput) apInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#adminLoginBtn').click(); });
+        // ---------- 忘记密码：微信验证码 / SQL 两种方式 ----------
+        let otpToken = '';
+        const openForgot = async e => {
+          if (e) e.preventDefault();
+          otpToken = '';
+          const show = (id, on) => { const el = $(id); if (el) el.style.display = on ? '' : 'none'; };
+          show('#fpNoPush', false); show('#fpHasPush', false); show('#fpCodeArea', false);
+          const m = $('#fpSendMsg'); if (m) m.textContent = '';
+          const ci = $('#fpCodeInput'); if (ci) ci.value = '';
+          const pi = $('#fpNewPassInput'); if (pi) pi.value = '';
+          $('#forgotPassDialog').showModal();
+          try {
+            const s = await onlineBackend.adminPushStatus();
+            show(s.configured ? '#fpHasPush' : '#fpNoPush', true);
+          } catch (err) { show('#fpNoPush', true); }
+        };
+        const fl1 = $('#forgotPassLink'), fl2 = $('#forgotPassLink2');
+        if (fl1) fl1.addEventListener('click', openForgot);
+        if (fl2) fl2.addEventListener('click', openForgot);
+        $('#fpSendCodeBtn').addEventListener('click', async () => {
+          const btn = $('#fpSendCodeBtn'), msg = $('#fpSendMsg');
+          if (btn) btn.disabled = true;
+          if (msg) msg.textContent = '正在发送…';
+          try {
+            const r = await onlineBackend.adminSendOtp();
+            otpToken = r.token || '';
+            $('#fpCodeArea').style.display = '';
+            if (msg) msg.textContent = '已发到你的微信，10 分钟内有效。没收到就看看是不是把服务号屏蔽了。';
+            const ci = $('#fpCodeInput'); if (ci) ci.focus();
+          } catch (e) {
+            if (msg) msg.textContent = String(e.message).indexOf('NO_PUSH_KEY') >= 0 ? '还没配置微信推送，请用下面的方式二。' : (e.message || '发送失败');
+          } finally { if (btn) btn.disabled = false; }
+        });
+        $('#fpResetBtn').addEventListener('click', async () => {
+          const code = ($('#fpCodeInput').value || '').trim();
+          const np = $('#fpNewPassInput').value || '';
+          if (!otpToken) return toast('请先点「发送验证码到微信」', 'error');
+          if (!/^\d{6}$/.test(code)) return toast('请输入 6 位数字验证码', 'error');
+          if (np.length < 4) return toast('新密码至少 4 位', 'error');
+          const btn = $('#fpResetBtn'); if (btn) btn.disabled = true;
+          try {
+            await onlineBackend.adminResetByCode(code, np, otpToken);
+            otpToken = '';
+            const d = $('#forgotPassDialog'); if (d) d.close();
+            adminNeedInit = false;
+            hideLoginOverlay();
+            toast('密码已重置，请记住新密码');
+            afterLogin();
+          } catch (e) { toast(e.message || '重置失败', 'error'); }
+          finally { if (btn) btn.disabled = false; }
+        });
+        // 设置里配置微信推送
+        const pushChannelSel = $('#pushChannelSel');
+        if (pushChannelSel) pushChannelSel.addEventListener('change', e => renderPushGuide(e.target.value));
+        renderPushGuide('pushplus');
+        $('#pushKeySaveBtn').addEventListener('click', async () => {
+          const key = ($('#pushKeyInput').value || '').trim();
+          const ch = ($('#pushChannelSel') && $('#pushChannelSel').value) || 'pushplus';
+          const msg = $('#pushKeyMsg');
+          if (msg) msg.textContent = '保存中…';
+          try {
+            await onlineBackend.adminSetPushKey(key, ch);
+            if (!key) {
+              if (msg) msg.textContent = '已关闭微信推送，忘记密码时只能用方式二。';
+              toast('已关闭微信推送');
+              return;
+            }
+            if (msg) msg.textContent = '已保存，正在发一条测试消息…';
+            await onlineBackend.adminTestPush();
+            if (msg) msg.textContent = '✓ 通了！去看看手机微信有没有收到。';
+            toast('已保存，微信应该收到一条测试消息');
+            const input = $('#pushKeyInput'); if (input) input.value = '';
+          } catch (e) {
+            if (!handleAuthError(e) && msg) msg.textContent = '失败：' + e.message;
+          }
+        });
+        $('#forgotPassCopyBtn').addEventListener('click', () => {
+          const ta = $('#forgotPassSql');
+          const txt = ta.value;
+          const fallback = () => {
+            try { ta.select(); document.execCommand('copy'); toast('已复制，去 Supabase 粘贴运行'); }
+            catch (e) { toast('复制失败，请手动选中上面的命令复制'); }
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).then(() => toast('已复制，去 Supabase 粘贴运行')).catch(fallback);
+          } else fallback();
+        });
         // 登录进来先补一次：把不在时老师完成的换班同步到本地
         const afterLogin = () => {
           setTimeout(() => {
