@@ -1219,6 +1219,23 @@
       };
       const ALL_SUBJECTS = [...new Set(Object.values(SUBJECTS_BY_GRADE).flat())];
       const TEACHER_SUBJECTS = ['语文','数学','英语','道德与法治','历史','生物','地理','物理','化学','科学','信息技术','体育','音乐','美术'];
+      // 学校岗位表里常见的简写/旧称，统一归到标准学科名，避免“道法”“政治”这类写法识别不进去
+      const SUBJECT_ALIASES = {
+        '道法': '道德与法治', '政治': '道德与法治', '思品': '道德与法治', '品德': '道德与法治', '思想品德': '道德与法治',
+        '信息': '信息技术', '计算机': '信息技术', '微机': '信息技术',
+        '体健': '体育', '体育课': '体育', '音乐课': '音乐', '美术课': '美术', '语文课': '语文', '数学课': '数学', '英语课': '英语'
+      };
+      // 单元格科目写法 → 标准学科名（精确 → 别名 → 包含匹配）
+      function resolveSubjectName(raw) {
+        const s = String(raw || '').trim();
+        if (!s) return null;
+        if (TEACHER_SUBJECTS.includes(s)) return s;
+        if (SUBJECT_ALIASES[s]) return SUBJECT_ALIASES[s];
+        const hit = TEACHER_SUBJECTS.find(sub => s.includes(sub));
+        if (hit) return hit;
+        const aliasKey = Object.keys(SUBJECT_ALIASES).find(k => s.includes(k));
+        return aliasKey ? SUBJECT_ALIASES[aliasKey] : null;
+      }
       function teacherTeachesSubject(teacher, subject) {
         const ts = teacher.subjects || [];
         if (!ts.length || !subject) return false;
@@ -1951,7 +1968,7 @@
 
       function addTeachers(entries, source) {
         const existing = new Map(state.teachers.map(t => [t.name.toLocaleLowerCase(), t]));
-        let added = 0, updated = 0;
+        let added = 0, updated = 0, subjectUpdated = 0;
         entries.forEach(entry => {
           const name = normalizeName(entry.name);
           if (!isLikelyName(name) || excludedSet().has(name) || /^新语文\d+$/.test(name) || name === '围棋') return;
@@ -1965,7 +1982,9 @@
             }
             // 已存在的人也要补上科目 / 手机号 / 不参与监考（重复导入时同步更新）
             if (entry.subjects && entry.subjects.length) {
+              const before = (teacher.subjects || []).join('|');
               teacher.subjects = [...new Set([...(teacher.subjects || []), ...entry.subjects])].filter(s => TEACHER_SUBJECTS.includes(s));
+              if (teacher.subjects.join('|') !== before) subjectUpdated++;
             }
             if (entry.phone) teacher.phone = String(entry.phone).replace(/\D/g, '');
             if (entry.hasExcludeColumn) {
@@ -1979,7 +1998,7 @@
         });
         sortTeachers();
         persistAndRender();
-        toast(`新增 ${added} 人${updated ? `，更新年级 ${updated} 人` : ''}`);
+        toast(`新增 ${added} 人${updated ? `，更新年级 ${updated} 人` : ''}${subjectUpdated ? `，补充科目 ${subjectUpdated} 人` : ''}`);
       }
 
       function addPastedNames() {
@@ -2103,25 +2122,34 @@
         if (!rows.length) return [];
         let headerIndex = -1, gradeIndex = -1, nameIndices = [];
         let subjectIndex = -1, phoneIndex = -1, excludeIndex = -1;
-        const gradeHeaders = /^(所属)?年级|班级|学段|级部/;
+        const gradeHeaders = /^(所属)?年级|学段|级部/;
+        const classHeaders = /^班级$/;
         const nameHeaders = /教师姓名|老师姓名|任课教师|任课老师|教师|老师|班主任|姓名|人员/;
         const subjectHeaders = /^(任教)?(科目|学科)$|任教学科|所教科目|任教科目/;
         const phoneHeaders = /手机|电话|联系方式|联系电话/;
         const excludeHeaders = /不参与监考|不参加监考|不监考|免监考|排除|是否不参与/;
         for (let r = 0; r < Math.min(rows.length, 20); r++) {
-          const g = rows[r].findIndex(cell => gradeHeaders.test(cell.replace(/\s/g,'')));
-          let ns = rows[r].map((cell, i) => nameHeaders.test(cell.replace(/\s/g,'')) ? i : -1).filter(i => i >= 0);
-          if (g >= 0 && rows[r][g].replace(/\s/g,'') === '班级' && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
-          else if (g >= 0 && !ns.length && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
-          if (g >= 0 && ns.length) {
+          const compactRow = rows[r].map(cell => cell.replace(/\s/g, ''));
+          // 年级列：优先“年级/学段/级部”，没有才退回“班级”列
+          let g = compactRow.findIndex(cell => gradeHeaders.test(cell));
+          if (g < 0) g = compactRow.findIndex(cell => classHeaders.test(cell));
+          if (g < 0) continue;
+          // 关键：科目/手机/不参与先按表头文字定死，且绝不能被姓名列兜底吃掉
+          // （原逻辑一旦走“班级”兜底会把所有列都当姓名列，科目列就永远找不到了）
+          let sj = compactRow.findIndex((cell, i) => i !== g && subjectHeaders.test(cell));
+          // 表头写法随意时再兜一次（“所教科目”“任教学科（可多选）”之类）
+          if (sj < 0) sj = compactRow.findIndex((cell, i) => i !== g && /科目|学科/.test(cell));
+          const ph = compactRow.findIndex((cell, i) => i !== g && i !== sj && phoneHeaders.test(cell));
+          const ex = compactRow.findIndex((cell, i) => i !== g && i !== sj && i !== ph && excludeHeaders.test(cell));
+          const reserved = new Set([g, sj, ph, ex].filter(i => i >= 0));
+          // 姓名列：先认名字表头；认不出来才把剩余非空列当姓名列（已排除科目/手机/不参与）
+          let ns = compactRow.map((cell, i) => nameHeaders.test(cell) ? i : -1).filter(i => i >= 0 && !reserved.has(i));
+          if (!ns.length && rows[r].filter(Boolean).length >= 3) {
+            ns = compactRow.map((cell, i) => (cell && !reserved.has(i)) ? i : -1).filter(i => i >= 0);
+          }
+          if (ns.length) {
             headerIndex = r; gradeIndex = g; nameIndices = ns;
-            const taken = new Set([g, ...ns]);
-            subjectIndex = rows[r].findIndex((cell, i) => !taken.has(i) && subjectHeaders.test(cell.replace(/\s/g,'')));
-            phoneIndex = rows[r].findIndex((cell, i) => !taken.has(i) && phoneHeaders.test(cell.replace(/\s/g,'')));
-            excludeIndex = rows[r].findIndex((cell, i) => !taken.has(i) && excludeHeaders.test(cell.replace(/\s/g,'')));
-            // 科目/手机/不参与这几列绝不能当姓名列，否则“语文”会被当成人名
-            nameIndices = nameIndices.filter(i => i !== subjectIndex && i !== phoneIndex && i !== excludeIndex);
-            if (!nameIndices.length) nameIndices = ns;
+            subjectIndex = sj; phoneIndex = ph; excludeIndex = ex;
             break;
           }
         }
@@ -2132,7 +2160,14 @@
         }
         const entries = [];
         let currentGrade = '未分年级';
-        const cellSubjects = v => String(v || '').split(/[、,，\/;；]/).map(s => s.trim()).filter(s => TEACHER_SUBJECTS.includes(s));
+        const cellSubjects = v => {
+          const out = [];
+          String(v || '').split(/[、,，\/;；]/).map(s => s.trim()).filter(Boolean).forEach(part => {
+            const hit = resolveSubjectName(part);
+            if (hit && !out.includes(hit)) out.push(hit);
+          });
+          return out;
+        };
         const cellPhone = v => String(v || '').replace(/\D/g, '');
         const cellExcluded = v => { const s = String(v || '').trim(); return !!s && !/^(否|不|0|false|no)$/i.test(s); };
         rows.slice(headerIndex + 1).forEach(row => {
