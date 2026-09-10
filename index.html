@@ -1238,20 +1238,32 @@
       };
       const ALL_SUBJECTS = [...new Set(Object.values(SUBJECTS_BY_GRADE).flat())];
       const TEACHER_SUBJECTS = ['语文','数学','英语','道德与法治','历史','生物','地理','物理','化学','科学','信息技术','体育','音乐','美术'];
+      // 非标准 13 科（书法/心理健康/特色课/地方课程等）：仍识别并记录，且这类教师统一按"全年级可排"处理
+      const EXTRA_SUBJECTS = ['书法','心理健康','特色课','地方课程','劳动','综合实践','国学','阅读','写字'];
+      const TEACHER_RECOGNIZED_SUBJECTS = [...TEACHER_SUBJECTS, ...EXTRA_SUBJECTS];
+      // 只对个别学生/不参加统考的科目：教这些科目的教师一律不排（用户后续可在"不参与"列手动调整）
+      const EXCLUDED_SUBJECTS = ['围棋'];
       // 学校岗位表里常见的简写/旧称，统一归到标准学科名，避免“道法”“政治”这类写法识别不进去
       const SUBJECT_ALIASES = {
         '道法': '道德与法治', '政治': '道德与法治', '思品': '道德与法治', '品德': '道德与法治', '思想品德': '道德与法治',
         '信息': '信息技术', '计算机': '信息技术', '微机': '信息技术',
-        '体健': '体育', '体育课': '体育', '音乐课': '音乐', '美术课': '美术', '语文课': '语文', '数学课': '数学', '英语课': '英语'
+        '体健': '体育', '体育课': '体育', '音乐课': '音乐', '美术课': '美术', '语文课': '语文', '数学课': '数学', '英语课': '英语',
+        '书法课': '书法', '心理': '心理健康', '心理健康课': '心理健康', '特色': '特色课', '特色课程': '特色课', '地方': '地方课程', '地方课程课': '地方课程', '劳动课': '劳动', '综合': '综合实践', '国学课': '国学', '阅读课': '阅读', '写字课': '写字'
       };
       // 单元格科目写法 → 标准学科名（精确 → 别名 → 包含匹配）
       function resolveSubjectName(raw) {
         const s = String(raw || '').trim();
         if (!s) return null;
         if (TEACHER_SUBJECTS.includes(s)) return s;
+        if (EXTRA_SUBJECTS.includes(s)) return s;
+        if (EXCLUDED_SUBJECTS.includes(s)) return s;
         if (SUBJECT_ALIASES[s]) return SUBJECT_ALIASES[s];
         const hit = TEACHER_SUBJECTS.find(sub => s.includes(sub));
         if (hit) return hit;
+        const extraHit = EXTRA_SUBJECTS.find(sub => s.includes(sub));
+        if (extraHit) return extraHit;
+        const excludedHit = EXCLUDED_SUBJECTS.find(sub => s.includes(sub));
+        if (excludedHit) return excludedHit;
         const aliasKey = Object.keys(SUBJECT_ALIASES).find(k => s.includes(k));
         return aliasKey ? SUBJECT_ALIASES[aliasKey] : null;
       }
@@ -1847,7 +1859,7 @@
         teacher.enabled = !!teacher.enabled;
         teacher.monitorGrade = teacher.monitorGrade || '';
         teacher.source = teacher.source || '手动添加';
-        teacher.subjects = Array.isArray(teacher.subjects) ? teacher.subjects.filter(subject => TEACHER_SUBJECTS.includes(subject)) : [];
+        teacher.subjects = Array.isArray(teacher.subjects) ? teacher.subjects.filter(subject => TEACHER_RECOGNIZED_SUBJECTS.includes(subject)) : [];
         teacher.phone = String(teacher.phone || '').replace(/\D/g, '');
         // 不参与监考：强制不可勾选，排监考时小学/初中都不会出现他们
         teacher.excluded = !!teacher.excluded;
@@ -2051,6 +2063,11 @@
           const name = normalizeName(entry.name);
           if (!isLikelyName(name) || excludedSet().has(name) || /^新语文\d+$/.test(name) || name === '围棋') return;
           const grade = normalizeGrade(entry.grade);
+          // 教围棋等被排除科目的老师 → 自动设为"不参与"，无法被勾选排监考
+          const entryHasExcluded = (entry.subjects || []).some(s => EXCLUDED_SUBJECTS.includes(s));
+          // 只教非标 13 科（书法/心理健康/特色课/地方课程/…）的老师 → 默认按"全年级"可排
+          const entryOnlyExtra = entry.subjects && entry.subjects.length > 0
+            && entry.subjects.every(s => !TEACHER_SUBJECTS.includes(s) && !EXCLUDED_SUBJECTS.includes(s));
           const key = name.toLocaleLowerCase();
           if (existing.has(key)) {
             const teacher = existing.get(key);
@@ -2061,16 +2078,24 @@
             // 已存在的人也要补上科目 / 手机号 / 不参与监考（重复导入时同步更新）
             if (entry.subjects && entry.subjects.length) {
               const before = (teacher.subjects || []).join('|');
-              teacher.subjects = [...new Set([...(teacher.subjects || []), ...entry.subjects])].filter(s => TEACHER_SUBJECTS.includes(s));
+              teacher.subjects = [...new Set([...(teacher.subjects || []), ...entry.subjects])].filter(s => TEACHER_RECOGNIZED_SUBJECTS.includes(s) || EXCLUDED_SUBJECTS.includes(s));
               if (teacher.subjects.join('|') !== before) subjectUpdated++;
             }
             if (entry.phone) teacher.phone = String(entry.phone).replace(/\D/g, '');
             if (entry.hasExcludeColumn) {
               teacher.excluded = !!entry.excluded;
               if (teacher.excluded) { teacher.enabled = false; teacher.monitorGrade = ''; }
+            } else if (entryHasExcluded) {
+              teacher.excluded = true; teacher.enabled = false; teacher.monitorGrade = '';
             }
           } else {
-            const teacher = normalizeTeacherRecord({ id: uid(), name, grades: [grade], subjects: entry.subjects, phone: entry.phone, excluded: !!entry.excluded, source, enabled: false, monitorGrade: '' });
+            const teacher = normalizeTeacherRecord({
+              id: uid(), name, grades: [grade],
+              subjects: entry.subjects, phone: entry.phone,
+              excluded: !!entry.excluded || entryHasExcluded,
+              source, enabled: false,
+              monitorGrade: entryHasExcluded ? '' : (entryOnlyExtra ? '全年级' : '')
+            });
             state.teachers.push(teacher); existing.set(key, teacher); added++;
           }
         });
@@ -2111,7 +2136,7 @@
 
       function monitorGradeOptionsHtml(selected = '', placeholder = '本次年级') {
         const gradeSelected = DEFAULT_GRADES.slice(0, 9).includes(selected) ? selected : '';
-        return `<option value="">${esc(placeholder)}</option>${gradeSelectOptionsHtml(gradeSelected)}<option value="reserve" ${selected === 'reserve' ? 'selected' : ''}>机动人员</option>`;
+        return `<option value="">${esc(placeholder)}</option>${gradeSelectOptionsHtml(gradeSelected)}<option value="全年级" ${selected === '全年级' ? 'selected' : ''}>全年级</option><option value="reserve" ${selected === 'reserve' ? 'selected' : ''}>机动人员</option>`;
       }
 
       function normalizeRoomName(value) {
@@ -2516,7 +2541,7 @@
         return { ok: true, assignments };
       }
 
-      function teacherMatchesGrade(teacher, session) { return teacher.monitorGrade === session.grade; }
+      function teacherMatchesGrade(teacher, session) { return teacher.monitorGrade === session.grade || teacher.monitorGrade === '全年级'; }
 
       function candidateScore(teacher, session, counts, daySlots, config) {
         let score = Math.random() * 18;
@@ -3092,7 +3117,7 @@
         editingAssignmentId = id;
         $('#assignmentMeta').textContent = `${assignment.date} ${assignment.time} · ${assignment.grade} · ${assignment.subject} · ${assignment.className}`;
         const candidates = state.teachers.filter(teacher => teacher.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN'));
-        const gradeLabel = g => g === 'reserve' ? '机动' : g || '未设';
+        const gradeLabel = g => g === 'reserve' ? '机动' : g === '全年级' ? '全年级' : g || '未设';
         const optionHtml = (selectedId, allowEmpty = false) => `${allowEmpty ? '<option value="">不安排</option>' : '<option value="">请选择教师</option>'}${candidates.map(teacher => `<option value="${teacher.id}" ${teacher.id === selectedId ? 'selected' : ''}>${esc(teacher.name)}（${esc(gradeLabel(teacher.monitorGrade))}）</option>`).join('')}`;
         const single = Number(state.config.teacherPerRoom) === 1;
         $('#assignmentTeacher1').innerHTML = optionHtml(assignment.teachers[0]?.id);
