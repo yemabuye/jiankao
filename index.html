@@ -2082,11 +2082,18 @@
               if (teacher.subjects.join('|') !== before) subjectUpdated++;
             }
             if (entry.phone) teacher.phone = String(entry.phone).replace(/\D/g, '');
+            // 重新判定：合并完所有 entry.subjects 后，subjects 是不是清一色 EXTRA？ → 自动设全年级
+            const mergedOnlyExtra = teacher.subjects && teacher.subjects.length > 0
+              && teacher.subjects.every(s => !TEACHER_SUBJECTS.includes(s) && !EXCLUDED_SUBJECTS.includes(s));
+            const mergedHasExcluded = (teacher.subjects || []).some(s => EXCLUDED_SUBJECTS.includes(s));
+            if (mergedHasExcluded) {
+              teacher.excluded = true; teacher.enabled = false; teacher.monitorGrade = '';
+            } else if (mergedOnlyExtra && !teacher.excluded && !teacher.monitorGrade) {
+              teacher.monitorGrade = '全年级';
+            }
             if (entry.hasExcludeColumn) {
               teacher.excluded = !!entry.excluded;
               if (teacher.excluded) { teacher.enabled = false; teacher.monitorGrade = ''; }
-            } else if (entryHasExcluded) {
-              teacher.excluded = true; teacher.enabled = false; teacher.monitorGrade = '';
             }
           } else {
             const teacher = normalizeTeacherRecord({
