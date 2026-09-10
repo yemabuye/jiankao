@@ -805,6 +805,7 @@
         <button class="active" data-result-tab="primary" data-page-node-id="7EirdAGOYFJ3A2R1jMcH2u">小学部监考表</button>
         <button data-result-tab="middle" data-page-node-id="ydbArTHsHpHXMOhuLs7iBD">初中部监考表</button>
         <button data-result-tab="stats" data-page-node-id="I0EtCQCRhtaWTLanEsOL6g">教师统计表</button>
+        <button data-result-tab="overview" data-page-node-id="ovwTplAll">全图预览</button>
       </div>
 
       <div class="schedule-shell" data-page-node-id="2TbcL6Mx5eC2vsBSY344Jo">
@@ -893,6 +894,13 @@
         <button class="btn btn-sm" id="mtUploadBtn"><i data-lucide="upload"></i>上传名单（Excel/CSV）</button>
         <input type="file" id="mtFileInput" accept=".xlsx,.xls,.csv" hidden>
         <span class="muted" style="font-size:12px">模板列：年级 / 姓名 / 任教学科 / 手机号 / 不参与监考</span>
+      </div>
+      <div class="mt-patrol" style="margin:0 0 10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px">
+        <label style="font-weight:600">巡考人员（不参与监考编排，仅展示在监考表里；初中 / 小学分开，逗号或换行分隔）</label>
+        <div class="field-row" style="margin-top:6px">
+          <div style="flex:1"><input id="mtPatrolJunior" placeholder="初中巡考：如 张三、李四" style="width:100%"></div>
+          <div style="flex:1"><input id="mtPatrolPrimary" placeholder="小学巡考：如 王五、赵六" style="width:100%"></div>
+        </div>
       </div>
       <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px" data-page-node-id="zzIrJTKVA6ggSAaqxRN08T">
       <div class="modal-table" data-page-node-id="4W7cjFueek9n7sOIGwJ6aK"><table data-page-node-id="JSLO8qIFc82MGL5WzxYdGy">
@@ -1031,6 +1039,17 @@
     <div class="dialog-body" data-page-node-id="bXGJXiWJz3LSpKuL0LFJEV">
       <label for="excludedInput" data-page-node-id="4dLhgL0AkxHy3ADG8FB9Xr">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
       <textarea id="excludedInput" style="min-height:120px"></textarea>
+      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
+        <label>考场编号规则（初中 / 小学分开，按学部自动从 001 / 01 起编号；教室名可改）</label>
+        <div class="field-row" style="margin-top:6px">
+          <div style="flex:1"><label style="font-size:12.5px">中学部（初中）位数</label><select id="rsJuniorPad" style="width:100%"><option value="2">2 位（01 …）</option><option value="3">3 位（001 …）</option></select></div>
+          <div style="flex:1"><label style="font-size:12.5px">小学部位数</label><select id="rsPrimaryPad" style="width:100%"><option value="2">2 位（01 …）</option><option value="3">3 位（001 …）</option></select></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div style="flex:1"><label style="font-size:12.5px">中学部教室名（每行一间，可写“001=一楼101室”或只写教室名）</label><textarea id="rsJuniorNames" style="min-height:60px"></textarea></div>
+          <div style="flex:1"><label style="font-size:12.5px">小学部教室名（每行一间，可写“01=二楼201室”或只写教室名）</label><textarea id="rsPrimaryNames" style="min-height:60px"></textarea></div>
+        </div>
+      </div>
       <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px" data-page-node-id="B79YNqtM5BiFeA9Isibbol">
         <label data-page-node-id="WPZYq63qFThDsWhPLjwZcf">后台登录密码</label>
         <p class="muted" style="font-size:12.5px;margin:4px 0 8px" data-page-node-id="KuPXmu0nQrZz3NZTsW6Q58">教师查看/换班链接无需密码；只有进入编排后台才需要。密码存在云端，改一次电脑/手机所有设备通用（<b>云端没有默认密码，第一次打开后台时自己设一个</b>）。</p>
@@ -1261,6 +1280,49 @@
       const excludedSet = () => new Set((state.excludedNames && state.excludedNames.length ? state.excludedNames : DEFAULT_EXCLUDED).filter(Boolean));
       const sessionGradesSet = () => new Set(state.sessions.map(session => session.grade).filter(Boolean));
       const customRoomList = () => state.customRooms.map(String).map(v => v.trim()).filter(Boolean);
+      // 巡考名单：初中=junior，小学=primary；逗号/分号/换行/空格分隔
+      const patrolNames = (departmentKey) => {
+        const raw = departmentKey === '小学部' ? state.patrol.primary : state.patrol.junior;
+        return String(raw || '').split(/[、，,;；\n\r\s]+/).map(s => s.trim()).filter(Boolean);
+      };
+      const padNumber = (n, pad) => String(n).padStart(pad || 2, '0');
+      // 考场编号：中学部(初中) junior、小学部 primary。index 从 0 起
+      const roomLabelFor = (departmentKey, index) => {
+        const deptKey = departmentKey === '小学部' ? 'primary' : 'junior';
+        return padNumber(index + 1, state.roomScheme[deptKey].pad);
+      };
+      // 考场显示名：编号后带教室名（如 001（一楼101室）），无教室名则原样显示
+      const roomDisplayName = (className, departmentKey) => {
+        if (!className) return '';
+        const deptKey = departmentKey === '小学部' ? 'primary' : 'junior';
+        const name = state.roomScheme[deptKey].names[className];
+        return name ? `${className}（${name}）` : className;
+      };
+      // 把“编号=教室名”或逐行“教室名”解析成 {编号: 教室名}
+      const parseRoomNames = (text, pad) => {
+        const names = {};
+        String(text || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach((line, i) => {
+          const m = line.match(/^(\d+)\s*[=＝\-－:：]\s*(.+)$/);
+          if (m) names[padNumber(Number(m[1]), pad)] = m[2].trim();
+          else names[padNumber(i + 1, pad)] = line;
+        });
+        return names;
+      };
+      // 手动加场次时，按年级所属学部给出编号选项
+      const roomOptionsForGrade = (grade, selected = '') => {
+        const rooms = customRoomList();
+        if (rooms.length) return roomNameOptionsHtml(selected || '第1考场');
+        const dept = departmentForGrade(grade);
+        const deptKey = dept === '小学部' ? 'primary' : 'junior';
+        const pad = state.roomScheme[deptKey].pad;
+        const opts = Array.from({ length: MAX_ROOMS }, (_, i) => {
+          const label = padNumber(i + 1, pad);
+          const name = state.roomScheme[deptKey].names[label];
+          const sel = label === selected ? ' selected' : '';
+          return `<option value="${label}"${sel}>${esc(name ? `${label}（${name}）` : label)}</option>`;
+        }).join('');
+        return `<option value="">请选择考场</option>${opts}`;
+      };
 
       const state = {
         teachers: [],
@@ -1280,6 +1342,10 @@
         teacherDefaultCode: '0000',
         phoneBook: '',
         publishedBoardId: null,
+        // 巡考人员（不参与监考编排，仅展示在监考表里），初中/小学分开
+        patrol: { primary: '', junior: '' },
+        // 考场编号规则：初中(中学部)默认 3 位从 001 起，小学(小学部)默认 2 位从 01 起；names 按编号存教室名
+        roomScheme: { junior: { pad: 3, names: {} }, primary: { pad: 2, names: {} } },
         // 已经回写到本地监考表的换班记录 id，避免重复应用
         syncedSwapIds: [],
         config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false }
@@ -1543,7 +1609,8 @@
           if (!row || !row.grade) return;
           rowsWithGrade++;
           const roomCount = row.roomCount || 1;
-          const names = roomNames.length ? roomNames : Array.from({ length: roomCount }, (_, i) => `第${i + 1}考场`);
+          // 有全局自定义考场名就用；否则按学部分开编号（初中 001、小学 01）
+          const names = roomNames.length ? roomNames : Array.from({ length: roomCount }, (_, i) => roomLabelFor(departmentForGrade(row.grade), i));
           rowEl.querySelectorAll('.gr-time-input').forEach(input => {
             const subject = input.dataset.subj;
             if (!subject) return;
@@ -1671,6 +1738,11 @@
 
       function openSettingsDialog() {
         $('#excludedInput').value = state.excludedNames.join('\n');
+        $('#rsJuniorPad').value = String(state.roomScheme.junior.pad || 3);
+        $('#rsPrimaryPad').value = String(state.roomScheme.primary.pad || 2);
+        const namesToText = names => Object.keys(names).sort().map(k => `${k}=${names[k]}`).join('\n');
+        $('#rsJuniorNames').value = namesToText(state.roomScheme.junior.names);
+        $('#rsPrimaryNames').value = namesToText(state.roomScheme.primary.names);
         $('#settingsDialog').showModal();
         // 顺带读一下微信推送配好了没
         try {
@@ -1693,6 +1765,10 @@
 
       function saveSettings() {
         state.excludedNames = $('#excludedInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
+        state.roomScheme = {
+          junior: { pad: Number($('#rsJuniorPad').value) || 3, names: parseRoomNames($('#rsJuniorNames').value, Number($('#rsJuniorPad').value) || 3) },
+          primary: { pad: Number($('#rsPrimaryPad').value) || 2, names: parseRoomNames($('#rsPrimaryNames').value, Number($('#rsPrimaryPad').value) || 2) }
+        };
         saveState(); $('#settingsDialog').close();
         toast('设置已保存');
       }
@@ -1871,6 +1947,8 @@
           await importManageFiles(event.target.files);
           event.target.value = '';
         });
+        $('#mtPatrolJunior').addEventListener('change', e => { state.patrol.junior = e.target.value; saveState(); toast('已保存初中巡考'); });
+        $('#mtPatrolPrimary').addEventListener('change', e => { state.patrol.primary = e.target.value; saveState(); toast('已保存小学巡考'); });
         $('#teSaveBtn').addEventListener('click', saveTeacherEdit);
         document.addEventListener('click', handleDelegatedClick);
       }
@@ -2105,6 +2183,7 @@
       function updateManualSubjectOptions() {
         const grade = $('#manualGrade').value.trim();
         fillSubjectSelect($('#manualSubject'), grade ? [normalizeGrade(grade)] : [], '请先选择年级');
+        $('#manualRoom').innerHTML = grade ? roomOptionsForGrade(normalizeGrade(grade)) : roomNameOptionsHtml('第1考场');
       }
 
       function subjectOptionsHtml(grade, selected) {
@@ -2117,9 +2196,72 @@
         return subject.includes('合卷') ? 'merged' : '';
       }
 
+      // 岗位表有两种排布：
+      //  A) 横向表（最常见）：表头一行=年级+多个科目列（语文/数学/…），每行=一个班级，
+      //     首格是班级名（如“七年级（1）班”），每个科目列里的格子=教该科的老师姓名。
+      //     班主任那一列也是老师，按姓名列处理（只归入本年级，不单独带科目）。
+      //  B) 纵向表：表头一行=姓名+年级+科目列，每行=一位老师的记录。
+      // 先试横向（科目列 >= 2 即可判定），识别不到再退回纵向逻辑。
       function parseTableMatrix(matrix, sourceName = '岗位表') {
         const rows = matrix.map(row => row.map(cell => String(cell ?? '').trim())).filter(row => row.some(Boolean));
         if (!rows.length) return [];
+        const wide = detectWideHeader(rows);
+        return wide ? parseWideMatrix(rows, wide, sourceName) : parseTallMatrix(rows, sourceName);
+      }
+
+      function detectWideHeader(rows) {
+        const gradeHeaders = /^(所属)?年级|学段|级部|^班级$/;
+        const nameHeaders = /教师姓名|老师姓名|任课教师|任课老师|教师|老师|班主任|姓名|人员/;
+        const phoneHeaders = /手机|电话|联系方式|联系电话/;
+        const excludeHeaders = /不参与监考|不参加监考|不监考|免监考|排除|是否不参与/;
+        for (let r = 0; r < Math.min(rows.length, 20); r++) {
+          const compact = rows[r].map(c => c.replace(/\s/g, ''));
+          const gradeIndex = compact.findIndex(c => gradeHeaders.test(c));
+          if (gradeIndex < 0) continue;
+          const reserved = new Set([gradeIndex]);
+          const nameIdx = compact.map((c, i) => (i !== gradeIndex && nameHeaders.test(c)) ? i : -1).filter(i => i >= 0);
+          nameIdx.forEach(i => reserved.add(i));
+          const ph = compact.findIndex((c, i) => i !== gradeIndex && !reserved.has(i) && phoneHeaders.test(c)); if (ph >= 0) reserved.add(ph);
+          const ex = compact.findIndex((c, i) => i !== gradeIndex && !reserved.has(i) && excludeHeaders.test(c)); if (ex >= 0) reserved.add(ex);
+          // 除了年级/姓名/手机/不参与之外，还有 >=2 个“科目列” → 判定为横向表
+          const subjectCols = compact.map((c, i) => (i !== gradeIndex && !reserved.has(i) && c) ? i : -1).filter(i => i >= 0);
+          if (subjectCols.length >= 2) return { headerIndex: r, gradeIndex, nameIndices: nameIdx, subjectCols };
+        }
+        return null;
+      }
+
+      function parseWideMatrix(rows, wide, sourceName) {
+        const { headerIndex, gradeIndex, nameIndices, subjectCols } = wide;
+        const headerRow = rows[headerIndex];
+        const entries = [];
+        const cellSubjects = v => {
+          const out = [];
+          String(v || '').split(/[、,，\/;；]/).map(s => s.trim()).filter(Boolean).forEach(part => {
+            const hit = resolveSubjectName(part);
+            if (hit && !out.includes(hit)) out.push(hit);
+          });
+          return out;
+        };
+        rows.slice(headerIndex + 1).forEach(row => {
+          const gradeCell = (row[gradeIndex] || '').trim();
+          if (!gradeCell || /^(年级|班级|学段|级部|合计|总计|小计|说明|备注)$/.test(gradeCell.replace(/\s/g, ''))) return;
+          const grade = normalizeGrade(gradeCell);
+          if (grade === '未分年级') return; // 非班级行（校名、说明行等）跳过
+          // 姓名列（班主任 / 姓名）：这些列里的人是本年级老师，没有单独科目
+          nameIndices.forEach(idx => {
+            splitNames(row[idx], 'auto').forEach(name => entries.push({ name, grade, source: sourceName, subjects: [] }));
+          });
+          // 科目列：表头是科目名，格子是该科老师
+          subjectCols.forEach(idx => {
+            const rawSubject = resolveSubjectName(headerRow[idx]) || headerRow[idx];
+            const subjects = rawSubject ? [rawSubject] : [];
+            splitNames(row[idx], 'auto').forEach(name => entries.push({ name, grade, source: sourceName, subjects }));
+          });
+        });
+        return entries;
+      }
+
+      function parseTallMatrix(rows, sourceName) {
         let headerIndex = -1, gradeIndex = -1, nameIndices = [];
         let subjectIndex = -1, phoneIndex = -1, excludeIndex = -1;
         const gradeHeaders = /^(所属)?年级|学段|级部/;
@@ -2472,6 +2614,7 @@
       function openManageTeachers() {
         $('#mtGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
         $('#mtNameInput').value = ''; $('#mtDeptInput').value = ''; $('#mtSearch').value = '';
+        $('#mtPatrolJunior').value = state.patrol.junior; $('#mtPatrolPrimary').value = state.patrol.primary;
         $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
         renderManageTable();
         $('#manageTeachersDialog').showModal();
@@ -2630,7 +2773,7 @@
         rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
         $('#teacherDetailTitle').textContent = `${teacher.name} 的监考明细`;
         $('#teacherDetailSummary').textContent = rows.length ? `累计监考 ${rows.length} 场（来自全部历史版本），按日期排序。` : '该教师目前没有监考记录。';
-        $('#teacherDetailBody').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.subject || '—')}</td><td>${esc(r.grade)}</td><td>${esc(r.className)}</td><td>${esc(r.role)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">暂无监考记录</td></tr>';
+        $('#teacherDetailBody').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.subject || '—')}</td><td>${esc(r.grade)}</td><td>${esc(roomDisplayName(r.className, departmentForGrade(r.grade)))}</td><td>${esc(r.role)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">暂无监考记录</td></tr>';
         $('#teacherDetailDialog').showModal();
       }
 
@@ -2653,7 +2796,7 @@
           <select data-field="subject" aria-label="科目">${subjectOptionsHtml(s.grade, s.subject || '')}</select>
           <input type="date" data-field="date" value="${esc(s.date)}" aria-label="日期">
           <input data-field="time" value="${esc(s.time)}" aria-label="时间">
-          <select data-field="className" aria-label="考场">${roomNameOptionsHtml(s.className)}</select>
+          <select data-field="className" aria-label="考场">${roomOptionsForGrade(s.grade, s.className)}</select>
           <button class="icon-btn" data-session-delete="${s.id}" title="删除" aria-label="删除场次"><i data-lucide="trash-2"></i></button>
         </div>`).join('');
         if (window.lucide) lucide.createIcons();
@@ -2685,7 +2828,7 @@
         $('#metricAssignments').textContent = state.result.reduce((n, row) => n + row.teachers.length, 0);
         $('#metricTeachers').textContent = new Set(state.result.flatMap(row => row.teachers.map(t => t.id))).size;
         $('#metricVersion').textContent = version?.label || '已恢复';
-        $('#templateView').innerHTML = state.resultTab === 'stats' ? renderStatsPage() : renderDepartmentTemplate(state.resultTab);
+        $('#templateView').innerHTML = state.resultTab === 'stats' ? renderStatsPage() : state.resultTab === 'overview' ? renderOverviewTemplate() : renderDepartmentTemplate(state.resultTab);
         renderWorkload();
       }
 
@@ -2727,12 +2870,29 @@
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
               return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" title="点击调整教师">${esc(cellNames)}</td>`;
             }).join('');
-            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(room)}</td>${cells}</tr>`;
+            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td>${cells}</tr>`;
           }).join('');
           return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
         }).join('');
         const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve' && teacher.departments.includes(departmentKey));
-        return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}</div></div>`;
+        const patrol = patrolNames(departmentKey);
+        const footerParts = [`机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}`];
+        if (patrol.length) footerParts.push(`巡考：${esc(patrol.join('、'))}`);
+        return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">${footerParts.join('　|　')}</div></div>`;
+      }
+
+      // 全图预览：把小学部、初中部两张表拼在一起看，附巡考名单（老师想一眼看全部时用）
+      function renderOverviewTemplate() {
+        const hasPrimary = state.result.some(row => gradeNumber(row.grade) <= 6);
+        const hasMiddle = state.result.some(row => gradeNumber(row.grade) >= 7);
+        if (!hasPrimary && !hasMiddle) return '<div class="template-empty">本次还没有监考安排，先点“开始编排”生成。</div>';
+        const primaryHtml = hasPrimary ? renderDepartmentTemplate('primary') : '';
+        const middleHtml = hasMiddle ? renderDepartmentTemplate('middle') : '';
+        const patrolP = patrolNames('小学部'), patrolJ = patrolNames('中学部');
+        const patrolLine = (patrolP.length || patrolJ.length)
+          ? `<div class="template-footer">小学巡考：${patrolP.length ? esc(patrolP.join('、')) : '暂无'}　|　初中巡考：${patrolJ.length ? esc(patrolJ.join('、')) : '暂无'}</div>`
+          : '';
+        return `<div class="overview-board">${primaryHtml}${middleHtml}${patrolLine}</div>`;
       }
 
       function gradeStatistics() {
@@ -2970,7 +3130,7 @@
         if (!version) return;
         viewedHistoryId = id;
         $('#historyDialogTitle').textContent = `${version.label} · ${formatDateTime(version.generatedAt)}`;
-        $('#historyDialogBody').innerHTML = version.result.map(row => `<tr><td>${esc(row.date)}</td><td>${esc(row.time)}</td><td>${esc(row.subject || '未设置')}</td><td>${esc(row.grade)}</td><td>${esc(row.className)}</td><td>${esc(row.teachers.map(t => t.name).join('、'))}</td></tr>`).join('');
+        $('#historyDialogBody').innerHTML = version.result.map(row => `<tr><td>${esc(row.date)}</td><td>${esc(row.time)}</td><td>${esc(row.subject || '未设置')}</td><td>${esc(row.grade)}</td><td>${esc(roomDisplayName(row.className, departmentForGrade(row.grade)))}</td><td>${esc(row.teachers.map(t => t.name).join('、'))}</td></tr>`).join('');
         $('#historyDialog').showModal();
       }
 
@@ -3131,7 +3291,7 @@
 
       function exportCsvFallback() {
         const rows = [['日期','时间','科目','年级','考场','主监教师','副监教师']];
-        state.result.forEach(row => rows.push([row.date,row.time,row.subject || '未设置',row.grade,row.className,row.teachers[0]?.name || '',row.teachers[1]?.name || '']));
+        state.result.forEach(row => rows.push([row.date,row.time,row.subject || '未设置',row.grade,roomDisplayName(row.className, departmentForGrade(row.grade)),row.teachers[0]?.name || '',row.teachers[1]?.name || '']));
         const csv = '\uFEFF' + rows.map(row => row.map(value => `"${String(value).replace(/"/g,'""')}"`).join(',')).join('\r\n');
         const blob = new Blob([csv], {type:'text/csv;charset=utf-8'}); const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
         anchor.href = url; anchor.download = `监考安排_${new Date().toISOString().slice(0,10)}.csv`; anchor.click(); URL.revokeObjectURL(url); toast('Excel 组件未加载，已导出 CSV');
@@ -3209,6 +3369,11 @@
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
             state.activeVersionId = raw.activeVersionId || null;
             state.publishedBoardId = raw.publishedBoardId || null;
+            state.patrol = (raw.patrol && typeof raw.patrol === 'object') ? { primary: raw.patrol.primary || '', junior: raw.patrol.junior || '' } : { primary: '', junior: '' };
+            state.roomScheme = (raw.roomScheme && typeof raw.roomScheme === 'object') ? {
+              junior: { pad: Number(raw.roomScheme.junior?.pad) || 3, names: raw.roomScheme.junior?.names && typeof raw.roomScheme.junior.names === 'object' ? raw.roomScheme.junior.names : {} },
+              primary: { pad: Number(raw.roomScheme.primary?.pad) || 2, names: raw.roomScheme.primary?.names && typeof raw.roomScheme.primary.names === 'object' ? raw.roomScheme.primary.names : {} }
+            } : { junior: { pad: 3, names: {} }, primary: { pad: 2, names: {} } };
             state.syncedSwapIds = Array.isArray(raw.syncedSwapIds) ? raw.syncedSwapIds : [];
             state.resultTab = raw.resultTab || 'primary';
             state.seedVersion = raw.seedVersion || '';
