@@ -445,24 +445,29 @@
     }
     .app-header .icon-btn:hover { color: var(--brand-deep); border-color: var(--brand); background: var(--brand-soft); }
 
-    .workspace { min-height: calc(100vh - 66px); }
+    .workspace { min-height: calc(100vh - 66px); grid-template-columns: 470px minmax(0, 1fr); }
     .setup {
-      padding: 16px;
+      padding: 18px;
       background: var(--bg);
       border-right: 1px solid var(--line);
       box-shadow: none;
     }
     .results { padding: 20px 24px 46px; }
+    /* 人员管理要放电话/登录码/不参与监考等新列，弹窗加宽 */
+    #manageTeachersDialog { width: min(1120px, calc(100% - 28px)); }
+    #manageTeachersDialog table { font-size: 12.5px; }
+    #manageTeachersDialog th, #manageTeachersDialog td { padding: 8px 9px; white-space: nowrap; }
+    .mt-excluded td { background: var(--surface-2); color: var(--muted); }
 
     /* 左栏三大板块 → 独立白卡片，板块边界一眼可见 */
     .section {
-      padding: 16px 18px 18px;
+      padding: 18px 20px 20px;
       background: var(--surface);
       border: 1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: 0 2px 10px rgba(20, 40, 32, .045);
     }
-    .section + .section { margin-top: 14px; padding-top: 16px; border-top: 0; }
+    .section + .section { margin-top: 18px; padding-top: 18px; border-top: 0; }
     .section-heading { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
     h2 { font-size: 15.5px; letter-spacing: .2px; }
     .step-number {
@@ -536,8 +541,8 @@
     .notice { border-radius: 10px; }
 
     @media (max-width: 1040px) {
-      .workspace { grid-template-columns: 340px minmax(0, 1fr); }
-      .setup { padding: 18px; }
+      .workspace { grid-template-columns: 400px minmax(0, 1fr); }
+      .setup { padding: 16px; }
       .results { padding: 18px; }
       .lower-grid { grid-template-columns: 1fr; }
     }
@@ -883,9 +888,15 @@
         <div data-page-node-id="zuUCnnbA4u5KEhHSMyqz34"><label data-page-node-id="54CJNnTowEmGebZ9LUvA3r">&nbsp;</label><button class="btn btn-primary" id="mtAddBtn" data-page-node-id="ftUH5xCMeAp39HAHnVNcvg"><i data-lucide="user-plus" data-page-node-id="wUUBxJjYqcLomB8n4mbBvF"></i>添加</button></div>
       </div>
       <div style="margin-bottom:10px" data-page-node-id="DRIOop2sHISccWwW2zmFkZ"><label data-page-node-id="YiDR0rpv9lcpXJIGYSLliI">任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="mtSubjectsBox" data-page-node-id="2mxn3xtaLX6MoQG5Xvzy6q"></div></div>
+      <div class="button-row" style="margin:0 0 10px;align-items:center" data-page-node-id="mt-toolbar">
+        <button class="btn btn-sm" id="mtDownloadTplBtn"><i data-lucide="download"></i>下载上传模板</button>
+        <button class="btn btn-sm" id="mtUploadBtn"><i data-lucide="upload"></i>上传名单（Excel/CSV）</button>
+        <input type="file" id="mtFileInput" accept=".xlsx,.xls,.csv" hidden>
+        <span class="muted" style="font-size:12px">模板列：年级 / 姓名 / 任教学科 / 手机号 / 不参与监考</span>
+      </div>
       <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px" data-page-node-id="zzIrJTKVA6ggSAaqxRN08T">
       <div class="modal-table" data-page-node-id="4W7cjFueek9n7sOIGwJ6aK"><table data-page-node-id="JSLO8qIFc82MGL5WzxYdGy">
-        <thead data-page-node-id="n5d3ZH9EXYGGnBC4MJ95Na"><tr data-page-node-id="7GcNBDced8MoXGboQFoE4W"><th data-page-node-id="H6wjeSV317GWKLc8m2WKZ0">姓名</th><th data-page-node-id="VsV9FcWvw6Yv4FLSN5vs5y">学部</th><th data-page-node-id="iX2xLTm5lomhFQwoTKjAjI">任教年级</th><th data-page-node-id="R9DROefVGzYdZCnRm5daHu">任教科目</th><th data-page-node-id="Aih3FOZ6O4D7kSx4OjM2HF">本次监考年级</th><th data-page-node-id="BURc9GL2h7fPhMpQenRdLm">本次场次</th><th data-page-node-id="93OXHnpdauljmKjbebuFPp">累计场次</th><th data-page-node-id="7gALCZG2f6zJXhtprG6hLS">操作</th></tr></thead>
+        <thead data-page-node-id="n5d3ZH9EXYGGnBC4MJ95Na"><tr data-page-node-id="7GcNBDced8MoXGboQFoE4W"><th data-page-node-id="H6wjeSV317GWKLc8m2WKZ0">姓名</th><th data-page-node-id="VsV9FcWvw6Yv4FLSN5vs5y">学部</th><th data-page-node-id="iX2xLTm5lomhFQwoTKjAjI">任教年级</th><th data-page-node-id="R9DROefVGzYdZCnRm5daHu">任教科目</th><th>手机号</th><th>登录码<br><span style="font-weight:400">（后四位）</span></th><th style="text-align:center">不参与<br>监考</th><th data-page-node-id="Aih3FOZ6O4D7kSx4OjM2HF">本次监考年级</th><th data-page-node-id="BURc9GL2h7fPhMpQenRdLm">本次场次</th><th data-page-node-id="93OXHnpdauljmKjbebuFPp">累计场次</th><th data-page-node-id="7gALCZG2f6zJXhtprG6hLS">操作</th></tr></thead>
         <tbody id="mtTableBody" data-page-node-id="W25Uac8h0xjpLOBDvFTCCa"></tbody>
       </table></div>
       <p class="muted" style="margin:8px 0 0" data-page-node-id="OmRqbdcLWkJTcZehW592Q4">“累计场次”统计全部历史版本里该教师被安排的监考场次；“本次场次”为当前排表。点“明细”查看该教师监考过的具体场次。</p>
@@ -1745,6 +1756,9 @@
         teacher.source = teacher.source || '手动添加';
         teacher.subjects = Array.isArray(teacher.subjects) ? teacher.subjects.filter(subject => TEACHER_SUBJECTS.includes(subject)) : [];
         teacher.phone = String(teacher.phone || '').replace(/\D/g, '');
+        // 不参与监考：强制不可勾选，排监考时小学/初中都不会出现他们
+        teacher.excluded = !!teacher.excluded;
+        if (teacher.excluded) { teacher.enabled = false; teacher.monitorGrade = ''; }
         return teacher;
       }
 
@@ -1834,6 +1848,12 @@
         $('#manageTeachersBtn').addEventListener('click', openManageTeachers);
         $('#mtAddBtn').addEventListener('click', addManageTeacher);
         $('#mtSearch').addEventListener('input', renderManageTable);
+        $('#mtDownloadTplBtn').addEventListener('click', downloadTeacherTemplate);
+        $('#mtUploadBtn').addEventListener('click', () => $('#mtFileInput').click());
+        $('#mtFileInput').addEventListener('change', async event => {
+          await importManageFiles(event.target.files);
+          event.target.value = '';
+        });
         $('#teSaveBtn').addEventListener('click', saveTeacherEdit);
         document.addEventListener('click', handleDelegatedClick);
       }
@@ -1943,8 +1963,17 @@
               teacher.grades.push(grade); teacher.grades.sort((a,b) => gradeRank(a)-gradeRank(b));
               teacher.grade = teacher.grades[0]; teacher.departments = [...new Set(teacher.grades.map(departmentForGrade))]; updated++;
             }
+            // 已存在的人也要补上科目 / 手机号 / 不参与监考（重复导入时同步更新）
+            if (entry.subjects && entry.subjects.length) {
+              teacher.subjects = [...new Set([...(teacher.subjects || []), ...entry.subjects])].filter(s => TEACHER_SUBJECTS.includes(s));
+            }
+            if (entry.phone) teacher.phone = String(entry.phone).replace(/\D/g, '');
+            if (entry.hasExcludeColumn) {
+              teacher.excluded = !!entry.excluded;
+              if (teacher.excluded) { teacher.enabled = false; teacher.monitorGrade = ''; }
+            }
           } else {
-            const teacher = normalizeTeacherRecord({ id: uid(), name, grades: [grade], subjects: entry.subjects, source, enabled: false, monitorGrade: '' });
+            const teacher = normalizeTeacherRecord({ id: uid(), name, grades: [grade], subjects: entry.subjects, phone: entry.phone, excluded: !!entry.excluded, source, enabled: false, monitorGrade: '' });
             state.teachers.push(teacher); existing.set(key, teacher); added++;
           }
         });
@@ -2073,14 +2102,28 @@
         const rows = matrix.map(row => row.map(cell => String(cell ?? '').trim())).filter(row => row.some(Boolean));
         if (!rows.length) return [];
         let headerIndex = -1, gradeIndex = -1, nameIndices = [];
+        let subjectIndex = -1, phoneIndex = -1, excludeIndex = -1;
         const gradeHeaders = /^(所属)?年级|班级|学段|级部/;
         const nameHeaders = /教师姓名|老师姓名|任课教师|任课老师|教师|老师|班主任|姓名|人员/;
+        const subjectHeaders = /^(任教)?(科目|学科)$|任教学科|所教科目|任教科目/;
+        const phoneHeaders = /手机|电话|联系方式|联系电话/;
+        const excludeHeaders = /不参与监考|不参加监考|不监考|免监考|排除|是否不参与/;
         for (let r = 0; r < Math.min(rows.length, 20); r++) {
           const g = rows[r].findIndex(cell => gradeHeaders.test(cell.replace(/\s/g,'')));
           let ns = rows[r].map((cell, i) => nameHeaders.test(cell.replace(/\s/g,'')) ? i : -1).filter(i => i >= 0);
           if (g >= 0 && rows[r][g].replace(/\s/g,'') === '班级' && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
           else if (g >= 0 && !ns.length && rows[r].filter(Boolean).length >= 3) ns = rows[r].map((cell, i) => i !== g ? i : -1).filter(i => i >= 0);
-          if (g >= 0 && ns.length) { headerIndex = r; gradeIndex = g; nameIndices = ns; break; }
+          if (g >= 0 && ns.length) {
+            headerIndex = r; gradeIndex = g; nameIndices = ns;
+            const taken = new Set([g, ...ns]);
+            subjectIndex = rows[r].findIndex((cell, i) => !taken.has(i) && subjectHeaders.test(cell.replace(/\s/g,'')));
+            phoneIndex = rows[r].findIndex((cell, i) => !taken.has(i) && phoneHeaders.test(cell.replace(/\s/g,'')));
+            excludeIndex = rows[r].findIndex((cell, i) => !taken.has(i) && excludeHeaders.test(cell.replace(/\s/g,'')));
+            // 科目/手机/不参与这几列绝不能当姓名列，否则“语文”会被当成人名
+            nameIndices = nameIndices.filter(i => i !== subjectIndex && i !== phoneIndex && i !== excludeIndex);
+            if (!nameIndices.length) nameIndices = ns;
+            break;
+          }
         }
         if (headerIndex < 0) {
           const maxCols = Math.max(...rows.map(r => r.length));
@@ -2089,13 +2132,23 @@
         }
         const entries = [];
         let currentGrade = '未分年级';
+        const cellSubjects = v => String(v || '').split(/[、,，\/;；]/).map(s => s.trim()).filter(s => TEACHER_SUBJECTS.includes(s));
+        const cellPhone = v => String(v || '').replace(/\D/g, '');
+        const cellExcluded = v => { const s = String(v || '').trim(); return !!s && !/^(否|不|0|false|no)$/i.test(s); };
         rows.slice(headerIndex + 1).forEach(row => {
           const rawGrade = row[gradeIndex];
           const compactGrade = rawGrade.replace(/\s/g, '');
           if (rawGrade && !/^(?:所属)?年级$|^班级$|^学段$|^级部$/.test(compactGrade)) currentGrade = normalizeGrade(rawGrade);
           if (currentGrade === '未分年级') return;
+          const rowSubjects = subjectIndex >= 0 ? cellSubjects(row[subjectIndex]) : [];
+          const rowPhone = phoneIndex >= 0 ? cellPhone(row[phoneIndex]) : '';
+          const rowExcluded = excludeIndex >= 0 ? cellExcluded(row[excludeIndex]) : false;
           nameIndices.forEach(index => {
-            splitNames(row[index], 'auto').forEach(name => entries.push({ name, grade: currentGrade, source: sourceName }));
+            splitNames(row[index], 'auto').forEach(name => entries.push({
+              name, grade: currentGrade, source: sourceName,
+              subjects: rowSubjects, phone: rowPhone,
+              excluded: rowExcluded, hasExcludeColumn: excludeIndex >= 0
+            }));
           });
         });
         return entries;
@@ -2330,14 +2383,15 @@
         const examGrades = sessionGradesSet();
         return state.teachers.filter(teacher => {
           const searchable = `${teacher.name} ${(teacher.grades || []).join(' ')} ${(teacher.departments || []).join(' ')}`.toLocaleLowerCase();
-          return (!query || searchable.includes(query)) && (!department || teacher.departments.includes(department)) && (!grade || teacher.grades.includes(grade)) && (!onlyExam || !examGrades.size || (teacher.grades || []).some(g => examGrades.has(g)));
+          return !teacher.excluded && (!query || searchable.includes(query)) && (!department || teacher.departments.includes(department)) && (!grade || teacher.grades.includes(grade)) && (!onlyExam || !examGrades.size || (teacher.grades || []).some(g => examGrades.has(g)));
         });
       }
 
       function renderTeacherPool() {
         const filtered = filteredTeachers();
         const selectedCount = state.teachers.filter(teacher => teacher.enabled).length;
-        $('#teacherCount').textContent = `${state.teachers.length} 人 · 本次 ${selectedCount}`;
+        const excludedCount = state.teachers.filter(teacher => teacher.excluded).length;
+        $('#teacherCount').textContent = `${state.teachers.length} 人 · 本次 ${selectedCount}${excludedCount ? ` · 不参与 ${excludedCount}` : ''}`;
         const groups = new Map();
         filtered.forEach(teacher => {
           const group = teacher.departments.length > 1 ? '跨学部' : teacher.departments[0] || '未分学部';
@@ -2388,15 +2442,30 @@
         $('#manageTeachersDialog').showModal();
       }
 
+      // 某位老师的登录口令 = 手机号后四位；没登记手机号的用默认口令兜底
+      function teacherCodeOf(teacher) {
+        const phones = phoneMap();
+        const ownDigits = String(teacher.phone || '').replace(/\D/g, '');
+        const fromBook = phones.get(teacher.name);
+        const fallback = String(state.teacherDefaultCode || '0000');
+        const code4 = ownDigits ? ownDigits.slice(-4) : (fromBook || fallback);
+        return { code4, hasPhone: !!(ownDigits || fromBook) };
+      }
+
       function renderManageTable() {
         const query = $('#mtSearch').value.trim().toLocaleLowerCase();
         const { current, cumulative } = teacherAssignmentStats();
         const teachers = state.teachers.filter(t => !query || t.name.toLocaleLowerCase().includes(query) || (t.grades || []).some(g => g.includes(query)));
-        $('#mtTableBody').innerHTML = teachers.map(t => `<tr>
+        $('#mtTableBody').innerHTML = teachers.map(t => {
+          const code = teacherCodeOf(t);
+          return `<tr class="${t.excluded ? 'mt-excluded' : ''}">
           <td><strong>${esc(t.name)}</strong></td>
           <td>${esc((t.departments || []).join('、') || '未分学部')}</td>
           <td>${esc((t.grades || []).join('、'))}</td>
           <td>${esc((t.subjects || []).join('、') || '—')}</td>
+          <td>${esc(t.phone || '—')}</td>
+          <td><code style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(code.code4)}</code>${code.hasPhone ? '' : '<span class="muted">（默认）</span>'}</td>
+          <td style="text-align:center"><input type="checkbox" data-mt-exclude="${t.id}" ${t.excluded ? 'checked' : ''} title="勾上后不参与任何监考编排" aria-label="${esc(t.name)} 不参与监考"></td>
           <td>${esc(t.monitorGrade === 'reserve' ? '机动人员' : (t.monitorGrade || '—'))}</td>
           <td>${current.get(t.id) || 0}</td>
           <td>${cumulative.get(t.id) || 0}</td>
@@ -2405,7 +2474,63 @@
             <button class="btn btn-sm" data-mt-edit="${t.id}">编辑</button>
             <button class="btn btn-sm danger-text" data-mt-delete="${t.id}" style="color:var(--danger)">删除</button>
           </td>
-        </tr>`).join('') || '<tr><td colspan="8" class="muted">暂无人员</td></tr>';
+        </tr>`;}).join('') || '<tr><td colspan="11" class="muted">暂无人员</td></tr>';
+      }
+
+      // 下载教师名单模板（有 XLSX 就出 Excel，否则退化为带 BOM 的 CSV，Excel 都能直接打开）
+      function downloadTeacherTemplate() {
+        const header = ['年级', '姓名', '任教学科', '手机号', '不参与监考'];
+        const sample = [
+          ['七年级', '张三', '语文', '13800138000', ''],
+          ['八年级', '李四', '数学、英语', '13900139000', '是'],
+          ['九年级', '王五', '物理', '', ''],
+        ];
+        const rows = [header, ...sample];
+        const fileName = '教师名单模板';
+        if (window.XLSX) {
+          try {
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 22 }, { wch: 16 }, { wch: 12 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '教师名单');
+            XLSX.writeFile(wb, `${fileName}.xlsx`);
+            toast('模板已下载，填好后用「上传名单」导入');
+            return;
+          } catch (e) { /* 落到 CSV 兜底 */ }
+        }
+        const csv = '\ufeff' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `${fileName}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast('模板已下载（CSV，Excel 可直接打开）');
+      }
+
+      // 人员管理里直接上传名单（识别 年级/姓名/科目/手机号/不参与监考）
+      async function importManageFiles(files) {
+        if (!files.length) return;
+        if (!window.XLSX) {
+          const csvFiles = files.filter(file => file.name.toLowerCase().endsWith('.csv'));
+          if (!csvFiles.length) return toast('Excel 解析组件未加载，请联网后刷新，或改用 CSV', 'error');
+          let entries = [];
+          for (const file of csvFiles) entries.push(...parseTableMatrix(parseCsv(await file.text()), file.name));
+          if (!entries.length) return toast('未识别到年级和姓名列，请对照模板填写', 'error');
+          addTeachers(entries, '名单导入'); renderManageTable();
+          return;
+        }
+        let entries = [];
+        for (const file of files) {
+          try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            workbook.SheetNames.forEach(sheetName => {
+              entries.push(...parseTableMatrix(XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '', raw: false }), `${file.name}/${sheetName}`));
+            });
+          } catch (e) { toast(`${file.name} 读取失败`, 'error'); }
+        }
+        if (!entries.length) return toast('未识别到年级和姓名列，请对照模板填写', 'error');
+        addTeachers(entries, '名单导入'); renderManageTable();
       }
 
       function addManageTeacher() {
@@ -2647,6 +2772,19 @@
             teacher.enabled = toggle.checked;
             teacher.monitorGrade = teacher.enabled ? (teacher.monitorGrade || $('#teacherGradeFilter').value || teacher.grades[0]) : '';
             persistAndRender();
+          }
+          return;
+        }
+        // 人员管理里“不参与监考”勾选：直接踢出可勾选池，排监考时小学/初中都不会出现
+        const mtExclude = event.target.closest('[data-mt-exclude]');
+        if (mtExclude) {
+          const teacher = state.teachers.find(t => t.id === mtExclude.dataset.mtExclude);
+          if (teacher) {
+            teacher.excluded = mtExclude.checked;
+            if (teacher.excluded) { teacher.enabled = false; teacher.monitorGrade = ''; }
+            persistAndRender();
+            renderManageTable();
+            toast(teacher.excluded ? `已设为不参与监考：${teacher.name}` : `已恢复参与监考：${teacher.name}`);
           }
           return;
         }
