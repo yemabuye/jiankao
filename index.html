@@ -540,6 +540,89 @@
     .toast.error { background: #9c3434; }
     .notice { border-radius: 10px; }
 
+    /* ===== 清新皮肤覆盖层：仅调整视觉，不改动任何功能逻辑与结构 ===== */
+    :root {
+      --bg: #f2f7f5;
+      --surface: #ffffff;
+      --surface-2: #eef5f1;
+      --ink: #1c2b25;
+      --muted: #6c7d75;
+      --line: #e7efeb;
+      --line-strong: #d4dfda;
+      --brand: #12a37c;
+      --brand-deep: #0c8160;
+      --brand-soft: #e3f5ee;
+      --accent: #e08a2b;
+      --accent-soft: #fdf2e2;
+      --danger: #d2493f;
+      --danger-soft: #fdeceb;
+      --blue: #2f6da0;
+      --blue-soft: #eaf2f9;
+      --violet: #7b5a96;
+      --violet-soft: #f3eef7;
+      --shadow: 0 2px 14px rgba(20,40,32,.05);
+      --radius: 16px;
+    }
+
+    body { background: var(--bg); }
+
+    /* 顶栏：白净毛玻璃，去掉重色描边，更轻盈清爽 */
+    .app-header {
+      height: 62px;
+      color: var(--ink);
+      background: rgba(255,255,255,.82);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 14px rgba(20,40,32,.05);
+    }
+    .brand h1 { color: var(--ink); }
+    .brand-mark {
+      width: 34px; height: 34px; border: 0; border-radius: 10px;
+      background: var(--brand-soft); color: var(--brand-deep);
+    }
+    .save-state { color: var(--muted); }
+    .app-header .icon-btn {
+      color: var(--ink);
+      border-color: var(--line-strong);
+      background: #ffffff;
+    }
+    .app-header .icon-btn:hover { background: var(--surface-2); }
+
+    /* 侧栏与结果区：更透气 */
+    .setup { padding: 24px; box-shadow: 6px 0 18px rgba(31,49,40,.03); }
+    .results { padding: 24px 28px 48px; }
+    .section + .section { margin-top: 30px; padding-top: 26px; }
+    .section-heading { border-bottom-color: var(--line); }
+
+    /* 按钮、输入框：圆润统一，悬停更柔和 */
+    .btn, .icon-btn, input, select, textarea {
+      border-radius: 10px;
+      transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, color .15s ease;
+    }
+    .btn:hover { border-color: var(--brand); background: var(--surface-2); }
+    .btn-primary { box-shadow: 0 2px 8px rgba(18,163,124,.22); }
+    .btn-primary:hover { box-shadow: 0 4px 14px rgba(12,129,96,.28); }
+    .btn-accent { border-color: #e3b074; }
+    .btn-danger { border-color: #eab4b0; }
+
+    /* 分段控件、选择卡、表格：圆角更明显、更利落 */
+    .segmented { border-radius: 10px; }
+    .segmented button.active { border-radius: 8px; }
+    .grade-row { border-radius: 12px; background: #fbfdfc; }
+    .choice-card { border-radius: 12px; }
+    .template-grade { border-radius: 14px; }
+    .schedule-shell, .metric-strip { border-radius: var(--radius); }
+
+    /* 圆角小元素统一 */
+    .step-number { border-radius: 50%; }
+    .subject-chips label { border-radius: 14px; }
+
+    /* 上传区与提示条更轻盈 */
+    .upload-zone { border-radius: 12px; background: #f5fbf8; }
+    .notice { border-radius: 10px; }
+    .toast { border-radius: 12px; }
+
     @media (max-width: 1040px) {
       .workspace { grid-template-columns: 400px minmax(0, 1fr); }
       .setup { padding: 16px; }
