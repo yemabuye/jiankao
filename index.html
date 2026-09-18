@@ -902,7 +902,7 @@
           <div class="workload-list" id="workloadList" data-page-node-id="iGEoCj8ueftkBrAwXnQJzE"><div class="history-empty" data-page-node-id="woApK5WdLZXA4zxFY06tTC">暂无数据</div></div>
         </section>
         <section class="history" data-page-node-id="ClN5ND3VklxZTidemtbnFt">
-          <div class="panel-head" data-page-node-id="tSTvKMxJArswgJXhkFOonf"><h3 data-page-node-id="mgsEyOnUXtrmePEfF6UFYY">版本记录</h3><span class="count" id="historyCount" data-page-node-id="re5QigP87FAUVeEO7wD2z9">0 版</span></div>
+          <div class="panel-head" data-page-node-id="tSTvKMxJArswgJXhkFOonf"><h3 data-page-node-id="mgsEyOnUXtrmePEfF6UFYY">版本记录</h3><span style="display:flex;align-items:center;gap:10px"><span class="count" id="historyCount" data-page-node-id="re5QigP87FAUVeEO7wD2z9">0 版</span><button class="btn btn-sm" id="resetWorkloadBtn" title="将全部教师的累计监考次数归零，保留已保存的版本记录">清零累计</button></span></div>
           <div class="history-list" id="historyList" data-page-node-id="GAchEexnTpoVvAcW9LCGUt"><div class="history-empty" data-page-node-id="BEEU5X2J2gF6zQ4kpe4IUg">生成后自动保存</div></div>
         </section>
       </div>
@@ -968,9 +968,9 @@
       <div class="field-row" style="margin-bottom:10px" data-page-node-id="OrKJK2jha3KbbD4mKjm6cO">
         <div data-page-node-id="pCU8YNYV2seDaVMzYrlPgT"><label data-page-node-id="jZk6CHDJzlhhWvVw568zOf">姓名</label><input id="mtNameInput" placeholder="教师姓名" data-page-node-id="sUlfFRgui6OjagykfPKDUw"></div>
         <div data-page-node-id="1l1CvDQYOGOrBw8kScG6Hn"><label data-page-node-id="uTvI4FSDRP7zawNJEUDM4D">学部</label><select id="mtDeptInput" data-page-node-id="IyS92ms43jAMsTP9Fx2jYf"><option value="" data-page-node-id="2MMF1NydSGqhDTl6l6lXAV">自动判断</option><option value="小学部" data-page-node-id="Ur6dmNYElTVifRt2lcxLLW">小学部</option><option value="中学部" data-page-node-id="RkEmpzXMaHaIXEdXLpv4d3">中学部</option></select></div>
-        <div data-page-node-id="tKUFCFeKMQRpbFHYcImwIf"><label data-page-node-id="xGljv9FxHPd7RPedcUjm6G">任教年级</label><select id="mtGradeInput" data-page-node-id="UQIVARzHgBON2wQrl8YCl2"></select></div>
         <div data-page-node-id="zuUCnnbA4u5KEhHSMyqz34"><label data-page-node-id="54CJNnTowEmGebZ9LUvA3r">&nbsp;</label><button class="btn btn-primary" id="mtAddBtn" data-page-node-id="ftUH5xCMeAp39HAHnVNcvg"><i data-lucide="user-plus" data-page-node-id="wUUBxJjYqcLomB8n4mbBvF"></i>添加</button></div>
       </div>
+      <div style="margin-bottom:10px"><label>任教年级（可多选）</label><div class="subject-chips" id="mtGradeBox"></div></div>
       <div style="margin-bottom:10px" data-page-node-id="DRIOop2sHISccWwW2zmFkZ"><label data-page-node-id="YiDR0rpv9lcpXJIGYSLliI">任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="mtSubjectsBox" data-page-node-id="2mxn3xtaLX6MoQG5Xvzy6q"></div></div>
       <div class="button-row" style="margin:0 0 10px;align-items:center" data-page-node-id="mt-toolbar">
         <button class="btn btn-sm" id="mtDownloadTplBtn"><i data-lucide="download"></i>下载上传模板</button>
@@ -1002,7 +1002,7 @@
         <div data-page-node-id="dR90Fv4NsGqq4IG6nuc75M"><label data-page-node-id="NzS34BjeWeSYybcVCvpNiF">姓名</label><input id="teNameInput" data-page-node-id="1aGVYJQB6EqvL1lRqKBDeZ"></div>
         <div data-page-node-id="KfHRw2yYKnOfjU0EYL4zji"><label data-page-node-id="019El3RzZ82IoOW6TVXFFx">学部</label><select id="teDeptInput" data-page-node-id="EcZfLKUReoxCWazsJUZojQ"><option value="" data-page-node-id="00mTx5lXAhLX3x5jpjwbbX">自动判断</option><option value="小学部" data-page-node-id="KJPpdwVUPnIoIFahz8jHAh">小学部</option><option value="中学部" data-page-node-id="wbpdZdwcANlhQEhVqTqjnI">中学部</option></select></div>
       </div>
-      <div style="margin-top:10px" data-page-node-id="CthjFQ5YlwpOqg0YrfUwZS"><label data-page-node-id="fi8uiSfOSBggoK9FJDwWsv">任教年级</label><select id="teGradeInput" data-page-node-id="37tjEHCMRg7nXKbVjnp65r"></select></div>
+      <div style="margin-top:10px"><label>任教年级（可多选）</label><div class="subject-chips" id="teGradeBox"></div></div>
       <div style="margin-top:10px" data-page-node-id="8pFwEjnl3xgzuz9NABCfM3"><label data-page-node-id="Sy2Pz8CgXEXX1xRdjBFQEC">任教科目（可多选，用于“同科目教师不监考同科目场次”规则；可留空）</label><div class="subject-chips" id="teSubjectsBox" data-page-node-id="a0vK89hME3NiVALDOaqxu1"></div></div>
     </div>
     <div class="dialog-foot" data-page-node-id="VcO8WcJVQKK46BD3bBrHH6"><button class="btn" data-close-dialog data-page-node-id="0Hr9B7iJxZGvLOeQLSvG0H">取消</button><button class="btn btn-primary" id="teSaveBtn" data-page-node-id="5YVRdEpv5AsaXu7ilyDzFU"><i data-lucide="save" data-page-node-id="7l6D35d47e7jdTAZ9Zg1Xa"></i>保存</button></div>
@@ -1365,6 +1365,15 @@
       function getCheckedSubjects(boxId) {
         return [...document.querySelectorAll('#' + boxId + ' input:checked')].map(input => input.value);
       }
+      function gradeChipsHtml(selected = []) {
+        const set = new Set(selected);
+        const grades = DEFAULT_GRADES.slice(0, 9).slice();
+        selected.forEach(g => { if (!grades.includes(g)) grades.push(g); });
+        return grades.map(grade => `<label><input type="checkbox" value="${esc(grade)}" ${set.has(grade) ? 'checked' : ''}>${esc(grade)}</label>`).join('');
+      }
+      function getCheckedGrades(boxId) {
+        return [...document.querySelectorAll('#' + boxId + ' input:checked')].map(input => input.value);
+      }
       const MAX_ROOMS = 100;
       const DEFAULT_EXCLUDED = ['韩校', '吴刚', '陈辉', '潘梅芳', '陈超'];
       const BUILTIN_TEACHER_DATA = `付娅容|一;何梦柔|九;侯亚琼|八;刘万进|九;刘海霞|二;华晓琼|一,二;史维|七;周荣慧|九;土蕊|七;孟林珍|二,三;左明鑫|三,四,九;庄分莲|三,四,五;张丽娜|七;张卓雅|二;张吉美|八;张寿丽|七;张秘芳|八;张雨|一,五,六;张雪梅|二;彭明芬|八;文锋|一,五;晋雪梅|六;曾可|七;朱露|九;李平安|七;李明恩|一,二,九;李晓芬|五,六;李杭燚|七;李永杰|七;李琼州|二,三,四,五,六;李瑶瑶|一;李璠|三,四,五,六;李聆语|七;李颖|三,四;杨文娇|四,六;杨露|三,四;柳雨婷|一,二,七,八;梁潇|七;楚晓姣|二;涂艳艳|四;王丽梅|一,二;王丽莎|八;王丽萍|七;王坤|八,九;王宁|七,八;王平|三,四,五,六;王月鹏|八;王正娇|七,八;王琪涵|七;王祥秀|九;王鹏|四,五,六,八;盛国恩|一,五,六;禹佳雪|三;罗伊选|七,八;胡永山|八;芶丽梅|三;苏吟湖|九;袁小然|一;许双|三;许毓|八;贝仕秀|五;赵丝瑞|八;赵庆莉|九;赵晓梅|八;赵皎|九;邓明鹏|一,二,七;邓玲|三,四,八,九;邓芸|二;邱智勇|九;金晓艳|一;钟婕欣|一;阳明正|三,四,五,六;陈志凤|七;陈茜|九;隋赵双|二,三,七;韩志敏|九;韩易良|一,二,七;顾倩羽|三;飞梓淞|二;高赛|八;魏文芳|二;鲁娜|七;黄小|二;龚海仙|四`;
@@ -1443,6 +1452,8 @@
         roomScheme: { junior: { pad: 3, names: {} }, primary: { pad: 2, names: {} } },
         // 已经回写到本地监考表的换班记录 id，避免重复应用
         syncedSwapIds: [],
+        // 累计监考次数种子：null=沿用历史版本累计（兼容旧数据）；{}或{教师id:次数}=独立累计，支持一键清零
+        workloadSeed: null,
         config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false }
       };
       let viewedHistoryId = null;
@@ -1508,11 +1519,23 @@
         if (!examGrades.size) return toast('请先添加考试场次，才能按考试年级自动指派', 'error');
         let assigned = 0;
         state.teachers.filter(t => t.enabled && !t.monitorGrade).forEach(teacher => {
-          const match = (teacher.grades || []).find(g => examGrades.has(g));
-          if (match) { teacher.monitorGrade = match; assigned++; }
+          const matches = (teacher.grades || []).filter(g => examGrades.has(g));
+          if (!matches.length) return;
+          // 任教年级覆盖本次全部考试年级的教师统一指派为“全年级”，可在各任教年级间浮动；
+          // 监考次数按教师维度跨年级合并累计，避免按年级单独分配造成失衡
+          teacher.monitorGrade = matches.length === examGrades.size ? '全年级' : matches[0];
+          assigned++;
         });
         persistAndRender();
         toast(assigned ? `已按任教年级为 ${assigned} 位教师自动指派监考年级` : '没有可自动指派的教师（已勾选教师均有监考年级，或任教年级不在本次考试范围）', assigned ? '' : 'warn');
+      }
+
+      // 兜底指定监考年级：尊重用户显式筛选的年级；多年级教师统一“全年级”以便跨年级合并计数
+      function fallbackMonitorGrade(teacher, filterGrade) {
+        if (filterGrade) return filterGrade;
+        const matches = (teacher.grades || []).filter(g => sessionGradesSet().has(g));
+        if (!matches.length) return (teacher.grades && teacher.grades[0]) || '';
+        return matches.length === examGrades.size ? '全年级' : matches[0];
       }
 
       function openPlanDialog() {
@@ -2009,6 +2032,7 @@
         $('#sampleBtn').addEventListener('click', loadSample);
         $('#newExamBtn').addEventListener('click', startNewExam);
         $('#clearBtn').addEventListener('click', () => confirmAction('清空场次与结果', '将清空考试场次和当前排表；人员库、本次教师勾选和历史版本继续保留。', () => { state.sessions = []; state.result = []; state.activeVersionId = null; persistAndRender(); }));
+        $('#resetWorkloadBtn').addEventListener('click', () => confirmAction('清零累计次数', '将把全部教师的「累计监考次数」归零，从下一次编排起重新均衡分配。已保存的版本记录会保留，仍可查看与恢复。', () => { state.workloadSeed = {}; persistAndRender(); }));
         $$('#resultTabs button').forEach(button => button.addEventListener('click', () => { state.resultTab = button.dataset.resultTab; saveState(); renderSchedule(); }));
         $$('[data-close-dialog]').forEach(btn => btn.addEventListener('click', () => btn.closest('dialog').close()));
         $('#restoreVersionBtn').addEventListener('click', restoreViewedVersion);
@@ -2271,8 +2295,8 @@
         $('#manualRoom').innerHTML = roomNameOptionsHtml('第1考场');
         $('#teacherGradeFilter').innerHTML = `<option value="">全部任教年级</option>${gradeSelectOptionsHtml()}`;
         $('#bulkMonitorGrade').innerHTML = monitorGradeOptionsHtml('', '设置监考年级');
-        $('#mtGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
-        $('#teGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#mtGradeBox').innerHTML = gradeChipsHtml();
+        $('#teGradeBox').innerHTML = gradeChipsHtml();
       }
 
       function subjectsForGrades(grades) {
@@ -2548,31 +2572,46 @@
         if (state.sessions.some(session => !session.subject)) return showNotice('有考试场次尚未设置科目，请在“查看/编辑”中补充。', 'error');
         if (![1,2].includes(perRoom)) return showNotice('“每场监考人数”是开始前必选项。', 'error');
 
-        const result = solveSchedule(teachers, state.sessions, perRoom, state.config);
+        // 用累计监考次数作为起点，使上次监考多的教师本次排得更少、少监考的优先补上
+        // 优先用独立累计种子（支持一键清零）；未启用时回退到历史版本累计，保证旧数据兼容
+        const historicalWorkload = new Map();
+        if (state.workloadSeed && typeof state.workloadSeed === 'object') {
+          Object.entries(state.workloadSeed).forEach(([id, n]) => historicalWorkload.set(id, (historicalWorkload.get(id) || 0) + (Number(n) || 0)));
+        } else {
+          state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach(t => historicalWorkload.set(t.id, (historicalWorkload.get(t.id) || 0) + 1))));
+        }
+        const result = solveSchedule(teachers, state.sessions, perRoom, state.config, historicalWorkload);
         if (!result.ok) return showNotice(result.message, 'error');
         state.result = result.assignments;
         state.resultTab = state.result.some(row => gradeNumber(row.grade) <= 6) ? 'primary' : 'middle';
-        const versionNumber = state.history.reduce((max, item) => Math.max(max, item.number || 0), 0) + 1;
+        const baseNumber = state.history.reduce((max, item) => Math.max(max, item.number || 0), 0) + 1;
+        const existingIdx = (isReroll && state.activeVersionId) ? state.history.findIndex(v => v.id === state.activeVersionId) : -1;
+        const existing = existingIdx >= 0 ? state.history[existingIdx] : null;
         const version = {
-          id: uid(), number: versionNumber, generatedAt: new Date().toISOString(),
-          label: `第 ${versionNumber} 版`, result: structuredClone(state.result),
+          id: existing ? existing.id : uid(), number: existing ? existing.number : baseNumber, generatedAt: new Date().toISOString(),
+          label: existing ? existing.label : `第 ${baseNumber} 版`, result: structuredClone(state.result),
           config: structuredClone(state.config), sessions: structuredClone(state.sessions),
           teacherSelection: state.teachers.filter(t => t.enabled).map(t => ({ id:t.id, monitorGrade:t.monitorGrade }))
         };
-        state.history.unshift(version);
+        if (existingIdx >= 0) state.history[existingIdx] = version; else state.history.unshift(version);
         state.activeVersionId = version.id;
+        // 把本次结果累加到累计种子；仅当启用独立种子时维护。重排时先减去被替换旧版、再加新版，避免重复计入
+        if (state.workloadSeed && typeof state.workloadSeed === 'object') {
+          if (existing) existing.result.forEach(row => (row.teachers || []).forEach(t => { state.workloadSeed[t.id] = Math.max(0, (state.workloadSeed[t.id] || 0) - 1); }));
+          state.result.forEach(row => (row.teachers || []).forEach(t => { state.workloadSeed[t.id] = (state.workloadSeed[t.id] || 0) + 1; }));
+        }
         saveState(); renderAll();
-        showNotice(`${isReroll ? '随机重排' : '编排'}完成，已自动保存为第 ${versionNumber} 版。`, 'success');
+        showNotice(`${isReroll ? '随机重排' : '编排'}完成，已自动保存为第 ${version.number} 版。`, 'success');
       }
 
-      function solveSchedule(teachers, sessions, perRoom, config) {
+      function solveSchedule(teachers, sessions, perRoom, config, seedCounts) {
         const groups = new Map();
         sessions.forEach(session => {
           const key = timeKey(session);
           if (!groups.has(key)) groups.set(key, []);
           groups.get(key).push(session);
         });
-        const counts = new Map(teachers.map(t => [t.id, 0]));
+        const counts = new Map(teachers.map(t => [t.id, (seedCounts && seedCounts.get(t.id)) || 0]));
         const daySlots = new Map();
         const assignments = [];
 
@@ -2703,7 +2742,7 @@
         const filterGrade = $('#teacherGradeFilter').value;
         visible.forEach(teacher => {
           teacher.enabled = shouldSelect;
-          teacher.monitorGrade = shouldSelect ? (teacher.monitorGrade || filterGrade || teacher.grades[0]) : '';
+          teacher.monitorGrade = shouldSelect ? (teacher.monitorGrade || fallbackMonitorGrade(teacher, filterGrade)) : '';
         });
         persistAndRender();
       }
@@ -2722,12 +2761,29 @@
         const current = new Map();
         state.result.forEach(row => (row.teachers || []).forEach(t => current.set(t.id, (current.get(t.id) || 0) + 1)));
         const cumulative = new Map();
-        state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach(t => cumulative.set(t.id, (cumulative.get(t.id) || 0) + 1))));
+        // 优先用独立累计种子（支持一键清零）；未启用时回退到历史版本累计，保证旧数据兼容
+        if (state.workloadSeed && typeof state.workloadSeed === 'object') {
+          Object.entries(state.workloadSeed).forEach(([id, n]) => cumulative.set(id, (cumulative.get(id) || 0) + (Number(n) || 0)));
+        } else {
+          state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach(t => cumulative.set(t.id, (cumulative.get(t.id) || 0) + 1))));
+        }
         return { current, cumulative };
       }
 
+      // 把累计次数从「teacherId 维度」转成「姓名维度」，方便随发布包发给老师端展示
+      function cumulativeByName() {
+        const { cumulative } = teacherAssignmentStats();
+        const map = {};
+        state.teachers.forEach(t => {
+          if (!t.name) return;
+          const c = cumulative.get(t.id) || 0;
+          if (c) map[t.name] = c; // 只记真正监考过的老师，避免一长串 0
+        });
+        return map;
+      }
+
       function openManageTeachers() {
-        $('#mtGradeInput').innerHTML = `<option value="">请选择年级</option>${gradeSelectOptionsHtml()}`;
+        $('#mtGradeBox').innerHTML = gradeChipsHtml();
         $('#mtNameInput').value = ''; $('#mtDeptInput').value = ''; $('#mtSearch').value = '';
         $('#mtPatrolJunior').value = state.patrol.junior; $('#mtPatrolPrimary').value = state.patrol.primary;
         $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
@@ -2829,10 +2885,10 @@
       function addManageTeacher() {
         const name = normalizeName($('#mtNameInput').value);
         if (!isLikelyName(name)) return toast('请输入有效姓名', 'error');
-        const grade = $('#mtGradeInput').value;
-        if (!grade) return toast('请选择任教年级', 'error');
-        addTeachers([{ name, grade, subjects: getCheckedSubjects('mtSubjectsBox') }], '手工添加');
-        $('#mtNameInput').value = ''; $('#mtGradeInput').value = '';
+        const grades = getCheckedGrades('mtGradeBox');
+        if (!grades.length) return toast('请至少选择一个任教年级', 'error');
+        addTeachers(grades.map(grade => ({ name, grade, subjects: getCheckedSubjects('mtSubjectsBox') })), '手工添加');
+        $('#mtNameInput').value = ''; $('#mtGradeBox').innerHTML = gradeChipsHtml();
         $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
         renderManageTable();
       }
@@ -2843,7 +2899,7 @@
         editingTeacherId = id;
         $('#teNameInput').value = teacher.name;
         $('#teDeptInput').value = teacher.departments.length === 1 && ['小学部','中学部'].includes(teacher.departments[0]) ? teacher.departments[0] : '';
-        $('#teGradeInput').innerHTML = gradeSelectOptionsHtml(teacher.grades[0]);
+        $('#teGradeBox').innerHTML = gradeChipsHtml(teacher.grades || []);
         $('#teSubjectsBox').innerHTML = subjectChipsHtml(teacher.subjects || []);
         $('#teacherEditDialog').showModal();
       }
@@ -2854,14 +2910,14 @@
         const name = normalizeName($('#teNameInput').value);
         if (!isLikelyName(name)) return toast('请输入有效姓名', 'error');
         if (state.teachers.some(t => t.id !== teacher.id && t.name === name)) return toast('同名教师已存在', 'error');
-        const grade = $('#teGradeInput').value;
-        if (!grade) return toast('请选择任教年级', 'error');
+        const grades = getCheckedGrades('teGradeBox').map(normalizeGrade).sort((a, b) => gradeRank(a) - gradeRank(b));
+        if (!grades.length) return toast('请至少选择一个任教年级', 'error');
         const dept = $('#teDeptInput').value;
         teacher.name = name;
-        teacher.grades = [grade];
-        teacher.grade = grade;
+        teacher.grades = grades;
+        teacher.grade = grades[0];
         teacher.subjects = getCheckedSubjects('teSubjectsBox');
-        teacher.departments = dept ? [dept] : [...new Set([grade].map(departmentForGrade))];
+        teacher.departments = dept ? [dept] : [...new Set(grades.map(departmentForGrade))];
         sortTeachers();
         persistAndRender();
         $('#teacherEditDialog').close(); editingTeacherId = null;
@@ -2893,7 +2949,13 @@
       }
 
       function startNewExam() {
-        confirmAction('新建考试', '将清空本次勾选、临时监考年级、场次、排表和版本记录；长期人员库继续保留。', () => {
+        confirmAction('新建考试', '将清空本次勾选、临时监考年级、场次、排表和版本记录；长期人员库与累计监考次数继续保留，跨考试持续累计。', () => {
+          // 新建考试只清空当前这一套考试，不重置累计次数：先把当前累计（来自历史版本）迁移到独立种子，避免清空历史后累计丢失
+          if (!state.workloadSeed || typeof state.workloadSeed !== 'object') {
+            const cum = new Map();
+            state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach(t => cum.set(t.id, (cum.get(t.id) || 0) + 1))));
+            state.workloadSeed = Object.fromEntries(cum);
+          }
           state.teachers.forEach(teacher => { teacher.enabled = false; teacher.monitorGrade = ''; });
           state.sessions = []; state.result = []; state.history = []; state.activeVersionId = null; state.resultTab = 'primary';
           state.gradeRows = []; state.timeTemplate = '';
@@ -3080,7 +3142,7 @@
           const teacher = state.teachers.find(t => t.id === toggle.dataset.teacherToggle);
           if (teacher) {
             teacher.enabled = toggle.checked;
-            teacher.monitorGrade = teacher.enabled ? (teacher.monitorGrade || $('#teacherGradeFilter').value || teacher.grades[0]) : '';
+            teacher.monitorGrade = teacher.enabled ? (teacher.monitorGrade || fallbackMonitorGrade(teacher, $('#teacherGradeFilter').value)) : '';
             persistAndRender();
           }
           return;
@@ -3484,6 +3546,7 @@
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
             state.activeVersionId = raw.activeVersionId || null;
             state.publishedBoardId = raw.publishedBoardId || null;
+            state.workloadSeed = (raw.workloadSeed && typeof raw.workloadSeed === 'object') ? raw.workloadSeed : null;
             state.patrol = (raw.patrol && typeof raw.patrol === 'object') ? { primary: raw.patrol.primary || '', junior: raw.patrol.junior || '' } : { primary: '', junior: '' };
             state.roomScheme = (raw.roomScheme && typeof raw.roomScheme === 'object') ? {
               junior: { pad: Number(raw.roomScheme.junior?.pad) || 3, names: raw.roomScheme.junior?.names && typeof raw.roomScheme.junior.names === 'object' ? raw.roomScheme.junior.names : {} },
@@ -3612,22 +3675,22 @@
         },
 
         // ---------- 发布 ----------
-        async publish({ boardId, title, rows, teachers }) {
+        async publish({ boardId, title, rows, teachers, workload }) {
           if (this.isDemo()) {
             const d = demoRead();
             const id = boardId && d.boards[boardId] ? boardId : 'demo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
             if (d.boards[id]) {
               d.boards[id].title = title;
-              d.boards[id].data = { rows };
+              d.boards[id].data = { rows, workload: workload || {} };
               d.boards[id].version = (d.boards[id].version || 0) + 1;
               d.boards[id].updatedAt = new Date().toISOString();
             } else {
-              d.boards[id] = { id, title, data: { rows }, version: 1, publishedAt: new Date().toISOString() };
+              d.boards[id] = { id, title, data: { rows, workload: workload || {} }, version: 1, publishedAt: new Date().toISOString() };
             }
             demoWrite(d);
             return { boardId: id, teacherCount: (teachers || []).length };
           }
-          return apiCall('publish', { boardId, title, rows, teachers, token: adminToken() });
+          return apiCall('publish', { boardId, title, rows, teachers, workload, token: adminToken() });
         },
 
         async getBoard(id) {
@@ -3751,9 +3814,10 @@
         }));
         const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
         const teachers = teacherCodeList();
+        const workload = cumulativeByName();
         try {
           const isDemo = onlineBackend.isDemo();
-          const r = await onlineBackend.publish({ boardId: state.publishedBoardId, title, rows, teachers });
+          const r = await onlineBackend.publish({ boardId: state.publishedBoardId, title, rows, teachers, workload });
           const boardId = r.boardId;
           if (boardId !== state.publishedBoardId) {
             // 换了一张新表，旧的换班记录跟新表无关了
@@ -3975,6 +4039,16 @@
           groups[k].forEach(r => { html += renderRowCard(r, identity); });
           html += '</div>';
         });
+        // 监考表最下方：展示累计监考次数（跨考试持续累计，新建考试不清零），让老师也能看到
+        const wl = (onlineView.board && onlineView.board.data && onlineView.board.data.workload) || {};
+        const wlEntries = Object.entries(wl).sort((a, b) => b[1] - a[1]);
+        if (wlEntries.length) {
+          html += `<div style="margin-top:6px;border-top:1px dashed #d8d7d1;padding-top:12px">
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px;color:#374151">累计监考次数（跨考试持续累计，每次新建考试不会清零）</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">` +
+            wlEntries.map(([n, c]) => `<span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0">${esc(n)}：${c} 次</span>`).join('') +
+            `</div></div>`;
+        }
         $('#onlineBoard').innerHTML = html;
       }
       function renderRowCard(r, identity) {
