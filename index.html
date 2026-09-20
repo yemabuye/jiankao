@@ -818,6 +818,7 @@
             </select>
           </div>
           <button type="button" class="btn" id="openOcrBtn"><i data-lucide="scan-image"></i>从图片识别日程</button>
+          <button type="button" class="btn" id="openXlsxBtn"><i data-lucide="file-spreadsheet"></i>从监考表识别</button>
         </div>
         <div style="margin-top:10px" data-page-node-id="VBEogElcjwMrk3y6qCs15M">
           <label data-page-node-id="FaxSXQySc2WFnZJiApjU6k">考试年级</label>
@@ -954,6 +955,32 @@
     <div class="dialog-foot">
       <button class="btn" data-close-dialog>取消</button>
       <button class="btn btn-primary" id="ocrApplyBtn"><i data-lucide="check"></i>填入时间段模板</button>
+    </div>
+  </dialog>
+
+  <dialog id="timeTableDialog">
+    <div class="dialog-head"><h2>从监考表识别时间段</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">把你以前的监考表（Excel / CSV，如月考、期中监考安排表）拖进来或选择文件，系统只在你浏览器里读取（不上传服务器），按「年级 → 科目 → 时间」整理成时间段模板。识别结果可手动修改后再填入；也支持直接粘贴从表格复制的内容。</p>
+      <div class="upload-zone" id="ttUploadZone">
+        <input type="file" id="ttFile" accept=".xlsx,.xls,.csv">
+        <div><i data-lucide="sheet"></i><strong>选择或拖入监考表</strong><span>Excel / CSV</span></div>
+      </div>
+      <div class="button-row" style="margin-top:8px">
+        <button type="button" class="btn" id="ttPasteBtn"><i data-lucide="clipboard-paste"></i>粘贴表格内容</button>
+      </div>
+      <div id="ttPasteWrap" style="display:none;margin-top:8px">
+        <textarea id="ttPasteInput" style="min-height:160px" placeholder="从监考表复制后粘贴到这里（更推荐「选择或拖入」文件，复制多行单元格可能错位）"></textarea>
+        <div class="button-row" style="margin-top:6px"><button type="button" class="btn btn-primary" id="ttParsePasteBtn"><i data-lucide="scan-text"></i>解析粘贴内容</button></div>
+      </div>
+      <div id="ttProgress" class="muted" style="font-size:12px;margin:8px 0 0;display:none"></div>
+      <label for="ttResult" style="margin-top:10px;display:block">解析结果（每行 = 年级 科目 时间，可手动修改）</label>
+      <textarea id="ttResult" style="min-height:160px" placeholder="解析后会显示在这里"></textarea>
+      <div class="button-row" style="margin-top:6px"><span id="ttCount" class="muted" style="font-size:12px;align-self:center"></span></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" data-close-dialog>取消</button>
+      <button class="btn btn-primary" id="ttApplyBtn"><i data-lucide="check"></i>填入时间段模板</button>
     </div>
   </dialog>
 
@@ -1822,6 +1849,70 @@
         return out;
       }
 
+      // ===== 监考表矩阵识别（Excel / CSV 二维表 → 「年级 科目 时间」模板行）=====
+      // 适用格式：首列是年级（如 五年级 / 七年级），该年级块标题行的后续列是「科目+时间」单元格
+      const INV_GRADE_LABELS = ['五六年级','三四年级','一二年级','七八九年级','七年级','八年级','九年级','五年级','六年级','四年级','三年级','二年级','一年级','初中部','小学部','初中','小学'];
+      function invDetectGrade(a) {
+        const s = String(a || '').replace(/\s/g, '');
+        const m = s.match(/(五六年级|三四年级|一二年级|七八九年级|七年级|八年级|九年级|五年级|六年级|四年级|三年级|二年级|一年级|初中部|小学部|初中|小学)/);
+        return m ? m[1] : '';
+      }
+      function invExtractTime(cell) {
+        const m = String(cell || '').match(/(\d{1,2})[:：](\d{2})\s*[-–—~～]\s*(\d{1,2})[:：](\d{2})/);
+        if (!m) return null;
+        return m[1].padStart(2,'0') + ':' + m[2] + '-' + m[3].padStart(2,'0') + ':' + m[4];
+      }
+      function invNormalizeSubject(raw) {
+        let s = String(raw || '').split('\n')[0].trim();
+        for (const g of INV_GRADE_LABELS) { if (s.startsWith(g)) { s = s.slice(g.length); break; } }
+        s = s.trim();
+        // 合卷科目归一（与系统词表一致，保证「生成场次」能自动匹配）
+        if (s.includes('道德与法治') && s.includes('历史')) return '历史+道德与法治（合卷）';
+        if (s.includes('生物') && s.includes('地理')) return '生物+地理（合卷）';
+        if (s.includes('物理') && s.includes('化学')) return '物理+化学（合卷）';
+        return s;
+      }
+      function parseInvigilationGrid(matrix) {
+        const out = []; const seen = new Set(); let grade = '';
+        (matrix || []).forEach(row => {
+          if (!Array.isArray(row)) return;
+          const g = invDetectGrade(row[0]);
+          if (g) grade = g;
+          if (!grade) return;
+          for (let c = 1; c < row.length; c++) {
+            const cell = row[c] || '';
+            const time = invExtractTime(cell);
+            if (!time) continue;
+            const subj = invNormalizeSubject(cell);
+            if (!subj) continue;
+            const line = grade + ' ' + subj + ' ' + time;
+            if (seen.has(line)) continue;
+            seen.add(line); out.push(line);
+          }
+        });
+        return out;
+      }
+      async function parseInvigilationWorkbook(file) {
+        if (!window.XLSX) {
+          if (String(file.name || '').toLowerCase().endsWith('.csv')) {
+            return parseInvigilationGrid(parseCsv(await file.text()));
+          }
+          throw new Error('Excel 解析组件未加载，请联网刷新后重试，或改用「粘贴表格内容」');
+        }
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' });
+        const all = [];
+        wb.SheetNames.forEach(sn => {
+          const m = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: '', raw: false });
+          all.push(...parseInvigilationGrid(m));
+        });
+        return all;
+      }
+      function parseInvigilationText(text) {
+        const rows = String(text || '').split(/\r?\n/).map(line => line.split('\t'));
+        return parseInvigilationGrid(rows);
+      }
+
       let _tesseractPromise = null;
       function ensureTesseract() {
         if (window.Tesseract) return Promise.resolve(window.Tesseract);
@@ -2272,6 +2363,48 @@
           ta.value = lines.join('\n');
           ta.dispatchEvent(new Event('change'));
           ocrDialog.close();
+          toast('已填入时间段模板，可点「生成场次」继续');
+        });
+        const ttDialog = $('#timeTableDialog');
+        $('#openXlsxBtn').addEventListener('click', () => { if (window.lucide) lucide.createIcons(); ttDialog.showModal(); });
+        $('#ttFile').addEventListener('change', async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const prog = $('#ttProgress'); prog.style.display = 'block'; prog.textContent = '正在读取监考表…';
+          try {
+            const lines = await parseInvigilationWorkbook(file);
+            $('#ttResult').value = lines.join('\n');
+            $('#ttCount').textContent = '已识别 ' + lines.length + ' 条时间段' + (lines.length ? '（可手动修改年级/科目后再填入）' : '，未识别到「年级+时间」，请检查表格格式或改用粘贴');
+          } catch (err) {
+            prog.textContent = '读取失败：' + (err && err.message ? err.message : err);
+          }
+          e.target.value = '';
+        });
+        ['dragenter','dragover'].forEach(name => $('#ttUploadZone').addEventListener(name, e => { e.preventDefault(); $('#ttUploadZone').classList.add('dragover'); }));
+        ['dragleave','drop'].forEach(name => $('#ttUploadZone').addEventListener(name, e => { e.preventDefault(); $('#ttUploadZone').classList.remove('dragover'); }));
+        $('#ttUploadZone').addEventListener('drop', async (e) => {
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (!file) return;
+          const prog = $('#ttProgress'); prog.style.display = 'block'; prog.textContent = '正在读取监考表…';
+          try {
+            const lines = await parseInvigilationWorkbook(file);
+            $('#ttResult').value = lines.join('\n');
+            $('#ttCount').textContent = '已识别 ' + lines.length + ' 条时间段' + (lines.length ? '（可手动修改年级/科目后再填入）' : '');
+          } catch (err) { prog.textContent = '读取失败：' + (err && err.message ? err.message : err); }
+        });
+        $('#ttPasteBtn').addEventListener('click', () => { const w = $('#ttPasteWrap'); w.style.display = w.style.display === 'none' ? 'block' : 'none'; });
+        $('#ttParsePasteBtn').addEventListener('click', () => {
+          const lines = parseInvigilationText($('#ttPasteInput').value);
+          $('#ttResult').value = lines.join('\n');
+          $('#ttCount').textContent = '已识别 ' + lines.length + ' 条时间段';
+        });
+        $('#ttApplyBtn').addEventListener('click', () => {
+          const lines = $('#ttResult').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          if (!lines.length) { toast('没有可填入的内容，请先识别'); return; }
+          const ta = $('#timeTemplateInput');
+          ta.value = lines.join('\n');
+          ta.dispatchEvent(new Event('change'));
+          ttDialog.close();
           toast('已填入时间段模板，可点「生成场次」继续');
         });
         $('#examDate').addEventListener('change', () => { saveState(); renderGradeRows(); });
