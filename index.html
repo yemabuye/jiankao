@@ -190,6 +190,7 @@
     .gr-time-item { display: grid; grid-template-columns: 118px 1fr; gap: 8px; align-items: center; font-size: 12.5px; }
     .gr-time-item .gr-t-subj { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .gr-time-item input { width: 100%; min-height: 34px; padding: 5px 9px; font-size: 13px; box-sizing: border-box; }
+    .gr-time-item select.gr-time-input { width: 100%; min-height: 34px; padding: 5px 9px; font-size: 13px; box-sizing: border-box; background: #fff; }
     .gr-del { width: 30px; height: 30px; }
     .gr-empty { color: var(--muted); font-size: 12px; padding: 8px 2px; }
     .subject-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -805,7 +806,19 @@
             <textarea id="timeTemplateInput" style="min-height:72px" placeholder="08:30-10:00&#10;10:30-12:00&#10;14:00-15:30">08:30-10:00&#10;10:30-12:00&#10;14:00-15:30</textarea>
           </div>
         </div>
-        <p class="muted" style="font-size:12px;margin:6px 2px 0" data-page-node-id="Xcr0FOlVUQrZyG5ifDTrtx">模板每行一个时段，可选前缀：<code data-page-node-id="GfrLoZtML0uxX1BB6bMMB3">09-10 08:30-10:00</code>（日期）／<code data-page-node-id="fXlgLUiZ4jJZRyBKTM4P6K">语文 08:30-10:00</code>（科目）／<code data-page-node-id="yy8t7wl3QInG8oofFZnQYv">五年级 语文 09:10-10:40</code>（年级+科目）。选科目后自动按此匹配时间。</p>
+        <p class="muted" style="font-size:12px;margin:6px 2px 0" data-page-node-id="Xcr0FOlVUQrZyG5ifDTrtx">模板每行一个时段，可选前缀：<code data-page-node-id="GfrLoZtML0uxX1BB6bMMB3">09-10 08:30-10:00</code>（日期）／<code data-page-node-id="fXlgLUiZ4jJZRyBKTM4P6K">语文 08:30-10:00</code>（科目）／<code data-page-node-id="yy8t7wl3QInG8oofFZnQYv">五年级 语文 09:10-10:40</code>（具体年级+科目）／<code>初中 语文 08:30</code>、<code>小学 语文 09:10</code>、<code>五六年级 语文 10:30</code>（学段，越具体越优先，如五六年级覆盖小学）。选科目后自动按此匹配时间。</p>
+        <div class="field-row" style="margin-top:10px;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <label for="timePresetSelect">时间预设（选「期末」一键填入，再手动微调）</label>
+            <select id="timePresetSelect">
+              <option value="">请选择…</option>
+              <option value="final">期末（中学+小学）</option>
+              <option value="final-junior">期末·中学</option>
+              <option value="final-primary">期末·小学</option>
+            </select>
+          </div>
+          <button type="button" class="btn" id="openOcrBtn"><i data-lucide="scan-image"></i>从图片识别日程</button>
+        </div>
         <div style="margin-top:10px" data-page-node-id="VBEogElcjwMrk3y6qCs15M">
           <label data-page-node-id="FaxSXQySc2WFnZJiApjU6k">考试年级</label>
           <div class="grade-rows" id="gradeRowsList" data-page-node-id="VHNCbZCQIDKXCCb7ZifsJU"><div class="pool-empty" data-page-node-id="mKxUtimDNMrRA8xDUzlrik">尚未添加考试年级</div></div>
@@ -913,6 +926,35 @@
     <div class="dialog-head" data-page-node-id="jvPYRvaP5p70l1UwmhAGml"><h2 data-page-node-id="R7byssZIUOydHIyuloquv9">粘贴岗位表</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="HDDI6SNvEVnbISnx7pNOBI"><i data-lucide="x" data-page-node-id="VhiL8ilDJJVYBJuOYEEaxi"></i></button></div>
     <div class="dialog-body" data-page-node-id="AXiEfJLf54TLVv4qxVUfMo"><label for="tablePasteInput" data-page-node-id="DheshibLBh6FecJASk0Qj6">表格内容</label><textarea id="tablePasteInput" style="min-height:280px" placeholder="年级&#9;班级&#9;教师姓名&#10;七年级&#9;1班&#9;张 三"></textarea></div>
     <div class="dialog-foot" data-page-node-id="mblzJVE1pjCT1DjrpIu3Y2"><button class="btn" data-close-dialog data-page-node-id="oIfu9kjin5nVVhGkabE8PG">取消</button><button class="btn btn-primary" id="parseTableBtn" data-page-node-id="9axCyKo0CnBQ1v2zznZkTr"><i data-lucide="scan-text" data-page-node-id="p47BimlfgVtWTtd36uVgf0"></i>识别</button></div>
+  </dialog>
+
+  <dialog id="ocrDialog">
+    <div class="dialog-head"><h2>从日程图识别时间段</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">上传考试日程表图片，系统在你浏览器里免费识别文字（不上传服务器），再按「年级 → 时间」整理成时间段模板。识别结果可手动修改后再填入；也能直接把日程表文字粘贴进来。</p>
+      <div class="button-row">
+        <button type="button" class="btn" id="ocrPickBtn"><i data-lucide="image-up"></i>选择图片</button>
+        <input type="file" id="ocrFile" accept="image/*" hidden>
+        <button type="button" class="btn" id="ocrPasteBtn"><i data-lucide="clipboard-paste"></i>直接粘贴文字</button>
+      </div>
+      <div id="ocrProgress" class="muted" style="font-size:12px;margin:8px 0 0;display:none"></div>
+      <label for="ocrText" style="margin-top:10px;display:block">识别出的文字（可手动修正）</label>
+      <textarea id="ocrText" style="min-height:110px" placeholder="识别结果会显示在这里，也可以直接把日程表文字粘贴进来"></textarea>
+      <div class="button-row" style="margin-top:8px">
+        <button type="button" class="btn btn-primary" id="ocrParseBtn"><i data-lucide="scan-text"></i>解析为模板</button>
+        <span id="ocrCount" class="muted" style="font-size:12px;align-self:center"></span>
+      </div>
+      <label for="ocrResult" style="margin-top:10px;display:block">解析结果（每行 = 年级 科目 时间，可手动修改）</label>
+      <textarea id="ocrResult" style="min-height:140px" placeholder="解析后会显示在这里"></textarea>
+      <div class="button-row" style="margin-top:8px">
+        <button type="button" class="btn" id="ocrSavePresetBtn"><i data-lucide="save"></i>存为期末预设</button>
+        <span class="muted" style="font-size:12px;align-self:center">把当前结果覆盖保存到「期末」预设，下次直接选</span>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" data-close-dialog>取消</button>
+      <button class="btn btn-primary" id="ocrApplyBtn"><i data-lucide="check"></i>填入时间段模板</button>
+    </div>
   </dialog>
 
   <dialog id="sessionDialog" data-page-node-id="tjpqnzCQ2OX6Jf0LDifdpF">
@@ -1309,6 +1351,44 @@
       const CHINESE_NUM = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
       const NUM_CHINESE = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
       const DEFAULT_GRADES = ['一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级','高一','高二','高三','未分年级'];
+      // 学段（年级段）匹配表：模板里写「初中/小学/三四年级/五六年级」这类词时，按所属年级集合匹配；
+      // 匹配时「越具体越优先」（具体年级 > 小学段 > 大学段 > 无年级全局）
+      const GRADE_SEGMENTS = {
+        '初中': ['七年级','八年级','九年级'],
+        '初中部': ['七年级','八年级','九年级'],
+        '中学': ['七年级','八年级','九年级'],
+        '中学部': ['七年级','八年级','九年级'],
+        '小学': ['一年级','二年级','三年级','四年级','五年级','六年级'],
+        '小学部': ['一年级','二年级','三年级','四年级','五年级','六年级'],
+        '一二年级': ['一年级','二年级'],
+        '三四年级': ['三年级','四年级'],
+        '五六年级': ['五年级','六年级'],
+        '七八九年级': ['七年级','八年级','九年级'],
+        '全年级': ['一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级','高一','高二','高三'],
+      };
+      // 期末考试时间预设（中学/小学分开存，时间多年一致，仅考试日期不同）
+      // 科目必须用系统词表里的合卷写法（生物+地理（合卷）/历史+道德与法治（合卷）/物理+化学（合卷）），否则「生成场次」时自动匹配不上
+      const FINAL_EXAM_PRESETS = {
+        'final-junior': [
+          '初中 语文 08:30-11:00',
+          '初中 数学 08:30-10:30',
+          '初中 英语 08:30-10:30',
+          '初中 历史+道德与法治（合卷） 14:00-16:30',
+          '初中 生物+地理（合卷） 14:00-16:30',
+          '初中 物理+化学（合卷） 14:00-16:30',
+          '八年级 物理 14:00-15:30'
+        ].join('\n'),
+        'final-primary': [
+          '三四年级 语文 09:00-10:40',
+          '五六年级 语文 09:00-11:00',
+          '三四年级 数学 09:00-10:20',
+          '五六年级 数学 09:00-10:40',
+          '三四年级 英语 14:00-15:00',
+          '五六年级 英语 14:00-15:00',
+          '四年级 科学 14:00-15:00'
+        ].join('\n')
+      };
+      FINAL_EXAM_PRESETS['final'] = [FINAL_EXAM_PRESETS['final-junior'], FINAL_EXAM_PRESETS['final-primary']].join('\n');
       const PRIMARY_SUBJECTS = ['语文', '数学', '英语', '道德与法治', '科学'];
       const JUNIOR_BASE_SUBJECTS = ['语文', '数学', '英语', '道德与法治', '历史', '历史+道德与法治（合卷）', '生物+地理（合卷）'];
       const DEFAULT_TIME_TEMPLATE = '08:30-10:00\n10:30-12:00\n14:00-15:30';
@@ -1454,7 +1534,9 @@
         syncedSwapIds: [],
         // 累计监考次数种子：null=沿用历史版本累计（兼容旧数据）；{}或{教师id:次数}=独立累计，支持一键清零
         workloadSeed: null,
-        config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false }
+        config: { teacherPerRoom: '', balanceLoad: true, avoidConsecutive: false, crossGrade: false, sameSubjectAvoid: false, avoidOwnGrade: false },
+        // 时间段预设：识别/手工整理的期末等时间模板，选「时间预设」可一键填入；key 见 FINAL_EXAM_PRESETS
+        timePresets: {}
       };
       let viewedHistoryId = null;
       let confirmCallback = null;
@@ -1620,12 +1702,20 @@
         return String(text || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
           const tokens = line.split(/[\s\t]+/).filter(Boolean);
           const entry = { date: null, grade: null, subject: null, time: null };
+          const gradeTokens = [];
           tokens.forEach(token => {
             if (/^\d{1,2}-\d{1,2}$/.test(token) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(token) || /^\+\d+$/.test(token)) { entry.date = token; return; }
-            if (DEFAULT_GRADES.includes(token)) { entry.grade = token; return; }
+            if (DEFAULT_GRADES.includes(token)) { gradeTokens.push(token); return; }
+            if (GRADE_SEGMENTS[token]) { gradeTokens.push(token); return; }
             if (ALL_SUBJECTS.includes(token)) { entry.subject = token; return; }
             if (/^\d{1,2}[:：]\d{2}/.test(token)) entry.time = normalizeTime(token);
           });
+          if (gradeTokens.length) {
+            // 同时出现多个年级/学段词时，取最具体的：具体年级优先，否则取范围最小的学段
+            const specific = gradeTokens.find(g => DEFAULT_GRADES.includes(g));
+            if (specific) entry.grade = specific;
+            else { gradeTokens.sort((a, b) => GRADE_SEGMENTS[a].length - GRADE_SEGMENTS[b].length); entry.grade = gradeTokens[0]; }
+          }
           return entry;
         });
       }
@@ -1637,13 +1727,26 @@
         return token;
       }
 
-      function matchTime(grade, subject, entries) {
-        const withTime = entries.filter(e => e.time);
-        const exact = withTime.find(e => e.subject === subject && e.grade === grade);
-        if (exact) return exact;
-        const global = withTime.find(e => e.subject === subject && !e.grade);
-        if (global) return global;
+      function gradesOf(g) {
+        if (!g) return null;                 // 无年级 → 全局规则
+        if (DEFAULT_GRADES.includes(g)) return [g];
+        if (GRADE_SEGMENTS[g]) return GRADE_SEGMENTS[g];
         return null;
+      }
+      function matchTime(grade, subject, entries) {
+        const candidates = [];
+        entries.filter(e => e.time && e.subject === subject).forEach(e => {
+          const gs = gradesOf(e.grade);
+          if (gs === null) { candidates.push({ e, score: 100 }); return; }   // 无年级全局规则，优先级最低
+          if (gs.includes(grade)) {
+            // 具体年级(1个)得分最高；学段范围越小越具体，得分越高
+            const score = DEFAULT_GRADES.includes(e.grade) ? 1000 : 900 - gs.length * 10;
+            candidates.push({ e, score });
+          }
+        });
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => b.score - a.score);
+        return candidates[0].e;
       }
 
       function parseTimeInput(value, baseDate) {
@@ -1658,6 +1761,87 @@
           return { date: dateStr(d), time: normalizeTime(md[3]) };
         }
         return { date: baseDate, time: normalizeTime(v) };
+      }
+
+      // ===== 考试日程图识别 + 期末时间预设 =====
+      function getTimePreset(key) {
+        const saved = (state.timePresets && state.timePresets[key]) || '';
+        return saved || FINAL_EXAM_PRESETS[key] || '';
+      }
+
+      // 把识别出的日程文字整理成「年级 科目 时间」模板行（年级取出现的最高年级段；科目按系统合卷写法归一）
+      function parseScheduleToTemplate(raw) {
+        if (!raw) return [];
+        const lines = String(raw).split(/\r?\n/);
+        const out = [];
+        const seen = new Set();
+        const pushLine = (grade, subject, time, date) => {
+          if (!grade || !subject || !time) return;
+          const line = (date ? date + ' ' : '') + grade + ' ' + subject + ' ' + time;
+          if (seen.has(line)) return;
+          seen.add(line); out.push(line);
+        };
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/[ \t]+/g, ' ').trim();
+          if (!line) continue;
+          // 日期 MM-DD（尽量取同一行出现的日期；取不到则不写，默认用考试起始日）
+          let date = '';
+          const dm = line.match(/(\d{1,2})\s*[月/\.\-]\s*(\d{1,2})\s*[日号]?/);
+          if (dm) date = dm[1].padStart(2, '0') + '-' + dm[2].padStart(2, '0');
+          // 时间区间
+          let time = null;
+          const tm = line.match(/(\d{1,2})[:：](\d{2})\s*[-–—~～]\s*(\d{1,2})[:：](\d{2})/);
+          if (tm) time = tm[1].padStart(2, '0') + ':' + tm[2] + '-' + tm[3].padStart(2, '0') + ':' + tm[4];
+          else { const ts = line.match(/(\d{1,2})[:：](\d{2})/); if (ts) time = ts[1].padStart(2, '0') + ':' + ts[2]; }
+          if (!time) continue;
+          // 年级段：取出现的最高年级段
+          let grade = '';
+          if (/[七八九]/.test(line) || /中学/.test(line) || /初中/.test(line)) grade = '初中';
+          else if (/[五六]/.test(line)) grade = '五六年级';
+          else if (/[三四]/.test(line)) grade = '三四年级';
+          else if (/[一二]/.test(line)) grade = '一二年级';
+          else if (/小学/.test(line)) grade = '小学';
+          if (!grade) continue;
+          // 科目：先判断合卷组合，再补单科
+          const has = s => line.includes(s);
+          const subs = [];
+          if (has('地理') && has('生物')) subs.push('生物+地理（合卷）');
+          else if (has('地理') || has('生物')) subs.push('生物+地理（合卷）');
+          if (has('道德与法治') && has('历史')) subs.push('历史+道德与法治（合卷）');
+          else { if (has('道德与法治')) subs.push('道德与法治'); if (has('历史')) subs.push('历史'); }
+          if (has('物理') && has('化学')) subs.push('物理+化学（合卷）');
+          else { if (has('物理')) subs.push('物理'); if (has('化学')) subs.push('化学'); }
+          if (has('语文')) subs.push('语文');
+          if (has('数学')) subs.push('数学');
+          if (has('英语')) subs.push('英语');
+          if (has('科学')) subs.push('科学');
+          const uniq = [...new Set(subs)];
+          if (!uniq.length) continue;
+          for (const s of uniq) pushLine(grade, s, time, date);
+        }
+        return out;
+      }
+
+      let _tesseractPromise = null;
+      function ensureTesseract() {
+        if (window.Tesseract) return Promise.resolve(window.Tesseract);
+        if (_tesseractPromise) return _tesseractPromise;
+        _tesseractPromise = new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          s.onload = () => { window.Tesseract ? resolve(window.Tesseract) : reject(new Error('识别引擎加载异常')); };
+          s.onerror = () => reject(new Error('识别引擎加载失败，请检查网络后重试，或改用「直接粘贴文字」'));
+          document.head.appendChild(s);
+        });
+        return _tesseractPromise;
+      }
+      async function runOcr(file) {
+        const Tesseract = await ensureTesseract();
+        const prog = document.getElementById('ocrProgress');
+        const { data: { text } } = await Tesseract.recognize(file, 'chi_sim', {
+          logger: m => { if (prog && m.status === 'recognizing text') prog.textContent = '正在识别文字… ' + Math.round(m.progress * 100) + '%'; }
+        });
+        return text;
       }
 
       function renderGradeRows() {
@@ -1693,22 +1877,39 @@
         if (!row || !row.subjects.length) { timesEl.innerHTML = '<div class="gr-empty">选择科目后自动匹配时间</div>'; return; }
         const plainTimes = entries.filter(e => !e.grade && !e.subject && e.time);
         let fallbackIndex = 0;
-        timesEl.innerHTML = row.subjects.map(subject => {
-          const match = matchTime(row.grade, subject, entries);
-          let display = '';
-          if (match) {
-            const date = resolveTemplateDate(match.date, baseDate);
-            display = date === baseDate ? match.time : `${date.slice(5)} ${match.time}`;
-          } else if (state.combinedTimes && (state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject])) {
-            display = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject];
-          } else if (plainTimes.length) {
-            const fallback = plainTimes[Math.min(fallbackIndex, plainTimes.length - 1)];
-            fallbackIndex++;
-            const date = resolveTemplateDate(fallback.date, baseDate);
-            display = date === baseDate ? fallback.time : `${date.slice(5)} ${fallback.time}`;
-          }
-          return `<div class="gr-time-item"><span class="gr-t-subj">${esc(subject)}</span><input class="gr-time-input" data-subj="${esc(subject)}" value="${esc(display)}" placeholder="MM-DD 08:30-10:00"></div>`;
-        }).join('');
+  timesEl.innerHTML = row.subjects.map(subject => {
+    const match = matchTime(row.grade, subject, entries);
+    let display = '';
+    if (match) {
+      const date = resolveTemplateDate(match.date, baseDate);
+      display = date === baseDate ? match.time : `${date.slice(5)} ${match.time}`;
+    } else if (state.combinedTimes && (state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject])) {
+      display = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject];
+    } else if (plainTimes.length) {
+      const fallback = plainTimes[Math.min(fallbackIndex, plainTimes.length - 1)];
+      fallbackIndex++;
+      const date = resolveTemplateDate(fallback.date, baseDate);
+      display = date === baseDate ? fallback.time : `${date.slice(5)} ${fallback.time}`;
+    }
+    // 收集该科目在本年级下的所有候选时间；命中多个时改用下拉选择，由用户手动挑
+    const seen = new Set();
+    const candidates = [];
+    const addCand = d => { if (d && !seen.has(d)) { seen.add(d); candidates.push(d); } };
+    entries.filter(e => e.time && e.subject === subject).forEach(e => {
+      const gs = gradesOf(e.grade);
+      if (gs === null || gs.includes(row.grade)) { const date = resolveTemplateDate(e.date, baseDate); addCand(date === baseDate ? e.time : `${date.slice(5)} ${e.time}`); }
+    });
+    if (state.combinedTimes) { const c = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject]; if (c) addCand(c); }
+    if (!candidates.length) plainTimes.forEach(e => { const date = resolveTemplateDate(e.date, baseDate); addCand(date === baseDate ? e.time : `${date.slice(5)} ${e.time}`); });
+    if (display) addCand(display);
+    let control;
+    if (candidates.length > 1) {
+      control = `<select class="gr-time-input" data-subj="${esc(subject)}">` + candidates.map(c => `<option ${c === display ? 'selected' : ''}>${esc(c)}</option>`).join('') + `</select>`;
+    } else {
+      control = `<input class="gr-time-input" data-subj="${esc(subject)}" value="${esc(display)}" placeholder="MM-DD 08:30-10:00">`;
+    }
+    return `<div class="gr-time-item"><span class="gr-t-subj">${esc(subject)}</span>${control}</div>`;
+  }).join('');
       }
 
       function addGradeRow() {
@@ -2019,6 +2220,60 @@
         $('#addGradeRowBtn').addEventListener('click', addGradeRow);
         $('#genGradeRowsBtn').addEventListener('click', generateFromGradeRows);
         $('#timeTemplateInput').addEventListener('change', () => { state.timeTemplate = $('#timeTemplateInput').value; saveState(); renderGradeRows(); });
+        // 时间预设一键填入
+        $('#timePresetSelect').addEventListener('change', e => {
+          const key = e.target.value;
+          if (!key) return;
+          const preset = getTimePreset(key);
+          if (!preset) { toast('该预设暂为空，可先用「从图片识别日程」生成'); e.target.value = ''; return; }
+          const ta = $('#timeTemplateInput');
+          ta.value = preset;
+          ta.dispatchEvent(new Event('change'));
+          toast('已填入「' + e.target.selectedOptions[0].text + '」时间，可手动微调');
+          e.target.value = '';
+        });
+        // 日程图识别弹窗
+        const ocrDialog = $('#ocrDialog');
+        $('#openOcrBtn').addEventListener('click', () => { if (window.lucide) lucide.createIcons(); ocrDialog.showModal(); });
+        $('#ocrPickBtn').addEventListener('click', () => $('#ocrFile').click());
+        $('#ocrFile').addEventListener('change', async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const prog = $('#ocrProgress');
+          prog.style.display = 'block';
+          prog.textContent = '正在加载识别引擎并识别文字…（首次约需十几秒，请稍候）';
+          try {
+            const text = await runOcr(file);
+            $('#ocrText').value = text;
+            prog.textContent = '识别完成，请检查文字是否有误，修正后点「解析为模板」。';
+          } catch (err) {
+            prog.textContent = '识别失败：' + (err && err.message ? err.message : err) + '。可改用「直接粘贴文字」。';
+          }
+          e.target.value = '';
+        });
+        $('#ocrPasteBtn').addEventListener('click', () => { const t = $('#ocrText'); t.focus(); t.select(); });
+        $('#ocrParseBtn').addEventListener('click', () => {
+          const lines = parseScheduleToTemplate($('#ocrText').value);
+          $('#ocrResult').value = lines.join('\n');
+          $('#ocrCount').textContent = '已解析 ' + lines.length + ' 条时间段';
+        });
+        $('#ocrSavePresetBtn').addEventListener('click', () => {
+          const lines = $('#ocrResult').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          if (!lines.length) { toast('请先解析出结果再保存'); return; }
+          state.timePresets = state.timePresets || {};
+          state.timePresets['final'] = lines.join('\n');
+          saveState();
+          toast('已保存到「期末（中学+小学）」预设');
+        });
+        $('#ocrApplyBtn').addEventListener('click', () => {
+          const lines = $('#ocrResult').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          if (!lines.length) { toast('没有可填入的内容，请先解析'); return; }
+          const ta = $('#timeTemplateInput');
+          ta.value = lines.join('\n');
+          ta.dispatchEvent(new Event('change'));
+          ocrDialog.close();
+          toast('已填入时间段模板，可点「生成场次」继续');
+        });
         $('#examDate').addEventListener('change', () => { saveState(); renderGradeRows(); });
         $$('input[name="teacherPerRoom"]').forEach(input => input.addEventListener('change', syncConfig));
         $('#balanceLoad').addEventListener('change', syncConfig);
@@ -3558,6 +3813,7 @@
             state.selectionVersion = raw.selectionVersion || 0;
             state.teacherDefaultCode = raw.teacherDefaultCode || '0000';
             state.phoneBook = typeof raw.phoneBook === 'string' ? raw.phoneBook : '';
+            state.timePresets = (raw.timePresets && typeof raw.timePresets === 'object') ? raw.timePresets : {};
             state.config = { ...state.config, ...(raw.config || {}) };
           } else {
             state.timeTemplate = DEFAULT_TIME_TEMPLATE;
@@ -3573,7 +3829,7 @@
         } catch (error) {
           localStorage.removeItem(STORAGE_KEY);
           state.teachers = []; state.sessions = []; state.result = []; state.history = [];
-          state.plans = []; state.excludedNames = [...DEFAULT_EXCLUDED]; state.customRooms = []; state.gradeRows = []; state.timeTemplate = ''; state.combinedTimes = {}; state.teacherDefaultCode = '0000';
+          state.plans = []; state.excludedNames = [...DEFAULT_EXCLUDED]; state.customRooms = []; state.gradeRows = []; state.timeTemplate = ''; state.combinedTimes = {}; state.teacherDefaultCode = '0000'; state.timePresets = {};
           mergeBuiltinTeachers(true);
         }
       }
