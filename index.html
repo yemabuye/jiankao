@@ -1081,10 +1081,12 @@
         <span class="muted" style="font-size:12px">模板列：年级 / 姓名 / 任教学科 / 手机号 / 不参与监考</span>
       </div>
       <div class="mt-patrol" style="margin:0 0 10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px">
-        <label style="font-weight:600">巡考人员（不参与监考编排，仅展示在监考表里；初中 / 小学分开，逗号或换行分隔）</label>
-        <div class="field-row" style="margin-top:6px">
-          <div style="flex:1"><input id="mtPatrolJunior" placeholder="初中巡考：如 张三、李四" style="width:100%"></div>
-          <div style="flex:1"><input id="mtPatrolPrimary" placeholder="小学巡考：如 王五、赵六" style="width:100%"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <label style="font-weight:600">巡考人员（不参与监考编排，只显示在监考表里）</label>
+            <div class="muted" style="font-size:12px" id="patrolSummary">小学：暂无　|　初中：暂无</div>
+          </div>
+          <button class="btn btn-sm" id="openPatrolBtn"><i data-lucide="user-check"></i>设置巡考人员</button>
         </div>
       </div>
       <input id="mtSearch" type="search" placeholder="搜索姓名或年级" style="margin-bottom:10px" data-page-node-id="zzIrJTKVA6ggSAaqxRN08T">
@@ -1171,6 +1173,33 @@
       </div>
     </div>
     <div class="dialog-foot" data-page-node-id="0x2z2FfUG7rEtTVK3FT2pm"><button class="btn btn-primary" data-close-dialog data-page-node-id="QETEENgHsrEQjjue487rIx">完成</button></div>
+  </dialog>
+
+  <dialog id="patrolDialog">
+    <div class="dialog-head"><h2>巡考人员</h2><button class="icon-btn" data-close-dialog aria-label="关闭"><i data-lucide="x"></i></button></div>
+    <div class="dialog-body">
+      <p class="backup-hint" style="margin:0 0 14px">巡考不参与监考编排，只显示在监考表页脚和「全图预览」里。小学部、中学部分开设置，直接从人员库里挑人。</p>
+      <div>
+        <label style="font-weight:600">小学部巡考</label>
+        <div id="patrolPrimaryChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center;padding:6px 8px;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <select id="patrolPrimarySelect" style="flex:1"></select>
+          <button class="btn btn-sm" id="patrolPrimaryAddBtn"><i data-lucide="plus"></i>添加</button>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <label style="font-weight:600">中学部巡考</label>
+        <div id="patrolJuniorChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center;padding:6px 8px;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <select id="patrolJuniorSelect" style="flex:1"></select>
+          <button class="btn btn-sm" id="patrolJuniorAddBtn"><i data-lucide="plus"></i>添加</button>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" data-close-dialog>取消</button>
+      <button class="btn btn-primary" id="patrolSaveBtn"><i data-lucide="check"></i>保存</button>
+    </div>
   </dialog>
 
   <!-- 后台登录遮罩 -->
@@ -1545,26 +1574,59 @@
         const raw = departmentKey === '小学部' ? state.patrol.primary : state.patrol.junior;
         return String(raw || '').split(/[、，,;；\n\r\s]+/).map(s => s.trim()).filter(Boolean);
       };
-      // 机动人员 = 手动标记为「机动人员」的 + 不参与监考的（如围棋这类科目）+
-      //            一二年级这种本次没安排考试年级的老师（他们本来就没监考任务，在家待命）
+      // 机动人员 = 手动指定为「机动人员」的 + 不参与监考的（围棋这类被排除的科目）。
+      // 注意：教的年级低（一二年级）【不等于】不用监考——体育、美术这类老师一样要排监考，
+      // 所以绝不能按任教学段去推断谁机动，只能认手动标记和 excluded 标记。
       // 已经排进监考表的老师永远不算机动。departmentKey 传 null 表示不分学部（统计表用）。
       function reserveTeachersOf(departmentKey) {
         const assigned = new Set(state.result.flatMap(row => (row.teachers || []).map(t => t.name)));
-        const examGrades = new Set(state.result.map(row => row.grade).filter(Boolean));
         return state.teachers.filter(teacher => {
           if (assigned.has(teacher.name)) return false;
           const inDept = !departmentKey || (teacher.departments || []).includes(departmentKey);
           if (!inDept) return false;
-          if (teacher.enabled && teacher.monitorGrade === 'reserve') return true;
+          if (teacher.monitorGrade === 'reserve') return true;
           if (teacher.excluded) return true;
-          const grades = teacher.grades || [];
-          if (!grades.length) return false;
-          const allLowerPrimary = grades.every(g => { const n = gradeNumber(g); return n >= 1 && n <= 2; });
-          const touchesExamGrade = grades.some(g => examGrades.has(g));
-          return allLowerPrimary && !touchesExamGrade;
+          return false;
         });
       }
       const padNumber = (n, pad) => String(n).padStart(pad || 2, '0');
+
+      // ---------- 巡考人员：独立弹窗，小学部 / 中学部分开从人员库挑人 ----------
+      let patrolDraft = { primary: [], junior: [] };
+      const patrolCapOf = key => (key === 'primary' ? 'Primary' : 'Junior');
+      function openPatrolDialog() {
+        patrolDraft = { primary: patrolNames('小学部'), junior: patrolNames('中学部') };
+        renderPatrolDraft();
+        const d = $('#patrolDialog');
+        if (d && d.showModal) d.showModal();
+      }
+      function renderPatrolDraft() {
+        [['primary', '小学部'], ['junior', '中学部']].forEach(([key, dept]) => {
+          const cap = patrolCapOf(key);
+          const list = patrolDraft[key] || [];
+          const chips = $('#patrol' + cap + 'Chips');
+          if (chips) {
+            chips.innerHTML = list.length
+              ? list.map((name, i) => `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 9px;border-radius:999px;background:#eef4ef;border:1px solid #cfe0d3;font-size:13px">${esc(name)}<button type="button" class="patrol-remove" data-dept="${key}" data-idx="${i}" title="移除" style="border:none;background:none;cursor:pointer;color:#8a9a90;font-size:15px;line-height:1;padding:0 2px">×</button></span>`).join('')
+              : '<span class="muted" style="font-size:12px">还没添加</span>';
+          }
+          const sel = $('#patrol' + cap + 'Select');
+          if (sel) {
+            const candidates = state.teachers
+              .filter(teacher => (teacher.departments || []).includes(dept))
+              .map(teacher => teacher.name)
+              .filter(name => !list.includes(name));
+            sel.innerHTML = `<option value="">选择人员…（${candidates.length} 人可选）</option>` +
+              candidates.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+          }
+        });
+      }
+      function updatePatrolSummary() {
+        const el = $('#patrolSummary');
+        if (!el) return;
+        const p = patrolNames('小学部'), j = patrolNames('中学部');
+        el.textContent = `小学：${p.length ? p.join('、') : '暂无'}　|　初中：${j.length ? j.join('、') : '暂无'}`;
+      }
       // 考场编号：中学部(初中) junior、小学部 primary。index 从 0 起
       const roomLabelFor = (departmentKey, index) => {
         const deptKey = departmentKey === '小学部' ? 'primary' : 'junior';
@@ -2532,8 +2594,35 @@
           await importManageFiles(event.target.files);
           event.target.value = '';
         });
-        $('#mtPatrolJunior').addEventListener('change', e => { state.patrol.junior = e.target.value; saveState(); toast('已保存初中巡考'); });
-        $('#mtPatrolPrimary').addEventListener('change', e => { state.patrol.primary = e.target.value; saveState(); toast('已保存小学巡考'); });
+        // ---------- 巡考人员：独立弹窗，小学 / 中学分开挑人 ----------
+        const opb = $('#openPatrolBtn');
+        if (opb) opb.addEventListener('click', openPatrolDialog);
+        const psb = $('#patrolSaveBtn');
+        if (psb) psb.addEventListener('click', () => {
+          state.patrol.primary = (patrolDraft.primary || []).join('、');
+          state.patrol.junior = (patrolDraft.junior || []).join('、');
+          saveState(); updatePatrolSummary(); renderAll();
+          const d = $('#patrolDialog'); if (d && d.close) d.close();
+          toast('巡考人员已保存');
+        });
+        [['primary', 'Primary'], ['junior', 'Junior']].forEach(([key, cap]) => {
+          const addBtn = $('#patrol' + cap + 'AddBtn');
+          if (addBtn) addBtn.addEventListener('click', () => {
+            const sel = $('#patrol' + cap + 'Select');
+            const name = sel && sel.value;
+            if (!name) return toast('先从下拉里选一个人', 'error');
+            if (!patrolDraft[key]) patrolDraft[key] = [];
+            if (!patrolDraft[key].includes(name)) patrolDraft[key].push(name);
+            renderPatrolDraft();
+          });
+        });
+        const pdlg = $('#patrolDialog');
+        if (pdlg) pdlg.addEventListener('click', e => {
+          const btn = e.target.closest('.patrol-remove');
+          if (!btn) return;
+          const dept = btn.dataset.dept, idx = Number(btn.dataset.idx);
+          if (patrolDraft[dept]) { patrolDraft[dept].splice(idx, 1); renderPatrolDraft(); }
+        });
         $('#teSaveBtn').addEventListener('click', saveTeacherEdit);
         document.addEventListener('click', handleDelegatedClick);
       }
@@ -3251,7 +3340,7 @@
       function openManageTeachers() {
         $('#mtGradeBox').innerHTML = gradeChipsHtml();
         $('#mtNameInput').value = ''; $('#mtDeptInput').value = ''; $('#mtSearch').value = '';
-        $('#mtPatrolJunior').value = state.patrol.junior; $('#mtPatrolPrimary').value = state.patrol.primary;
+        updatePatrolSummary();
         $('#mtSubjectsBox').innerHTML = subjectChipsHtml();
         renderManageTable();
         $('#manageTeachersDialog').showModal();
