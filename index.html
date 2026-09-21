@@ -336,9 +336,16 @@
     .template-grade .grade-vertical { width: 58px; color: var(--brand-deep); background: var(--brand-soft); font-size: 16px; font-weight: 800; }
     .template-grade .room-column { width: 88px; font-weight: 700; }
     .template-grade .exam-cell { min-width: 145px; padding: 8px; }
-    .template-grade .assignment-cell { cursor: pointer; font-weight: 650; }
+    .template-grade .assignment-cell { cursor: grab; font-weight: 650; }
     .template-grade .assignment-cell:hover { outline: 2px solid var(--brand); outline-offset: -2px; background: #f0f8f3; }
     .template-grade .assignment-cell.has-reserve { color: #8a5316; background: var(--accent-soft); }
+    /* 拖拽换人：拖起后其余格子按"能否互换"标绿/标红 */
+    .template-grade .assignment-cell.is-dragging { opacity: .35; outline: 2px dashed var(--brand); outline-offset: -2px; }
+    .template-grade .assignment-cell.drop-ok { background: #e6f6ec !important; color: #12633a !important; outline: 2px solid #1a7f37; outline-offset: -2px; }
+    .template-grade .assignment-cell.drop-bad { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; cursor: not-allowed; }
+    .template-grade .assignment-cell.drop-bad::after { content: ' ✕'; font-weight: 800; }
+    .template-grade .assignment-cell.drop-ok::after { content: ' ⇄'; font-weight: 800; }
+    .swap-hint { margin: 8px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 12.5px; }
     .template-footer { margin-top: 10px; padding: 10px 12px; border: 1px solid #e2c692; color: #774811; background: var(--accent-soft); font-weight: 700; }
     .template-empty { padding: 60px 20px; color: var(--muted); text-align: center; }
     .stats-board { padding: 18px; }
@@ -3600,7 +3607,7 @@
               if (!assignment) return '<td></td>';
               const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
-              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" title="点击调整教师">${esc(cellNames)}</td>`;
+              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
             }).join('');
             return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td>${cells}</tr>`;
           }).join('');
@@ -3817,6 +3824,114 @@
           sortSessions(); state.result = []; state.activeVersionId = null; saveState(); renderAll(); renderSessionEditor();
         }
       });
+
+      // ===== 拖拽互换监考：把某格拖到另一格，两人自动互换位置 =====
+      // 规则：文化课老师只能监考自己任教的年级；体育/美术/音乐/心理健康可跨年级协调；语文老师不监考语文；
+      // 同一时段不能一人占两个考场。
+      const FLEX_MONITOR_SUBJECTS = ['体育', '美术', '心理健康', '音乐'];
+      function isFlexMonitor(teacher) { return (teacher?.subjects || []).some(subject => FLEX_MONITOR_SUBJECTS.includes(subject)); }
+      function teacherNamed(name) { return state.teachers.find(teacher => teacher.name === name); }
+      function slotKeyOf(row) { return `${row.date}|${normalizeTime(row.time)}`; }
+
+      // 判断某位老师能否去监考某一场，返回空字符串表示可以，否则返回原因
+      function monitorBlockReason(name, row) {
+        const teacher = teacherNamed(name);
+        if (!teacher) return '';
+        const isJunior = /[七八九]年级/.test(row.grade);
+        const departments = teacher.departments || [];
+        if (!(isJunior ? departments.includes('中学部') : departments.includes('小学部'))) {
+          return `${name}不属${isJunior ? '中学' : '小学'}部`;
+        }
+        if (!(teacher.grades || []).includes(row.grade) && !isFlexMonitor(teacher)) {
+          return `${name}没教${row.grade}（文化课只能本年级）`;
+        }
+        if ((teacher.subjects || []).includes('语文') && String(row.subject).includes('语文')) {
+          return `${name}教语文，不监考语文`;
+        }
+        return '';
+      }
+
+      // 两格互换是否可行
+      function swapBlockReason(rowA, rowB) {
+        if (!rowA || !rowB || rowA.id === rowB.id) return '同一个格子';
+        const teacherA = (rowA.teachers || [])[0], teacherB = (rowB.teachers || [])[0];
+        if (!teacherA || !teacherB) return '该格没有教师';
+        const keyA = slotKeyOf(rowA), keyB = slotKeyOf(rowB);
+        if (keyA !== keyB) {
+          // 换到别的时段，要确认两人各自在新时段没有别的考场
+          const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
+            slotKeyOf(row) === keyB && (row.teachers || []).some(t => t.name === teacherA.name));
+          if (aBusy) return `${teacherA.name}在 ${rowB.date} ${rowB.time} 已有别的考场`;
+          const bBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
+            slotKeyOf(row) === keyA && (row.teachers || []).some(t => t.name === teacherB.name));
+          if (bBusy) return `${teacherB.name}在 ${rowA.date} ${rowA.time} 已有别的考场`;
+        }
+        return monitorBlockReason(teacherA.name, rowB) || monitorBlockReason(teacherB.name, rowA);
+      }
+
+      function clearDragMarks() {
+        $$('.assignment-cell').forEach(cell => cell.classList.remove('is-dragging', 'drop-ok', 'drop-bad'));
+      }
+
+      function performSwap(idA, idB) {
+        const rowA = state.result.find(row => row.id === idA);
+        const rowB = state.result.find(row => row.id === idB);
+        if (!rowA || !rowB) return;
+        const reason = swapBlockReason(rowA, rowB);
+        if (reason) { toast('不能调换：' + reason, 'error'); return; }
+        const teachersA = rowA.teachers, teachersB = rowB.teachers;
+        rowA.teachers = teachersB.map(item => ({ ...item, monitorGrade: rowA.grade }));
+        rowB.teachers = teachersA.map(item => ({ ...item, monitorGrade: rowB.grade }));
+        const nameA = teachersA[0]?.name || '', nameB = teachersB[0]?.name || '';
+        persistAndRender();
+        toast(`已互换：${nameA} ⇄ ${nameB}`);
+      }
+
+      let dragSourceId = null;
+      document.addEventListener('dragstart', event => {
+        const cell = event.target.closest?.('[data-assignment-id]');
+        if (!cell) return;
+        const source = state.result.find(row => row.id === cell.dataset.assignmentId);
+        if (!source || !(source.teachers || []).length) { event.preventDefault(); return; }
+        dragSourceId = cell.dataset.assignmentId;
+        cell.classList.add('is-dragging');
+        // 拖起时就把其余格子按"能否互换"标成绿色或红色
+        $$('.assignment-cell').forEach(other => {
+          const id = other.dataset.assignmentId;
+          if (id === dragSourceId) return;
+          const target = state.result.find(row => row.id === id);
+          if (!target) return;
+          const reason = swapBlockReason(source, target);
+          other.classList.add(reason ? 'drop-bad' : 'drop-ok');
+          other.title = reason ? `不能换：${reason}` : `放开即与 ${source.teachers[0].name} 互换`;
+        });
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = 'move';
+          try { event.dataTransfer.setData('text/plain', dragSourceId); } catch (error) { /* 忽略 */ }
+        }
+      });
+
+      document.addEventListener('dragover', event => {
+        if (!dragSourceId) return;
+        const cell = event.target.closest?.('[data-assignment-id]');
+        if (!cell) return;
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = cell.classList.contains('drop-bad') ? 'none' : 'move';
+      });
+
+      document.addEventListener('drop', event => {
+        if (!dragSourceId) return;
+        const cell = event.target.closest?.('[data-assignment-id]');
+        if (!cell) return;
+        event.preventDefault();
+        const targetId = cell.dataset.assignmentId;
+        const sourceId = dragSourceId;
+        dragSourceId = null;
+        clearDragMarks();
+        if (targetId !== sourceId) performSwap(sourceId, targetId);
+      });
+
+      document.addEventListener('dragend', () => { dragSourceId = null; clearDragMarks(); });
 
       function openAssignmentEditor(id) {
         const assignment = state.result.find(row => row.id === id);
@@ -4121,7 +4236,9 @@
             state.timeTemplate = DEFAULT_TIME_TEMPLATE;
           }
           state.teachers = state.teachers.map(normalizeTeacherRecord).filter(teacher => !excludedSet().has(teacher.name));
-          if (state.selectionVersion < 1) {
+          // 旧格式迁移：只有当数据里完全没有任何「监考年级」时才清零勾选。
+          // 已带 monitorGrade 的数据属于新版，绝不能清空，否则导入备份 / 云端恢复后勾选和已排结果会全部丢失。
+          if (state.selectionVersion < 1 && !state.teachers.some(teacher => teacher.monitorGrade)) {
             state.teachers.forEach(teacher => { teacher.enabled = false; teacher.monitorGrade = ''; });
             state.result = []; state.activeVersionId = null;
             state.selectionVersion = 1;
