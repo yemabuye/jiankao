@@ -320,6 +320,8 @@
     }
     .schedule-empty svg { width: 42px; height: 42px; margin-bottom: 10px; color: #91a59a; }
     .schedule-empty strong { display: block; color: #35433b; font-size: 16px; }
+    /* display:grid 会盖掉 hidden 属性的默认隐藏，这里补一条保证真的能藏起来 */
+    .schedule-empty[hidden] { display: none; }
     .schedule-scroll { overflow: auto; max-height: calc(100vh - 295px); }
     .view-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
     .view-tabs button { min-height: 38px; padding: 6px 16px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-weight: 700; }
@@ -1543,6 +1545,25 @@
         const raw = departmentKey === '小学部' ? state.patrol.primary : state.patrol.junior;
         return String(raw || '').split(/[、，,;；\n\r\s]+/).map(s => s.trim()).filter(Boolean);
       };
+      // 机动人员 = 手动标记为「机动人员」的 + 不参与监考的（如围棋这类科目）+
+      //            一二年级这种本次没安排考试年级的老师（他们本来就没监考任务，在家待命）
+      // 已经排进监考表的老师永远不算机动。departmentKey 传 null 表示不分学部（统计表用）。
+      function reserveTeachersOf(departmentKey) {
+        const assigned = new Set(state.result.flatMap(row => (row.teachers || []).map(t => t.name)));
+        const examGrades = new Set(state.result.map(row => row.grade).filter(Boolean));
+        return state.teachers.filter(teacher => {
+          if (assigned.has(teacher.name)) return false;
+          const inDept = !departmentKey || (teacher.departments || []).includes(departmentKey);
+          if (!inDept) return false;
+          if (teacher.enabled && teacher.monitorGrade === 'reserve') return true;
+          if (teacher.excluded) return true;
+          const grades = teacher.grades || [];
+          if (!grades.length) return false;
+          const allLowerPrimary = grades.every(g => { const n = gradeNumber(g); return n >= 1 && n <= 2; });
+          const touchesExamGrade = grades.some(g => examGrades.has(g));
+          return allLowerPrimary && !touchesExamGrade;
+        });
+      }
       const padNumber = (n, pad) => String(n).padStart(pad || 2, '0');
       // 考场编号：中学部(初中) junior、小学部 primary。index 从 0 起
       const roomLabelFor = (departmentKey, index) => {
@@ -3496,10 +3517,10 @@
           }).join('');
           return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
         }).join('');
-        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve' && teacher.departments.includes(departmentKey));
+        const reserves = reserveTeachersOf(departmentKey);
         const patrol = patrolNames(departmentKey);
         const footerParts = [`机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}`];
-        if (patrol.length) footerParts.push(`巡考：${esc(patrol.join('、'))}`);
+        footerParts.push(`巡考：${patrol.length ? esc(patrol.join('、')) : '暂无'}`);
         return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">${footerParts.join('　|　')}</div></div>`;
       }
 
@@ -3533,7 +3554,7 @@
 
       function renderStatsPage() {
         const stats = gradeStatistics();
-        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve');
+        const reserves = reserveTeachersOf(null);
         const summaryRows = stats.map(item => `<tr><td><span class="grade-badge">${esc(item.grade)}</span></td><td>${item.rooms}</td><td>${item.required}</td><td>${item.selected}</td><td class="${item.balance >= 0 ? 'status-good' : 'status-bad'}">${item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`}</td><td>${item.personTimes}</td></tr>`).join('');
         const selected = state.teachers.filter(teacher => teacher.enabled);
         const teacherRows = selected.sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).map(teacher => {
@@ -3873,7 +3894,7 @@
           cursor = lastRow + 2;
         });
         const departmentKey = department === '初中部' ? '中学部' : department;
-        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve' && teacher.departments.includes(departmentKey));
+        const reserves = reserveTeachersOf(departmentKey);
         worksheet.mergeCells(cursor,1,cursor,totalColumns); worksheet.getCell(cursor,1).value = `机动人员：${reserves.map(t => t.name).join('、') || '暂无'}`; styleExcelCell(worksheet.getCell(cursor,1), true); cursor++;
         worksheet.getColumn(1).width = 12; worksheet.getColumn(2).width = 15;
         for (let column = 3; column <= totalColumns; column++) worksheet.getColumn(column).width = 24;
@@ -3900,7 +3921,7 @@
         worksheet.addRow([]); worksheet.addRow(['年级','场次数','峰值需要','已选教师','缺口/余量','监考人次']);
         gradeStatistics().forEach(item => worksheet.addRow([item.grade,item.rooms,item.required,item.selected,item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`,item.personTimes]));
         worksheet.addRow([]);
-        const reserves = state.teachers.filter(teacher => teacher.enabled && teacher.monitorGrade === 'reserve');
+        const reserves = reserveTeachersOf(null);
         worksheet.addRow(['机动人员', reserves.map(t => t.name).join('、') || '暂无']);
         worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','监考次数','具体场次']);
         state.teachers.filter(t => t.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).forEach(teacher => {
