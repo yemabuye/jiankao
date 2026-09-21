@@ -711,6 +711,29 @@
     .backup-actions { display: flex; flex-direction: column; gap: 10px; }
     .backup-hint { font-size: 12px; color: var(--muted); }
     .swap-btn { flex: 0 0 auto; }
+
+    /* ===== 监考表（老师端在线版）===== */
+    .jk-section { margin-bottom: 22px; }
+    .jk-section-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; color: #1f2937; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .jk-section-title .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #eef2ff; color: #4338ca; }
+    .jk-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line-strong, #e4e3dd); border-radius: 12px; background: #fff; }
+    .jk-table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 13px; background: #fff; }
+    .jk-table th, .jk-table td { border: 1px solid #e2e0d8; padding: 7px 9px; text-align: center; vertical-align: middle; }
+    .jk-table thead th { background: #f1f5f9; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+    .jk-table .col-room { text-align: left; background: #f8fafc; position: sticky; left: 0; z-index: 3; font-weight: 600; white-space: nowrap; }
+    .jk-table thead .col-room { z-index: 4; }
+    .jk-table .grp-row td { background: #334155; color: #fff; font-weight: 700; text-align: left; padding: 6px 10px; letter-spacing: 1px; }
+    .jk-table .date-head { background: #e0e7ff; }
+    .jk-table td.mine { background: #e0ecff; outline: 2px solid #4c7dff; outline-offset: -2px; }
+    .jk-table td.empty { color: #cbd5e1; }
+    .jk-table .teacher { display: block; font-weight: 500; }
+    .jk-table .swap-link { display: inline-block; margin-top: 3px; font-size: 11px; color: #4c7dff; cursor: pointer; }
+    .jk-tap-hint { font-size: 11px; color: #94a3b8; margin: 5px 2px 0; }
+    #tableZoom { padding: 0; width: 760px; max-width: 96vw; border: 0; border-radius: 14px; }
+    #tableZoom .zoom-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; z-index: 5; }
+    #tableZoom .zoom-head h3 { margin: 0; font-size: 15px; }
+    #tableZoom .zoom-body { overflow: auto; max-height: 82vh; padding: 14px; -webkit-overflow-scrolling: touch; }
+    #tableZoom .zoom-body .jk-table { font-size: 15px; min-width: 560px; }
   </style>
 </head>
 <body data-page-node-id="oM2eeGRSfhaxeNLaZedAiZ">
@@ -1336,6 +1359,14 @@
     </div>
 
     <div id="onlineBoard" data-page-node-id="i1HWshhqC2OSBkl59AUHYO"></div>
+
+    <dialog id="tableZoom" data-page-node-id="jkTableZoom">
+      <div class="zoom-head">
+        <h3 id="tableZoomTitle">监考表</h3>
+        <button class="icon-btn" id="tableZoomClose" aria-label="关闭"><i data-lucide="x"></i></button>
+      </div>
+      <div class="zoom-body" id="tableZoomBody"></div>
+    </dialog>
   </div>
 </div>
 
@@ -4370,7 +4401,7 @@
         const isT = isTeacherMode();
         $('#onlineBackBtn').style.display = isT ? 'none' : '';
         $('#onlineHint').textContent = isT
-          ? '这是监考表页面：先选自己的姓名，再填一次手机号后四位完成验证。之后你的场次会高亮，点场次上的「申请换班」即可跟同事调换，对方同意后自动更新。'
+          ? '这是监考表页面：小学部、初中部各一张表，所有人打开就能看到全部安排，不用先选名字。想发起换班，先选「我是谁？」填一次手机号后四位验证，再点你自己场次上的「申请换班」即可。'
           : '选择你的姓名后，你的场次会高亮显示；填一次手机号后四位完成验证，就能发起和处理换班。';
         $('#onlineView').style.display = 'block';
         $('#onlineAuthBar').style.display = 'none';
@@ -4414,25 +4445,82 @@
         if (!r) return '已删除的场次';
         return `${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）`;
       }
+      // ---------- 监考表（小学部 / 初中部 两张表）----------
+      const GRADE_ORDER = ['三年级', '四年级', '五年级', '六年级', '七年级', '八年级', '九年级'];
+      function isPrimaryGrade(g) { return ['三年级', '四年级', '五年级', '六年级'].includes(g); }
+      function formatDateLabel(d) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || '');
+        if (!m) return d || '';
+        const wd = ['日', '一', '二', '三', '四', '五', '六'][new Date(d + 'T00:00:00').getDay()];
+        return `${+m[2]}月${+m[3]}日（周${wd}）`;
+      }
+      function teacherCellHTML(r) {
+        if (!r || !r.teachers || !r.teachers.length) return '<td class="empty">—</td>';
+        const identity = onlineView.identity;
+        const mine = identity && r.teachers.includes(identity);
+        const cls = mine ? ' class="mine"' : '';
+        let inner = r.teachers.map(t => {
+          const isMe = t === identity;
+          return `<span class="teacher"${isMe ? ' style="color:#1d4ed8;font-weight:700"' : ''}>${esc(t)}</span>`;
+        }).join('<br>');
+        if (mine && isVerified()) inner += `<span class="swap-link" data-swap-from="${esc(r.sessionId)}">申请换班</span>`;
+        return `<td${cls}>${inner}</td>`;
+      }
+      function buildInvigTable(dept, rows) {
+        const grades = GRADE_ORDER.filter(g => rows.some(r => r.grade === g));
+        const periods = [...new Set(rows.map(r => r.date + '|' + r.time + '|' + r.subject))].sort((a, b) => a.localeCompare(b));
+        const dates = [...new Set(periods.map(p => p.split('|')[0]))].sort();
+        const cell = {};
+        rows.forEach(r => { cell[r.grade + '|' + r.className + '|' + r.date + '|' + r.time + '|' + r.subject] = r; });
+        const dateLabel = rows.length ? formatDateLabel(rows[0].date) : '';
+        let h = `<div class="jk-section"><div class="jk-section-title">${dept === '小学' ? '小学部监考表' : '初中部监考表'}${dept === '小学' ? ` <span class="tag">${esc(dateLabel)}</span>` : ''}</div>`;
+        h += '<div class="jk-scroll"><table class="jk-table"><thead>';
+        if (dates.length > 1) {
+          h += '<tr><th class="col-room" rowspan="2">考场</th>';
+          dates.forEach(d => {
+            const ps = periods.filter(p => p.startsWith(d + '|'));
+            h += `<th class="date-head" colspan="${ps.length}">${esc(formatDateLabel(d))}</th>`;
+          });
+          h += '</tr><tr>';
+          periods.forEach(p => { const [d, t, s] = p.split('|'); h += `<th>${esc(s)}<br><span style="font-weight:400;font-size:11px;color:#64748b">${esc(t)}</span></th>`; });
+          h += '</tr>';
+        } else {
+          h += '<tr><th class="col-room">考场</th>';
+          periods.forEach(p => { const [d, t, s] = p.split('|'); h += `<th>${esc(s)}<br><span style="font-weight:400;font-size:11px;color:#64748b">${esc(t)}</span></th>`; });
+          h += '</tr>';
+        }
+        h += '</thead><tbody>';
+        grades.forEach(g => {
+          const gradeRows = rows.filter(r => r.grade === g);
+          const rooms = [...new Set(gradeRows.map(r => r.className))].sort((a, b) => a.localeCompare(b, 'zh-CN', { numeric: true }));
+          h += `<tr class="grp-row"><td colspan="${periods.length + 1}">${esc(g)}（${rooms.length} 个考场）</td></tr>`;
+          rooms.forEach(room => {
+            h += `<tr><th class="col-room">${esc(room)}</th>`;
+            periods.forEach(p => {
+              const [d, t, s] = p.split('|');
+              const r = cell[g + '|' + room + '|' + d + '|' + t + '|' + s];
+              h += teacherCellHTML(r);
+            });
+            h += '</tr>';
+          });
+        });
+        h += '</tbody></table></div>';
+        h += '<div class="jk-tap-hint">← 左右滑动查看 · 点表格可放大</div></div>';
+        return h;
+      }
       function renderOnlineBoard() {
         const rows = ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []);
-        const identity = onlineView.identity;
         if (!rows.length) { $('#onlineBoard').innerHTML = '<p class="muted">表里还没有场次。</p>'; return; }
-        const groups = {};
-        rows.forEach(r => { const k = r.date + '|' + r.time; (groups[k] = groups[k] || []).push(r); });
-        const keys = Object.keys(groups).sort();
+        const primary = rows.filter(r => isPrimaryGrade(r.grade));
+        const middle = rows.filter(r => !isPrimaryGrade(r.grade));
         let html = '';
-        keys.forEach(k => {
-          const [date, time] = k.split('|');
-          html += `<div style="border:1px solid var(--line-strong,#e4e3dd);border-radius:12px;padding:10px 12px;margin-bottom:12px;background:#fff"><div style="font-weight:600;margin-bottom:6px">${esc(date)} · ${esc(time)}</div>`;
-          groups[k].forEach(r => { html += renderRowCard(r, identity); });
-          html += '</div>';
-        });
+        if (primary.length) html += buildInvigTable('小学', primary);
+        if (middle.length) html += buildInvigTable('初中', middle);
         // 监考表最下方：展示累计监考次数（跨考试持续累计，新建考试不清零），让老师也能看到
         const wl = (onlineView.board && onlineView.board.data && onlineView.board.data.workload) || {};
         const wlEntries = Object.entries(wl).sort((a, b) => b[1] - a[1]);
         if (wlEntries.length) {
-          html += `<div style="margin-top:6px;border-top:1px dashed #d8d7d1;padding-top:12px">
+          html += `<div style="margin-top:18px;border-top:1px dashed #d8d7d1;padding-top:12px">
             <div style="font-weight:600;margin-bottom:8px;font-size:13px;color:#374151">累计监考次数（跨考试持续累计，每次新建考试不会清零）</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">` +
             wlEntries.map(([n, c]) => `<span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0">${esc(n)}：${c} 次</span>`).join('') +
@@ -4440,18 +4528,15 @@
         }
         $('#onlineBoard').innerHTML = html;
       }
-      function renderRowCard(r, identity) {
-        const mine = identity && (r.teachers || []).includes(identity);
-        const border = mine ? '2px solid #4c7dff' : '1px solid #e4e3dd';
-        const teachers = (r.teachers || []).map(t => {
-          const isMe = t === identity;
-          return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0;font-size:12px;${isMe ? 'background:#4c7dff;color:#fff;font-weight:600' : 'background:rgba(0,0,0,0.05);color:#1a1b1c'}">${esc(t)}${isMe ? '（我）' : ''}</span>`;
-        }).join('');
-        const swapBtn = (mine && isVerified()) ? `<button class="btn btn-sm swap-btn" data-swap-from="${esc(r.sessionId)}" style="margin-left:auto">申请换班</button>` : '';
-        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:${border};border-radius:10px;margin-bottom:6px;flex-wrap:wrap;background:#fff">
-          <div style="font-size:13px;min-width:150px">${esc(r.grade)}${esc(r.subject)} · ${esc(r.className)}</div>
-          <div style="font-size:12px;color:#6b7280;flex:1;min-width:160px">${teachers}</div>${swapBtn}
-        </div>`;
+      function openTableZoom(tbl) {
+        const sec = tbl.closest('.jk-section');
+        const titleEl = sec && sec.querySelector('.jk-section-title');
+        $('#tableZoomTitle').textContent = titleEl ? titleEl.textContent.trim() : '监考表';
+        const body = $('#tableZoomBody');
+        body.innerHTML = '';
+        body.appendChild(tbl.cloneNode(true));
+        const dlg = $('#tableZoom');
+        if (typeof dlg.showModal === 'function') dlg.showModal();
       }
 
       // ---------- 待处理 / 我发出 ----------
@@ -4821,7 +4906,11 @@
           if (rj) { await rejectSwap(rj.dataset.swapReject).catch(err => toast('操作失败：' + err.message, 'error')); return; }
           const cc = e.target.closest('[data-swap-cancel]');
           if (cc) { await cancelSwap(cc.dataset.swapCancel).catch(err => toast('操作失败：' + err.message, 'error')); return; }
+          // 点表格可放大查看（手机端），点放大浮层里的表格不再二次放大
+          const tbl = e.target.closest('.jk-scroll table');
+          if (tbl && !tbl.closest('#tableZoom')) { openTableZoom(tbl); }
         });
+        $('#tableZoomClose').addEventListener('click', () => { const d = $('#tableZoom'); if (d && d.close) d.close(); });
       }
       // ---------- 后台登录 ----------
       // 密码不再存在浏览器里，也不再有默认密码。
