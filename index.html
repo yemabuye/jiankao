@@ -734,6 +734,12 @@
     #tableZoom .zoom-head h3 { margin: 0; font-size: 15px; }
     #tableZoom .zoom-body { overflow: auto; max-height: 82vh; padding: 14px; -webkit-overflow-scrolling: touch; }
     #tableZoom .zoom-body .jk-table { font-size: 15px; min-width: 560px; }
+    .cloud-sync { margin-left: 8px; font-size: 12px; color: #6b7280; }
+    .cloud-sync.ok { color: #2e8b57; }
+    .cloud-sync.err { color: #ea6668; }
+    .cloud-sync.pending { color: #b08900; }
+    .cloud-sync.off { color: #9aa0a6; }
+    #cloudSyncBox .backup-actions { margin-bottom: 8px; }
   </style>
 </head>
 <body data-page-node-id="oM2eeGRSfhaxeNLaZedAiZ">
@@ -744,6 +750,7 @@
     </div>
     <div class="header-actions" data-page-node-id="dD56hfndTBN9iPkFjTEa2c">
       <span class="save-state" id="saveState" data-page-node-id="EduC3FXQMfADPE5H8gBm0P">数据已保存在本机</span>
+      <span class="save-state" id="cloudSync"></span>
       <button class="icon-btn" id="newExamBtn" title="新建考试" aria-label="新建考试" data-page-node-id="3ebEcr0qEXiVClKXYk4u1F"><i data-lucide="file-plus-2" data-page-node-id="KGJqapJEsf6EmULMXg87mk"></i></button>
       <button class="icon-btn" id="planBtn" title="考试方案（保存/复用）" aria-label="考试方案" data-page-node-id="7CSkK0yZTg6PxqgQbJCX3m"><i data-lucide="archive" data-page-node-id="5SGVLhHvuuDGbdH8ZU0Ypt"></i></button>
       <button class="icon-btn" id="backupBtn" title="数据备份/恢复" aria-label="数据备份" data-page-node-id="srxRWumCyJ4tDMhZmbvKqE"><i data-lucide="database-backup" data-page-node-id="NwuHlQb8GJEyFRFkoDbi8H"></i></button>
@@ -1150,6 +1157,14 @@
           </div>
         </div>
         <p class="backup-hint" data-page-node-id="yAsNGv8bjbCIlr7U3ZJf91">提示：当前数据仅保存在本浏览器。建议每月导出一次备份，换电脑或清缓存后通过导入恢复。</p>
+      <div class="backup-section" id="cloudSyncBox" style="margin-top:14px;border-top:1px dashed #e4e3dd;padding-top:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">云端同步（跨设备编排）</div>
+        <div class="backup-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="cloudSaveBtn"><i data-lucide="cloud-upload"></i>保存到云端</button>
+          <button class="btn" id="cloudRestoreBtn"><i data-lucide="cloud-download"></i>从云端恢复</button>
+        </div>
+        <p class="backup-hint" id="cloudSyncNote">用后台密码登录后可用。平时改动会自动存到云端，换电脑登录会自动拉取你的编排数据。</p>
+      </div>
       </div>
     </div>
     <div class="dialog-foot" data-page-node-id="0x2z2FfUG7rEtTVK3FT2pm"><button class="btn btn-primary" data-close-dialog data-page-node-id="QETEENgHsrEQjjue487rIx">完成</button></div>
@@ -2252,12 +2267,15 @@
       }
 
       function init() {
+        // 先记住本机原本有没有数据：loadState 会自动补岗位表人员，之后就分不清了
+        const hadLocalData = !!localStorage.getItem(STORAGE_KEY);
         loadState();
         populateScheduleSelects();
         bindEvents();
         setDefaultDates();
         renderAll();
         if (window.lucide) lucide.createIcons();
+        initCloudSync({ localEmpty: !hadLocalData });
       }
 
       function setDefaultDates() {
@@ -2341,6 +2359,13 @@
         $('#clearSessionsBtn').addEventListener('click', () => confirmAction('清空考试场次', '将移除全部场次和当前排表，历史版本仍会保留。', () => { state.sessions = []; state.result = []; state.activeVersionId = null; persistAndRender(); }));
         $('#addGradeRowBtn').addEventListener('click', addGradeRow);
         $('#genGradeRowsBtn').addEventListener('click', generateFromGradeRows);
+        // 云端同步：数据备份弹窗里的「保存到云端 / 从云端恢复」
+        const csBtn = $('#cloudSaveBtn');
+        if (csBtn) csBtn.addEventListener('click', () => { cloudSaveNow(); });
+        const crBtn = $('#cloudRestoreBtn');
+        if (crBtn) crBtn.addEventListener('click', () => {
+          confirmAction('从云端恢复', '会用云端备份覆盖本机现在的编排数据（人员库、场次、排好的表全部替换）。确定继续吗？', () => { cloudRestoreNow(false); });
+        });
         $('#timeTemplateInput').addEventListener('change', () => { state.timeTemplate = $('#timeTemplateInput').value; saveState(); renderGradeRows(); });
         // 时间预设一键填入
         $('#timePresetSelect').addEventListener('change', e => {
@@ -3947,6 +3972,8 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
           $('#saveState').textContent = `已保存 ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
         } catch (error) { $('#saveState').textContent = '本地保存失败'; }
+        // 本地存好后顺手排一次云端上传（内部防抖，不会卡手）
+        scheduleCloudSave();
       }
 
       function loadState() {
@@ -4094,6 +4121,18 @@
           return r;
         },
 
+        // ---------- 编排数据云端同步（换电脑 / 清缓存后能自动找回来） ----------
+        // 整份编排数据（人员库、场次、排好的表）作为一个整体存云端，
+        // 只有后台密码登录后才可读写，服务端会校验通行证。
+        async plannerSave(data) {
+          if (this.isDemo()) return { saved: false, mode: 'demo' };
+          return apiCall('plannerSave', { token: adminToken(), data });
+        },
+        async plannerLoad() {
+          if (this.isDemo()) return { data: null };
+          return apiCall('plannerLoad', { token: adminToken() });
+        },
+
         // ---------- 发布 ----------
         async publish({ boardId, title, rows, teachers, workload }) {
           if (this.isDemo()) {
@@ -4176,6 +4215,97 @@
           return () => { clearInterval(timer); document.removeEventListener('visibilitychange', tick); };
         }
       };
+
+      // ===================== 编排数据云端同步 =====================
+      // 干两件事：
+      // 1) 平时每改一次就自动往云端存一份（防抖 2 秒，连着改只传最后一次）
+      // 2) 本机没数据时（换电脑 / 清了缓存），登录后台密码后自动把数据拉回来
+      let cloudSaveTimer = null;
+      let cloudSyncPaused = false;
+
+      function setCloudSyncStatus(kind, text) {
+        const el = $('#cloudSync');
+        if (!el) return;
+        el.textContent = text || '';
+        el.className = 'save-state cloud-sync ' + (kind || 'off');
+      }
+      function cloudSyncReady() { return !onlineBackend.isDemo() && !!adminToken(); }
+      function shortClock() { return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
+
+      // 每次 saveState 都会走到这里，但会合并成 2 秒一次上传
+      function scheduleCloudSave() {
+        if (cloudSyncPaused || !cloudSyncReady()) return;
+        if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+        setCloudSyncStatus('pending', '待同步…');
+        cloudSaveTimer = setTimeout(runCloudSave, 2000);
+      }
+
+      async function runCloudSave() {
+        cloudSaveTimer = null;
+        if (!cloudSyncReady()) return;
+        try {
+          await onlineBackend.plannerSave(state);
+          setCloudSyncStatus('ok', '已存云端 ' + shortClock());
+        } catch (e) {
+          if (!handleAuthError(e)) setCloudSyncStatus('err', '同步失败');
+        }
+      }
+
+      async function cloudSaveNow() {
+        if (!cloudSyncReady()) { toast('请先登录后台密码，登录后会自动同步', 'error'); return; }
+        setCloudSyncStatus('pending', '正在上传…');
+        try {
+          await onlineBackend.plannerSave(state);
+          setCloudSyncStatus('ok', '已存云端 ' + shortClock());
+          toast('已保存到云端');
+        } catch (e) {
+          if (!handleAuthError(e)) { setCloudSyncStatus('err', '上传失败'); toast('云端保存失败：' + e.message, 'error'); }
+        }
+      }
+
+      async function cloudRestoreNow(silent) {
+        if (!cloudSyncReady()) { toast('请先登录后台密码', 'error'); return false; }
+        try {
+          setCloudSyncStatus('pending', '正在读取…');
+          const r = await onlineBackend.plannerLoad();
+          if (!r || !r.data) {
+            setCloudSyncStatus('off', '云端暂无备份');
+            if (!silent) toast('云端还没有备份，先点「保存到云端」存一份');
+            return false;
+          }
+          // 恢复期间暂停自动上传，免得刚拉下来的数据又被立刻推回去
+          cloudSyncPaused = true;
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(r.data));
+            loadState(); renderAll();
+            if (window.lucide) lucide.createIcons();
+          } finally { cloudSyncPaused = false; }
+          setCloudSyncStatus('ok', '已恢复 ' + shortClock());
+          if (!silent) toast('已从云端恢复编排数据');
+          return true;
+        } catch (e) {
+          cloudSyncPaused = false;
+          if (!handleAuthError(e)) {
+            setCloudSyncStatus('err', '读取失败');
+            if (!silent) toast('云端恢复失败：' + e.message, 'error');
+          }
+          return false;
+        }
+      }
+
+      // 启动/登录后的同步：只有本机确实没数据才去云端拉，绝不覆盖正在做的工作
+      async function initCloudSync(opts) {
+        if (onlineBackend.isDemo()) { setCloudSyncStatus('off', '演示模式未同步'); return; }
+        if (!cloudSyncReady()) { setCloudSyncStatus('off', '登录后台后自动同步'); return; }
+        const localEmpty = (opts && typeof opts.localEmpty === 'boolean')
+          ? opts.localEmpty
+          : !localStorage.getItem(STORAGE_KEY);
+        if (localEmpty) {
+          const got = await cloudRestoreNow(true);
+          if (got) { toast('已从云端恢复你的编排数据'); return; }
+        }
+        setCloudSyncStatus('ok', '已连接云端');
+      }
 
       // ---------- 发布 ----------
       // 手机号对照表：每行「姓名 手机号」，直接从花名册粘贴即可
@@ -4874,6 +5004,9 @@
           setTimeout(() => {
             refreshSwapBadge();
             syncSwapsFromCloud({ silent: true }).catch(() => {});
+            // 登录后才拿得到通行证，这时才去云端对一次：
+            // 本机空 → 拉回来；本机有数据 → 只连上，不覆盖
+            initCloudSync();
           }, 500);
         };
         $('#changePassBtn').addEventListener('click', async () => {
