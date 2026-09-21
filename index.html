@@ -2151,13 +2151,27 @@
         const roomNames = customRoomList();
         const keys = new Set(state.sessions.map(sessionKey));
         let added = 0, skippedSubjects = 0, rowsWithGrade = 0;
-        $$('#gradeRowsList .grade-row').forEach(rowEl => {
-          const row = state.gradeRows.find(r => r.id === rowEl.dataset.grId);
-          if (!row || !row.grade) return;
+        // 考场号按「学部」跨年级连续编号：先按年级从低到高排好，再累计
+        // 初中 001、002…（七年级 001-006，八年级 007-011，九年级 012-016）
+        // 小学 01、02…（三年级 01-05，四年级 06-08 …）
+        const deptCounter = {};
+        const rowPairs = $$('#gradeRowsList .grade-row')
+          .map(rowEl => ({ rowEl, row: state.gradeRows.find(r => r.id === rowEl.dataset.grId) }))
+          .filter(pair => pair.row && pair.row.grade);
+        rowPairs.sort((a, b) => gradeRank(a.row.grade) - gradeRank(b.row.grade));
+        rowPairs.forEach(({ rowEl, row }) => {
           rowsWithGrade++;
           const roomCount = row.roomCount || 1;
-          // 有全局自定义考场名就用；否则按学部分开编号（初中 001、小学 01）
-          const names = roomNames.length ? roomNames : Array.from({ length: roomCount }, (_, i) => roomLabelFor(departmentForGrade(row.grade), i));
+          // 有全局自定义考场名就用；否则按学部分开、跨年级连续编号（初中 001、小学 01）
+          let names;
+          if (roomNames.length) {
+            names = roomNames;
+          } else {
+            const dept = departmentForGrade(row.grade);
+            const start = deptCounter[dept] || 0;
+            deptCounter[dept] = start + roomCount;
+            names = Array.from({ length: roomCount }, (_, i) => roomLabelFor(dept, start + i));
+          }
           rowEl.querySelectorAll('.gr-time-input').forEach(input => {
             const subject = input.dataset.subj;
             if (!subject) return;
