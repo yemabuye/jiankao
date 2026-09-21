@@ -739,6 +739,7 @@
     .cloud-sync.err { color: #ea6668; }
     .cloud-sync.pending { color: #b08900; }
     .cloud-sync.off { color: #9aa0a6; }
+    .cloud-sync.warn { color: #d9534f; font-weight: 600; }
     #cloudSyncBox .backup-actions { margin-bottom: 8px; }
   </style>
 </head>
@@ -4296,7 +4297,7 @@
       // 启动/登录后的同步：只有本机确实没数据才去云端拉，绝不覆盖正在做的工作
       async function initCloudSync(opts) {
         if (onlineBackend.isDemo()) { setCloudSyncStatus('off', '演示模式未同步'); return; }
-        if (!cloudSyncReady()) { setCloudSyncStatus('off', '登录后台后自动同步'); return; }
+        if (!cloudSyncReady()) { setCloudSyncStatus('warn', '⚠ 未登录后台 · 改动只存本机，没备份'); return; }
         const localEmpty = (opts && typeof opts.localEmpty === 'boolean')
           ? opts.localEmpty
           : !localStorage.getItem(STORAGE_KEY);
