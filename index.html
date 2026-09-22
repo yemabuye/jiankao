@@ -2831,13 +2831,29 @@
 
       function normalizeRoomName(value) {
         const text = String(value ?? '').normalize('NFKC').trim();
+        // 已经是零填充编号（初中 001、小学 01）就原样保留，别再改回「第N考场」
+        if (/^0\d+$/.test(text)) return text;
         const number = text.match(/\d+/)?.[0];
         if (number) return `第${Number(number)}考场`;
         return text.replace(/班/g, '考场');
       }
 
+      // 考场号按所属年级的学部编号：初中 001、002…；小学 01、02…
+      function normalizeRoomLabelForGrade(className, grade) {
+        const text = String(className ?? '').normalize('NFKC').trim();
+        if (!text) return text;
+        // 已经是零填充编号（001 / 01）就原样保留
+        if (/^0\d+$/.test(text)) return text;
+        const number = text.match(/\d+/)?.[0];
+        if (!number) return text.replace(/班/g, '考场');
+        const deptKey = departmentForGrade(grade) === '小学部' ? 'primary' : 'junior';
+        return padNumber(Number(number), state.roomScheme[deptKey].pad);
+      }
+
       function normalizeStoredRoomLabels() {
-        const normalizeRows = rows => (rows || []).forEach(row => { row.className = normalizeRoomName(row.className); });
+        const normalizeRows = rows => (rows || []).forEach(row => {
+          row.className = normalizeRoomLabelForGrade(row.className, row.grade);
+        });
         normalizeRows(state.sessions);
         normalizeRows(state.result);
         state.history.forEach(version => {
@@ -2848,11 +2864,15 @@
 
       function roomSelectOptionsHtml(selected = '', countMode = false) {
         const normalized = normalizeRoomName(selected);
+        const selNum = String(selected ?? '').match(/\d+/)?.[0];
+        const selNumValue = selNum === undefined ? null : Number(selNum);
         return Array.from({ length: MAX_ROOMS }, (_, index) => {
           const number = index + 1;
           const value = countMode ? String(number) : `第${number}考场`;
           const label = countMode ? `${number} 个考场` : value;
-          return `<option value="${value}" ${value === normalized || value === selected ? 'selected' : ''}>${label}</option>`;
+          const hit = value === selected || normalizeRoomName(value) === normalizeRoomName(selected) ||
+            (selNumValue !== null && selNumValue === number);
+          return `<option value="${value}" ${hit ? 'selected' : ''}>${esc(label)}</option>`;
         }).join('');
       }
 
