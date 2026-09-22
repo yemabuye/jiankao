@@ -915,6 +915,7 @@
           <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled data-page-node-id="QPHHoYHOzWYMSgyUtxljzL"><i data-lucide="download" data-page-node-id="auHxINJPgg8COUM6d7wGIS"></i></button>
           <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled data-page-node-id="t9YajfTxAm7ArSBmFxHGX8">导出班次表</button>
           <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled data-page-node-id="KACGH59Ve8tleXUXvk5xcf">发布在线版</button>
+          <button class="btn btn-sm" id="openPatrolBtn2" title="设置巡考人员：不参与编排，只显示在监考表页脚和全图预览里"><i data-lucide="user-check"></i>巡考人员</button>
           <button class="btn btn-sm" id="swapLogBtn" title="查看老师的换班记录" disabled data-page-node-id="58P525obfek9Co9ULOOmRS">换班记录</button>
           <button class="btn btn-sm" id="syncSwapBtn" title="把老师已经同意的换班结果同步回本地监考表" disabled>同步换班</button>
           <button class="icon-btn" id="printBtn" title="打印" aria-label="打印" disabled data-page-node-id="srAcQ601zMTRzIDvsOZhep"><i data-lucide="printer" data-page-node-id="6RNTeMx6PKGpg5vkjWGEDS"></i></button>
@@ -1585,6 +1586,10 @@
       // 注意：教的年级低（一二年级）【不等于】不用监考——体育、美术这类老师一样要排监考，
       // 所以绝不能按任教学段去推断谁机动，只能认手动标记和 excluded 标记。
       // 已经排进监考表的老师永远不算机动。departmentKey 传 null 表示不分学部（统计表用）。
+      // 一、二年级没有考场，「本年级监考本年级」时本来就排不上，未安排时统一算小学部机动人员。
+      // 注意：这只决定【显示在不在机动人员名单里】，绝不会把人从编排里踢出去
+      // —— 张卓雅（体育/二年级）、魏文芳（美术/二年级）照样排监考，排上了就不算机动。
+      const LOW_PRIMARY_GRADES = ['一年级', '二年级'];
       function reserveTeachersOf(departmentKey) {
         const assigned = new Set(state.result.flatMap(row => (row.teachers || []).map(t => t.name)));
         return state.teachers.filter(teacher => {
@@ -1593,6 +1598,8 @@
           if (!inDept) return false;
           if (teacher.monitorGrade === 'reserve') return true;
           if (teacher.excluded) return true;
+          const grades = (teacher.grades || []).filter(Boolean);
+          if (grades.length && grades.every(g => LOW_PRIMARY_GRADES.includes(g))) return true;
           return false;
         });
       }
@@ -2616,8 +2623,8 @@
           event.target.value = '';
         });
         // ---------- 巡考人员：独立弹窗，小学 / 中学分开挑人 ----------
-        const opb = $('#openPatrolBtn');
-        if (opb) opb.addEventListener('click', openPatrolDialog);
+        // 两个入口都能开：人员管理弹窗里的 + 监考表上方工具条的
+        $$('#openPatrolBtn, #openPatrolBtn2').forEach(btn => { if (btn) btn.addEventListener('click', openPatrolDialog); });
         const psb = $('#patrolSaveBtn');
         if (psb) psb.addEventListener('click', () => {
           state.patrol.primary = (patrolDraft.primary || []).join('、');
@@ -3568,10 +3575,37 @@
           <select data-field="grade" aria-label="年级">${gradeSelectOptionsHtml(s.grade)}</select>
           <select data-field="subject" aria-label="科目">${subjectOptionsHtml(s.grade, s.subject || '')}</select>
           <input type="date" data-field="date" value="${esc(s.date)}" aria-label="日期">
-          <input data-field="time" value="${esc(s.time)}" aria-label="时间">
+          <input data-field="time" value="${esc(s.time)}" aria-label="时间" placeholder="08:30-10:00">
           <select data-field="className" aria-label="考场">${roomOptionsForGrade(s.grade, s.className)}</select>
           <button class="icon-btn" data-session-delete="${s.id}" title="删除" aria-label="删除场次"><i data-lucide="trash-2"></i></button>
         </div>`).join('');
+        // 行内直接改：年级 / 科目 / 日期 / 时间 / 考场。改完即保存，并同步到已排结果表。
+        $$('.session-row', root).forEach(row => {
+          const sid = row.dataset.sessionId;
+          const fieldVal = f => { const el = row.querySelector(`[data-field="${f}"]`); return el ? el.value : ''; };
+          const onFieldChange = () => {
+            const session = state.sessions.find(s => s.id === sid);
+            if (!session) return;
+            const grade = normalizeGrade(fieldVal('grade'));
+            session.grade = grade;
+            session.subject = fieldVal('subject');
+            session.date = fieldVal('date');
+            session.time = normalizeTime(fieldVal('time'));
+            session.className = fieldVal('className');
+            // 同步已排结果里同一场次的显示字段（按场次 id 对应）
+            state.result.forEach(r => {
+              if (r.id === sid) { r.grade = grade; r.subject = session.subject; r.date = session.date; r.time = session.time; r.className = session.className; }
+            });
+            sortSessions();
+            saveState();
+            renderSessionEditor();
+            renderAll();
+          };
+          ['grade', 'subject', 'date', 'time', 'className'].forEach(f => {
+            const el = row.querySelector(`[data-field="${f}"]`);
+            if (el) el.addEventListener('change', onFieldChange);
+          });
+        });
         if (window.lucide) lucide.createIcons();
       }
 
