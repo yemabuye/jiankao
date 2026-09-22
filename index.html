@@ -5048,7 +5048,14 @@
         const to = $('#swapToTeacher').value;
         const rows = ((onlineView.board.data && onlineView.board.data.rows) || []);
         const sessions = rows.filter(r => (r.teachers || []).includes(to));
-        $('#swapToSession').innerHTML = sessions.map(r => `<option value="${esc(r.sessionId)}">${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）</option>`).join('');
+        // 按考试日期分组，让"第一天 / 第二天 ……"都明确可选（本次考试全程都能换）
+        const byDate = {};
+        sessions.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+        const dates = Object.keys(byDate).sort();
+        $('#swapToSession').innerHTML = dates.map(d => {
+          const opts = byDate[d].map(r => `<option value="${esc(r.sessionId)}">${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.time)}）</option>`).join('');
+          return `<optgroup label="${esc(formatDateLabel(d))}">${opts}</optgroup>`;
+        }).join('');
         updateSwapConflict();
       }
       function updateSwapConflict() {
