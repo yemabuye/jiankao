@@ -336,6 +336,10 @@
     .template-grade .grade-vertical { width: 58px; color: var(--brand-deep); background: var(--brand-soft); font-size: 16px; font-weight: 800; }
     .template-grade .room-column { width: 88px; font-weight: 700; }
     .template-grade .exam-cell { min-width: 145px; padding: 8px; }
+    .template-grade .exam-cell input.cell-time { width: 100%; box-sizing: border-box; margin-top: 5px; font-size: 12px; text-align: center; padding: 3px 4px; border: 1px solid #c9d6cf; border-radius: 6px; background: #fffdf3; color: #2a2f2b; }
+    .template-grade .exam-cell input.cell-time:focus { outline: 2px solid #2f9e6b; border-color: #2f9e6b; }
+    .template-grade th input.cell-date { width: 100%; box-sizing: border-box; font-size: 12px; text-align: center; padding: 3px 4px; border: 1px solid #c9d6cf; border-radius: 6px; background: #fffdf3; color: #2a2f2b; }
+    .template-grade th input.cell-date:focus { outline: 2px solid #2f9e6b; border-color: #2f9e6b; }
     .template-grade .assignment-cell { cursor: grab; font-weight: 650; }
     .template-grade .assignment-cell:hover { outline: 2px solid var(--brand); outline-offset: -2px; background: #f0f8f3; }
     .template-grade .assignment-cell.has-reserve { color: #8a5316; background: var(--accent-soft); }
@@ -3610,6 +3614,7 @@
         $('#metricTeachers').textContent = new Set(state.result.flatMap(row => row.teachers.map(t => t.id))).size;
         $('#metricVersion').textContent = version?.label || '已恢复';
         $('#templateView').innerHTML = state.resultTab === 'stats' ? renderStatsPage() : state.resultTab === 'overview' ? renderOverviewTemplate() : renderDepartmentTemplate(state.resultTab);
+        bindTemplateEdits();
         renderWorkload();
       }
 
@@ -3641,8 +3646,8 @@
             if (previous?.date === event.date) previous.count++;
             else dateGroups.push({ date: event.date, count: 1 });
           });
-          const headDates = dateGroups.map(group => `<th colspan="${group.count}">${esc(displayExamDate(group.date))}</th>`).join('');
-          const headEvents = events.map(event => `<th class="exam-cell"><span class="subject-badge ${subjectBadgeClass(event.subject)}">${esc(event.subject)}</span><br><span class="muted">${esc(event.time)}</span></th>`).join('');
+          const headDates = dateGroups.map(group => `<th colspan="${group.count}"><input class="cell-date" type="date" value="${esc(group.date)}" data-date="${esc(group.date)}" title="${esc(displayExamDate(group.date))}"></th>`).join('');
+          const headEvents = events.map(event => `<th class="exam-cell"><span class="subject-badge ${subjectBadgeClass(event.subject)}">${esc(event.subject)}</span><br><input class="cell-time" type="text" value="${esc(event.time)}" data-date="${esc(event.date)}" data-time="${esc(normalizeTime(event.time))}" data-subject="${esc(event.subject)}"></th>`).join('');
           const body = rooms.map((room, roomIndex) => {
             const cells = events.map(event => {
               const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
@@ -3660,6 +3665,31 @@
         const footerParts = [`机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}`];
         footerParts.push(`巡考：${patrol.length ? esc(patrol.join('、')) : '暂无'}`);
         return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">${footerParts.join('　|　')}</div></div>`;
+      }
+
+      // 监考表表头的时间/日期改成可编辑输入框：改完即时写回 state.result / state.sessions
+      function bindTemplateEdits() {
+        const tv = $('#templateView');
+        if (!tv || tv.dataset.editBound === '1') return;
+        tv.dataset.editBound = '1';
+        tv.addEventListener('change', (e) => {
+          const t = e.target;
+          if (t.classList.contains('cell-time')) {
+            const newTime = normalizeTime(t.value);
+            const oldDate = t.dataset.date, oldTime = t.dataset.time, subject = t.dataset.subject;
+            const m = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(newTime);
+            if (!m || +m[1] > 23 || +m[3] > 23 || +m[2] > 59 || +m[4] > 59 || newTime === oldTime) { renderSchedule(); return; }
+            state.result.forEach(r => { if (r.date === oldDate && normalizeTime(r.time) === oldTime && r.subject === subject) r.time = newTime; });
+            state.sessions.forEach(s => { if (s.date === oldDate && normalizeTime(s.time) === oldTime && s.subject === subject) s.time = newTime; });
+            saveState(); renderSchedule();
+          } else if (t.classList.contains('cell-date')) {
+            const newDate = t.value, oldDate = t.dataset.date;
+            if (!newDate || newDate === oldDate) { renderSchedule(); return; }
+            state.result.forEach(r => { if (r.date === oldDate) r.date = newDate; });
+            state.sessions.forEach(s => { if (s.date === oldDate) s.date = newDate; });
+            saveState(); renderSchedule();
+          }
+        });
       }
 
       // 全图预览：把小学部、初中部两张表拼在一起看，附巡考名单（老师想一眼看全部时用）
