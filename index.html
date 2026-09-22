@@ -3862,6 +3862,8 @@
         if (session) {
           const field = event.target.dataset.field;
           const value = event.target.value;
+          // 改之前的匹配键：用来在已排结果里定位对应的那一行（兼容旧数据里 result 与 session 的 id 不一致的情况）
+          const oldKey = { grade: session.grade, className: session.className, subject: session.subject, date: session.date, time: normalizeTime(session.time) };
           if (field === 'grade') {
             session.grade = normalizeGrade(value);
             if (session.subject && !subjectsForGrades([session.grade]).includes(session.subject)) session.subject = '';
@@ -3875,8 +3877,11 @@
             session.date = value;
           }
           // 同步到已排结果里同一场次，不再清空整张监考表（修复"改时间监考表变空白"）
+          // 优先按场次 id 匹配；旧数据 id 不一致时，退而按 日期+时间+年级+考场+科目 匹配
           state.result.forEach(r => {
-            if (r.id === session.id) { r.grade = session.grade; r.subject = session.subject; r.date = session.date; r.time = session.time; r.className = session.className; }
+            const hit = r.id === session.id
+              || (r.grade === oldKey.grade && r.className === oldKey.className && r.subject === oldKey.subject && r.date === oldKey.date && normalizeTime(r.time) === oldKey.time);
+            if (hit) { r.grade = session.grade; r.subject = session.subject; r.date = session.date; r.time = session.time; r.className = session.className; }
           });
           sortSessions(); saveState(); renderAll(); renderSessionEditor();
         }
