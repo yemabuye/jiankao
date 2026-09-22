@@ -3579,33 +3579,7 @@
           <select data-field="className" aria-label="考场">${roomOptionsForGrade(s.grade, s.className)}</select>
           <button class="icon-btn" data-session-delete="${s.id}" title="删除" aria-label="删除场次"><i data-lucide="trash-2"></i></button>
         </div>`).join('');
-        // 行内直接改：年级 / 科目 / 日期 / 时间 / 考场。改完即保存，并同步到已排结果表。
-        $$('.session-row', root).forEach(row => {
-          const sid = row.dataset.sessionId;
-          const fieldVal = f => { const el = row.querySelector(`[data-field="${f}"]`); return el ? el.value : ''; };
-          const onFieldChange = () => {
-            const session = state.sessions.find(s => s.id === sid);
-            if (!session) return;
-            const grade = normalizeGrade(fieldVal('grade'));
-            session.grade = grade;
-            session.subject = fieldVal('subject');
-            session.date = fieldVal('date');
-            session.time = normalizeTime(fieldVal('time'));
-            session.className = fieldVal('className');
-            // 同步已排结果里同一场次的显示字段（按场次 id 对应）
-            state.result.forEach(r => {
-              if (r.id === sid) { r.grade = grade; r.subject = session.subject; r.date = session.date; r.time = session.time; r.className = session.className; }
-            });
-            sortSessions();
-            saveState();
-            renderSessionEditor();
-            renderAll();
-          };
-          ['grade', 'subject', 'date', 'time', 'className'].forEach(f => {
-            const el = row.querySelector(`[data-field="${f}"]`);
-            if (el) el.addEventListener('change', onFieldChange);
-          });
-        });
+        // 行内字段改动由全局 change 监听器统一处理（同步到已排结果，不再清空监考表）
         if (window.lucide) lucide.createIcons();
       }
 
@@ -3887,9 +3861,24 @@
         const session = state.sessions.find(s => s.id === row.dataset.sessionId);
         if (session) {
           const field = event.target.dataset.field;
-          session[field] = field === 'grade' ? normalizeGrade(event.target.value) : field === 'time' ? normalizeTime(event.target.value) : event.target.value.trim();
-          if (field === 'grade' && session.subject && !subjectsForGrades([session.grade]).includes(session.subject)) session.subject = '';
-          sortSessions(); state.result = []; state.activeVersionId = null; saveState(); renderAll(); renderSessionEditor();
+          const value = event.target.value;
+          if (field === 'grade') {
+            session.grade = normalizeGrade(value);
+            if (session.subject && !subjectsForGrades([session.grade]).includes(session.subject)) session.subject = '';
+          } else if (field === 'time') {
+            session.time = normalizeTime(value);
+          } else if (field === 'className') {
+            session.className = value.trim();
+          } else if (field === 'subject') {
+            session.subject = value;
+          } else if (field === 'date') {
+            session.date = value;
+          }
+          // 同步到已排结果里同一场次，不再清空整张监考表（修复"改时间监考表变空白"）
+          state.result.forEach(r => {
+            if (r.id === session.id) { r.grade = session.grade; r.subject = session.subject; r.date = session.date; r.time = session.time; r.className = session.className; }
+          });
+          sortSessions(); saveState(); renderAll(); renderSessionEditor();
         }
       });
 
