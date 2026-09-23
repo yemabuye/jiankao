@@ -3384,9 +3384,39 @@
         toast(`已设置 ${teachers.length} 位教师`);
       }
 
+      // 旧数据修复：早期/云端救援来的排表里 teachers[].id 存的是姓名而非人员库 ID，
+      // 导致所有「按 ID 统计」的地方（教师统计、明细、本次次数）全算成 0。按姓名把 ID 换回真身。
+      function normalizeResultTeacherIds() {
+        const byId = new Map(state.teachers.map(t => [t.id, t]));
+        const byName = new Map(state.teachers.map(t => [t.name, t]));
+        let fixed = 0;
+        const fixRows = rows => (rows || []).forEach(row => (row.teachers || []).forEach(entry => {
+          if (byId.has(entry.id) || !entry.name) return;
+          const real = byName.get(entry.name);
+          if (real) { entry.id = real.id; fixed++; }
+        }));
+        fixRows(state.result);
+        state.history.forEach(v => fixRows(v.result));
+        // 累计种子也一样：它的键来自历史版本的 t.id，旧数据里同样是姓名，统一换成真 ID
+        if (state.workloadSeed && typeof state.workloadSeed === 'object') {
+          const seed = {};
+          Object.entries(state.workloadSeed).forEach(([key, n]) => {
+            const real = byId.has(key) ? key : (byName.get(key) || {}).id;
+            if (real) seed[real] = (seed[real] || 0) + (Number(n) || 0);
+          });
+          state.workloadSeed = seed;
+        }
+        return fixed;
+      }
+
+      // 判断某场次的监考名单里有没有这位老师：先按 ID，再按姓名兜底（兼容上面那类旧数据）
+      function rowHasTeacher(row, teacher) {
+        return (row.teachers || []).some(item => item.id === teacher.id || (teacher.name && item.name === teacher.name));
+      }
+
       function teacherAssignmentStats() {
         const current = new Map();
-        state.result.forEach(row => (row.teachers || []).forEach(t => current.set(t.id, (current.get(t.id) || 0) + 1)));
+        state.teachers.forEach(t => current.set(t.id, state.result.reduce((n, row) => n + (rowHasTeacher(row, t) ? 1 : 0), 0)));
         const cumulative = new Map();
         // 优先用独立累计种子（支持一键清零）；未启用时回退到历史版本累计，保证旧数据兼容
         if (state.workloadSeed && typeof state.workloadSeed === 'object') {
@@ -3566,7 +3596,7 @@
         const rows = [];
         // 明细以「当前排好的监考表」为准，这样换班后、手工改格子后的结果都能立刻反映出来
         state.result.forEach(row => (row.teachers || []).forEach((assigned, seat) => {
-          if (assigned.id !== id) return;
+          if (assigned.id !== id && assigned.name !== teacher.name) return;
           rows.push({ date: row.date, time: row.time, subject: row.subject, grade: row.grade, className: row.className, role: row.teachers.length > 1 ? (seat === 0 ? '主监' : '副监') : '监考' });
         }));
         rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
@@ -3621,7 +3651,7 @@
         box.innerHTML = matches.map(teacher => {
           const rows = [];
           state.result.forEach(row => (row.teachers || []).forEach((assigned, seat) => {
-            if (assigned.id !== teacher.id) return;
+            if (assigned.id !== teacher.id && assigned.name !== teacher.name) return;
             rows.push({ date: row.date, time: row.time, subject: row.subject, grade: row.grade, className: row.className, role: row.teachers.length > 1 ? (seat === 0 ? '主监' : '副监') : '监考' });
           }));
           rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
@@ -3759,7 +3789,7 @@
             const cells = events.map(event => {
               const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
               if (!assignment) return '<td></td>';
-              const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id)?.monitorGrade === 'reserve');
+              const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id || teacher.name === assigned.name)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
               const tid = assignment.teachers.map(teacher => teacher.id).join(',');
               return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
@@ -3834,7 +3864,7 @@
         const summaryRows = stats.map(item => `<tr><td><span class="grade-badge">${esc(item.grade)}</span></td><td>${item.rooms}</td><td>${item.required}</td><td>${item.selected}</td><td class="${item.balance >= 0 ? 'status-good' : 'status-bad'}">${item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`}</td><td>${item.personTimes}</td></tr>`).join('');
         const selected = state.teachers.filter(teacher => teacher.enabled);
         const teacherRows = selected.sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).map(teacher => {
-          const assigned = state.result.filter(row => row.teachers.some(item => item.id === teacher.id));
+          const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
           const details = assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；');
           return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${teacher.monitorGrade === 'reserve' ? 'reserve-mark' : ''}">${esc(teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade)}</td><td><strong>${assigned.length}</strong></td><td class="muted">${esc(details || '尚未安排')}</td></tr>`;
         }).join('');
@@ -4156,7 +4186,11 @@
         const ids = [$('#assignmentTeacher1').value, $('#assignmentTeacher2').value].slice(0, expected).filter(Boolean);
         if (ids.length !== expected) return toast(`请选择 ${expected} 位监考教师`, 'error');
         if (new Set(ids).size !== ids.length) return toast('同一考场不能安排同一位教师两次', 'error');
-        const conflicting = ids.find(id => state.result.some(row => row.id !== assignment.id && timeKey(row) === timeKey(assignment) && row.teachers.some(teacher => teacher.id === id)));
+        const conflicting = ids.find(id => {
+          const sel = state.teachers.find(item => item.id === id);
+          if (!sel) return false;
+          return state.result.some(row => row.id !== assignment.id && timeKey(row) === timeKey(assignment) && rowHasTeacher(row, sel));
+        });
         if (conflicting) {
           const teacher = state.teachers.find(item => item.id === conflicting);
           return toast(`${teacher?.name || '所选教师'}在同一时段已有监考`, 'error');
@@ -4329,7 +4363,7 @@
         worksheet.addRow(['机动人员', reserves.map(t => t.name).join('、') || '暂无']);
         worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','监考次数','具体场次']);
         state.teachers.filter(t => t.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).forEach(teacher => {
-          const assigned = state.result.filter(row => row.teachers.some(item => item.id === teacher.id));
+          const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
           worksheet.addRow([teacher.name,teacher.grades.join('、'),teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade,assigned.length,assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排']);
         });
         worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
@@ -4445,6 +4479,7 @@
           }
           mergeBuiltinTeachers();
           normalizeStoredRoomLabels();
+          normalizeResultTeacherIds();
         } catch (error) {
           localStorage.removeItem(STORAGE_KEY);
           state.teachers = []; state.sessions = []; state.result = []; state.history = [];
