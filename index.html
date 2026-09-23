@@ -349,6 +349,15 @@
     .template-grade .assignment-cell.drop-bad { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; cursor: not-allowed; }
     .template-grade .assignment-cell.drop-bad::after { content: ' ✕'; font-weight: 800; }
     .template-grade .assignment-cell.drop-ok::after { content: ' ⇄'; font-weight: 800; }
+    /* 搜索老师后在监考表里高亮他监考的所有场次 */
+    .template-grade .assignment-cell.search-hit { outline: 3px solid #f59e0b; outline-offset: -3px; background: #fff7e6; color: #92400e; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+    /* 老师搜索结果卡片 */
+    .ts-card { border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: #fff; }
+    .ts-head { font-size: 15px; color: var(--brand-deep); padding: 2px 0 6px; border-bottom: 1px dashed #e2e0d8; margin-bottom: 6px; }
+    .ts-head:hover { color: #b45309; }
+    .ts-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+    .ts-table th, .ts-table td { border: 1px solid #e2e0d8; padding: 5px 7px; text-align: center; }
+    .ts-table thead th { background: #f1f5f9; font-weight: 600; }
     .swap-hint { margin: 8px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 12.5px; }
     .template-footer { margin-top: 10px; padding: 10px 12px; border: 1px solid #e2c692; color: #774811; background: var(--accent-soft); font-weight: 700; }
     .template-empty { padding: 60px 20px; color: var(--muted); text-align: center; }
@@ -919,6 +928,8 @@
           <button class="icon-btn" id="exportBtn" title="导出 Excel" aria-label="导出 Excel" disabled data-page-node-id="QPHHoYHOzWYMSgyUtxljzL"><i data-lucide="download" data-page-node-id="auHxINJPgg8COUM6d7wGIS"></i></button>
           <button class="btn btn-sm" id="exportShiftsBtn" title="导出供排班小程序导入的班次表（每岗位一行）" disabled data-page-node-id="t9YajfTxAm7ArSBmFxHGX8">导出班次表</button>
           <button class="btn btn-sm" id="publishBtn" title="发布成在线版，老师通过链接查看并自助换班" disabled data-page-node-id="KACGH59Ve8tleXUXvk5xcf">发布在线版</button>
+          <button class="btn btn-sm" id="saveBtn" title="把当前编排（含老师已同意的换班）保存到云端备份，之后发布在线版不再反复确认覆盖" disabled>保存</button>
+          <button class="btn btn-sm" id="searchTeacherBtn" title="排完监考后，按老师姓名查找他监考的考场" disabled>搜老师</button>
           <button class="btn btn-sm" id="openPatrolBtn2" title="设置巡考人员：不参与编排，只显示在监考表页脚和全图预览里"><i data-lucide="user-check"></i>巡考人员</button>
           <button class="btn btn-sm" id="swapLogBtn" title="查看老师的换班记录" disabled data-page-node-id="58P525obfek9Co9ULOOmRS">换班记录</button>
           <button class="btn btn-sm" id="syncSwapBtn" title="把老师已经同意的换班结果同步回本地监考表" disabled>同步换班</button>
@@ -1134,6 +1145,15 @@
       </table></div>
     </div>
     <div class="dialog-foot" data-page-node-id="abeIbgIGW3vRkBY5LgZ43N"><button class="btn btn-primary" data-close-dialog data-page-node-id="vPtHe1mk6nlbvMiDLQoymW">关闭</button></div>
+  </dialog>
+
+  <dialog id="teacherSearchDialog" data-page-node-id="tvSearchDlg">
+    <div class="dialog-head" data-page-node-id="tvHead"><h2 data-page-node-id="tvTitle">按老师姓名搜索监考位置</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="tvClose"><i data-lucide="x" data-page-node-id="tvX"></i></button></div>
+    <div class="dialog-body" data-page-node-id="tvBody">
+      <input id="teacherSearchInput" class="text-input" placeholder="输入老师姓名，如：张伟" data-page-node-id="tvInput" style="width:100%;box-sizing:border-box;padding:9px 12px;font-size:14px;border:1px solid #c9d6cf;border-radius:8px;margin-bottom:12px">
+      <div id="teacherSearchResults" data-page-node-id="tvResults"></div>
+    </div>
+    <div class="dialog-foot" data-page-node-id="tvFoot"><button class="btn btn-primary" data-close-dialog data-page-node-id="tvDone">关闭</button></div>
   </dialog>
 
   <dialog id="planDialog" data-page-node-id="rbzyktM6kNRCBbiGbiPFrQ">
@@ -3544,15 +3564,100 @@
         const teacher = state.teachers.find(t => t.id === id);
         if (!teacher) return;
         const rows = [];
-        state.history.forEach(v => (v.result || []).forEach(row => (row.teachers || []).forEach((assigned, seat) => {
+        // 明细以「当前排好的监考表」为准，这样换班后、手工改格子后的结果都能立刻反映出来
+        state.result.forEach(row => (row.teachers || []).forEach((assigned, seat) => {
           if (assigned.id !== id) return;
           rows.push({ date: row.date, time: row.time, subject: row.subject, grade: row.grade, className: row.className, role: row.teachers.length > 1 ? (seat === 0 ? '主监' : '副监') : '监考' });
-        })));
+        }));
         rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
         $('#teacherDetailTitle').textContent = `${teacher.name} 的监考明细`;
-        $('#teacherDetailSummary').textContent = rows.length ? `累计监考 ${rows.length} 场（来自全部历史版本），按日期排序。` : '该教师目前没有监考记录。';
+        $('#teacherDetailSummary').textContent = rows.length ? `本次考试共监考 ${rows.length} 场，按日期排序。` : '该教师本次考试没有监考记录。';
         $('#teacherDetailBody').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.subject || '—')}</td><td>${esc(r.grade)}</td><td>${esc(roomDisplayName(r.className, departmentForGrade(r.grade)))}</td><td>${esc(r.role)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">暂无监考记录</td></tr>';
         $('#teacherDetailDialog').showModal();
+      }
+
+      // 按老师姓名搜索：列出他本次监考的全部场次（日期/时间/科目/年级/考场），并可选在监考表里高亮
+      function openTeacherSearch() {
+        if (!state.result.length) return toast('请先排完监考，再搜索老师', 'error');
+        const input = $('#teacherSearchInput'), box = $('#teacherSearchResults');
+        input.value = '';
+        box.innerHTML = '<p class="muted">输入老师姓名，下方会列出他监考的日期、时间、科目、年级和考场；点老师姓名可在监考表里高亮他的所有场次。</p>';
+        clearTeacherHighlight();
+        $('#teacherSearchDialog').showModal();
+        setTimeout(() => input.focus(), 50);
+      }
+
+      function clearTeacherHighlight() {
+        $$('#templateView .assignment-cell.search-hit').forEach(el => el.classList.remove('search-hit'));
+      }
+
+      function highlightTeacher(teacherId) {
+        clearTeacherHighlight();
+        let first = null;
+        $$('#templateView .assignment-cell').forEach(el => {
+          const ids = (el.dataset.teacherIds || '').split(',').filter(Boolean);
+          if (ids.includes(String(teacherId))) {
+            el.classList.add('search-hit');
+            if (!first) first = el;
+          }
+        });
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      function runTeacherSearch() {
+        const q = $('#teacherSearchInput').value.trim();
+        const box = $('#teacherSearchResults');
+        if (!q) {
+          box.innerHTML = '<p class="muted">输入老师姓名，下方会列出他监考的日期、时间、科目、年级和考场；点老师姓名可在监考表里高亮他的所有场次。</p>';
+          clearTeacherHighlight();
+          return;
+        }
+        const matches = state.teachers.filter(t => t.name && t.name.includes(q));
+        if (!matches.length) {
+          box.innerHTML = `<p class="muted">没找到姓名包含「${esc(q)}」的老师。可去「教师管理」核对姓名。</p>`;
+          clearTeacherHighlight();
+          return;
+        }
+        box.innerHTML = matches.map(teacher => {
+          const rows = [];
+          state.result.forEach(row => (row.teachers || []).forEach((assigned, seat) => {
+            if (assigned.id !== teacher.id) return;
+            rows.push({ date: row.date, time: row.time, subject: row.subject, grade: row.grade, className: row.className, role: row.teachers.length > 1 ? (seat === 0 ? '主监' : '副监') : '监考' });
+          }));
+          rows.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.grade.localeCompare(b.grade, 'zh-CN'));
+          const header = `<div class="ts-head" data-teacher-id="${teacher.id}" title="点此在监考表里高亮"><b>${esc(teacher.name)}</b>${rows.length ? ` · 共 ${rows.length} 场` : ' · 本次没有监考'}</div>`;
+          const body = rows.length
+            ? `<table class="ts-table"><thead><tr><th>日期</th><th>时间</th><th>科目</th><th>年级</th><th>考场</th><th>身份</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.subject || '—')}</td><td>${esc(r.grade)}</td><td>${esc(roomDisplayName(r.className, departmentForGrade(r.grade)))}</td><td>${esc(r.role)}</td></tr>`).join('')}</tbody></table>`
+            : '';
+          return `<div class="ts-card">${header}${body}</div>`;
+        }).join('');
+        box.querySelectorAll('.ts-head[data-teacher-id]').forEach(h => h.addEventListener('click', () => highlightTeacher(h.dataset.teacherId)));
+        if (matches.length === 1) highlightTeacher(matches[0].id);
+      }
+
+      // 把当前编排（含老师已同意的换班）保存到云端备份，并标记换班已同步，避免发布时反复确认
+      async function saveToCloud() {
+        if (!state.result.length && !state.teachers.length) return toast('还没有可保存的内容', 'error');
+        if (!adminToken()) { showLoginOverlay(); return toast('请先用后台密码登录，再保存', 'error'); }
+        const btn = $('#saveBtn');
+        const old = btn.textContent; btn.disabled = true; btn.textContent = '保存中…';
+        try {
+          // 先把老师已同意的换班并入本地监考表，确保保存后云端换班结果不丢
+          if (state.publishedBoardId) {
+            try {
+              const swaps = await onlineBackend.listSwaps(state.publishedBoardId);
+              if ((swaps || []).some(s => s.status === 'approved')) {
+                const r = await syncSwapsFromCloud({ silent: true });
+                if (r && r.applied) toast(`已把 ${r.applied} 条老师换班并入本地表`);
+              }
+            } catch (e) { /* 没发布过或查不到就跳过 */ }
+          }
+          await onlineBackend.plannerSave(state);
+          saveState();
+          refreshSwapBadge();
+          toast('已保存到云端');
+        } catch (e) { if (!handleAuthError(e)) toast('保存失败：' + e.message, 'error'); }
+        finally { btn.disabled = !(state.result.length || state.teachers.length); btn.textContent = old; }
       }
 
       function startNewExam() {
@@ -3599,6 +3704,8 @@
         $('#syncSwapBtn').disabled = !has;
         $('#printBtn').disabled = !has;
         $('#clearResultBtn').disabled = !has;
+        $('#searchTeacherBtn').disabled = !has;
+        $('#saveBtn').disabled = !(state.result.length || state.teachers.length);
         $$('#resultTabs button').forEach(button => button.classList.toggle('active', button.dataset.resultTab === state.resultTab));
         if (!has) {
           $('#templateView').innerHTML = '';
@@ -3654,7 +3761,8 @@
               if (!assignment) return '<td></td>';
               const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
-              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
+              const tid = assignment.teachers.map(teacher => teacher.id).join(',');
+              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
             }).join('');
             return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td>${cells}</tr>`;
           }).join('');
@@ -4666,13 +4774,14 @@
           showLoginOverlay();
           return toast('请先用后台密码登录，再发布在线版', 'error');
         }
-        // 云端已经有换班结果时先问一句，别让本地数据把老师的换班冲掉
+        // 云端有「还没同步回本地」的换班结果时才问一句，别让本地数据把老师的换班冲掉
+        // （点过「保存」或「同步换班」后这些换班已并入本地，就不会再反复弹这个确认框）
         if (!onlineBackend.isDemo() && state.publishedBoardId) {
           try {
             const swaps = await onlineBackend.listSwaps(state.publishedBoardId);
-            const approved = (swaps || []).filter(s => s.status === 'approved').length;
-            if (approved) {
-              const go = await confirmAsync('确认覆盖云端换班结果', `云端已有 ${approved} 条老师自助换班（已同意）。再次发布会用你本地的监考表覆盖它们，这些换班结果将丢失。确定继续吗？`);
+            const pending = pendingSwapCount(swaps);
+            if (pending > 0) {
+              const go = await confirmAsync('确认覆盖云端换班结果', `云端还有 ${pending} 条老师自助换班（已同意）未同步回本地。再次发布会用你本地的监考表覆盖它们，这些换班结果将丢失。先点「保存」可把换班并入本地，就不会丢失。确定继续吗？`);
               if (!go) return;
             }
           } catch (e) { /* 查不到记录就按正常发布处理 */ }
@@ -5138,6 +5247,9 @@
           $('#lcStatus').textContent = r.ok ? '连接成功：' + r.mode : '连接失败：' + (r.error || '未知错误');
         });
         $('#publishBtn').addEventListener('click', publishOnline);
+        $('#saveBtn').addEventListener('click', saveToCloud);
+        $('#searchTeacherBtn').addEventListener('click', openTeacherSearch);
+        $('#teacherSearchInput').addEventListener('input', runTeacherSearch);
         $('#swapLogBtn').addEventListener('click', async () => {
           const boardId = state.publishedBoardId;
           if (!boardId) return toast('请先发布在线版，再查看换班记录', 'error');
