@@ -335,6 +335,11 @@
     .template-grade td { text-align: center; white-space: normal; }
     .template-grade .grade-vertical { width: 58px; color: var(--brand-deep); background: var(--brand-soft); font-size: 16px; font-weight: 800; }
     .template-grade .room-column { width: 88px; font-weight: 700; }
+    .template-grade .classroom-cell { padding: 0 4px; vertical-align: middle; }
+    .template-grade .classroom-cell input.cell-room { width: 96px; min-width: 72px; box-sizing: border-box; font-size: 12px; padding: 3px 5px; border: 1px solid #c9d6cf; border-radius: 6px; background: #fffdf3; color: #2a2f2b; }
+    .template-grade .classroom-cell input.cell-room:focus { outline: 2px solid #2f9e6b; border-color: #2f9e6b; }
+    .jk-table .col-classroom { text-align: left; background: #f8fafc; font-weight: 500; white-space: nowrap; padding: 7px 9px; }
+    .jk-table thead .col-classroom { background: #eef2f7; }
     .template-grade .exam-cell { min-width: 145px; padding: 8px; }
     .template-grade .exam-cell input.cell-time { width: 100%; box-sizing: border-box; margin-top: 5px; font-size: 12px; text-align: center; padding: 3px 4px; border: 1px solid #c9d6cf; border-radius: 6px; background: #fffdf3; color: #2a2f2b; }
     .template-grade .exam-cell input.cell-time:focus { outline: 2px solid #2f9e6b; border-color: #2f9e6b; }
@@ -3752,6 +3757,7 @@
         $('#metricVersion').textContent = version?.label || '已恢复';
         $('#templateView').innerHTML = state.resultTab === 'stats' ? renderStatsPage() : state.resultTab === 'overview' ? renderOverviewTemplate() : renderDepartmentTemplate(state.resultTab);
         bindTemplateEdits();
+        autoSizeAllRoomInputs();
         renderWorkload();
       }
 
@@ -3794,9 +3800,10 @@
               const tid = assignment.teachers.map(teacher => teacher.id).join(',');
               return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
             }).join('');
-            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td>${cells}</tr>`;
+            const cr = rows.find(row => row.className === room);
+            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" placeholder="点此填教室"></td>${cells}</tr>`;
           }).join('');
-          return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
+          return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th><th rowspan="2">监考教室</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
         }).join('');
         const reserves = reserveTeachersOf(departmentKey);
         const patrol = patrolNames(departmentKey);
@@ -3826,8 +3833,31 @@
             state.result.forEach(r => { if (r.date === oldDate) r.date = newDate; });
             state.sessions.forEach(s => { if (s.date === oldDate) s.date = newDate; });
             saveState(); renderSchedule();
+          } else if (t.classList.contains('cell-room')) {
+            const room = t.dataset.room;
+            const val = t.value.trim();
+            state.result.forEach(r => { if (r.className === room) r.classroom = val; });
+            autoSizeRoomInput(t);
+            saveState();
           }
         });
+        tv.addEventListener('input', (e) => {
+          const t = e.target;
+          if (t.classList.contains('cell-room')) autoSizeRoomInput(t);
+        });
+      }
+
+      function autoSizeRoomInput(input) {
+        const span = document.createElement('span');
+        span.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:inherit;letter-spacing:normal;padding:0;margin:0;border:0;';
+        span.textContent = input.value || input.placeholder || '';
+        document.body.appendChild(span);
+        const w = span.offsetWidth + 18;
+        document.body.removeChild(span);
+        input.style.width = Math.max(72, w) + 'px';
+      }
+      function autoSizeAllRoomInputs() {
+        $$('.cell-room').forEach(autoSizeRoomInput);
       }
 
       // 全图预览：把小学部、初中部两张表拼在一起看，附巡考名单（老师想一眼看全部时用）
@@ -4290,7 +4320,7 @@
         const worksheet = workbook.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 } });
         const grades = [...new Set(state.result.map(row => row.grade))].filter(grade => allowedGrades.includes(gradeNumber(grade))).sort((a,b) => gradeRank(a)-gradeRank(b));
         const eventCounts = grades.map(grade => new Set(state.result.filter(row => row.grade === grade).map(resultEventKey)).size);
-        const totalColumns = Math.max(3, 2 + Math.max(1, ...eventCounts));
+        const totalColumns = Math.max(4, 3 + Math.max(1, ...eventCounts));
         const year = state.result[0]?.date?.slice(0,4) || new Date().getFullYear();
         worksheet.mergeCells(1, 1, 1, totalColumns);
         const title = worksheet.getCell(1,1); title.value = `${year}年考试监考安排表（${department}）`; title.font = { name:'微软雅黑', size:16, bold:true }; title.alignment = { horizontal:'center', vertical:'middle' };
@@ -4304,7 +4334,8 @@
           const rooms = [...new Set(rows.map(row => row.className))].sort((a,b) => a.localeCompare(b,'zh-CN',{numeric:true}));
           worksheet.mergeCells(cursor,1,cursor+1,1); worksheet.getCell(cursor,1).value = '年级';
           worksheet.mergeCells(cursor,2,cursor+1,2); worksheet.getCell(cursor,2).value = '考场';
-          let column = 3;
+          worksheet.mergeCells(cursor,3,cursor+1,3); worksheet.getCell(cursor,3).value = '监考教室';
+          let column = 4;
           for (let index = 0; index < events.length;) {
             const date = events[index].date; let count = 1;
             while (events[index+count]?.date === date) count++;
@@ -4312,14 +4343,16 @@
             worksheet.getCell(cursor,column).value = displayExamDate(date);
             column += count; index += count;
           }
-          events.forEach((event,index) => { worksheet.getCell(cursor+1,index+3).value = `${event.subject}\n${event.time}`; });
+          events.forEach((event,index) => { worksheet.getCell(cursor+1,index+4).value = `${event.subject}\n${event.time}`; });
           const firstRoomRow = cursor + 2;
           rooms.forEach((room,roomIndex) => {
             const excelRow = firstRoomRow + roomIndex;
+            const roomRow = rows.find(row => row.className === room);
             worksheet.getCell(excelRow,2).value = room;
+            worksheet.getCell(excelRow,3).value = roomRow ? (roomRow.classroom || '') : '';
             events.forEach((event,eventIndex) => {
               const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
-              worksheet.getCell(excelRow,eventIndex+3).value = assignment ? (assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ')) : '';
+              worksheet.getCell(excelRow,eventIndex+4).value = assignment ? (assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ')) : '';
             });
           });
           if (rooms.length > 1) worksheet.mergeCells(firstRoomRow,1,firstRoomRow+rooms.length-1,1);
@@ -4327,15 +4360,15 @@
           const lastRow = firstRoomRow + Math.max(rooms.length,1) - 1;
           for (let rowNumber = cursor; rowNumber <= lastRow; rowNumber++) {
             worksheet.getRow(rowNumber).height = rowNumber <= cursor+1 ? 34 : 28;
-            for (let col = 1; col <= events.length+2; col++) styleExcelCell(worksheet.getCell(rowNumber,col), rowNumber <= cursor+1);
+            for (let col = 1; col <= events.length+3; col++) styleExcelCell(worksheet.getCell(rowNumber,col), rowNumber <= cursor+1);
           }
           cursor = lastRow + 2;
         });
         const departmentKey = department === '初中部' ? '中学部' : department;
         const reserves = reserveTeachersOf(departmentKey);
         worksheet.mergeCells(cursor,1,cursor,totalColumns); worksheet.getCell(cursor,1).value = `机动人员：${reserves.map(t => t.name).join('、') || '暂无'}`; styleExcelCell(worksheet.getCell(cursor,1), true); cursor++;
-        worksheet.getColumn(1).width = 12; worksheet.getColumn(2).width = 15;
-        for (let column = 3; column <= totalColumns; column++) worksheet.getColumn(column).width = 24;
+        worksheet.getColumn(1).width = 12; worksheet.getColumn(2).width = 15; worksheet.getColumn(3).width = 18;
+        for (let column = 4; column <= totalColumns; column++) worksheet.getColumn(column).width = 24;
         worksheet.pageSetup.printArea = `A1:${excelColumnName(totalColumns)}${Math.max(cursor-1,3)}`;
         worksheet.views = [{ state:'frozen', ySplit:1 }];
       }
@@ -4371,8 +4404,8 @@
       }
 
       function exportCsvFallback() {
-        const rows = [['日期','时间','科目','年级','考场','主监教师','副监教师']];
-        state.result.forEach(row => rows.push([row.date,row.time,row.subject || '未设置',row.grade,roomDisplayName(row.className, departmentForGrade(row.grade)),row.teachers[0]?.name || '',row.teachers[1]?.name || '']));
+        const rows = [['日期','时间','科目','年级','考场','监考教室','主监教师','副监教师']];
+        state.result.forEach(row => rows.push([row.date,row.time,row.subject || '未设置',row.grade,roomDisplayName(row.className, departmentForGrade(row.grade)),row.classroom || '',row.teachers[0]?.name || '',row.teachers[1]?.name || '']));
         const csv = '\uFEFF' + rows.map(row => row.map(value => `"${String(value).replace(/"/g,'""')}"`).join(',')).join('\r\n');
         const blob = new Blob([csv], {type:'text/csv;charset=utf-8'}); const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
         anchor.href = url; anchor.download = `监考安排_${new Date().toISOString().slice(0,10)}.csv`; anchor.click(); URL.revokeObjectURL(url); toast('Excel 组件未加载，已导出 CSV');
@@ -4824,6 +4857,7 @@
         const rows = state.result.map(r => ({
           sessionId: r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className),
           date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
+          classroom: r.classroom || '',
           teachers: (r.teachers || []).map(t => t.name)
         }));
         const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
@@ -5070,7 +5104,7 @@
         let h = `<div class="jk-section"><div class="jk-section-title">${dept === '小学' ? '小学部监考表' : '初中部监考表'}${dept === '小学' ? ` <span class="tag">${esc(dateLabel)}</span>` : ''}</div>`;
         h += '<div class="jk-scroll"><table class="jk-table"><thead>';
         if (dates.length > 1) {
-          h += '<tr><th class="col-room" rowspan="2">考场</th>';
+          h += '<tr><th class="col-room" rowspan="2">考场</th><th class="col-classroom" rowspan="2">监考教室</th>';
           dates.forEach(d => {
             const ps = periods.filter(p => p.startsWith(d + '|'));
             h += `<th class="date-head" colspan="${ps.length}">${esc(formatDateLabel(d))}</th>`;
@@ -5079,7 +5113,7 @@
           periods.forEach(p => { const [d, t, s] = p.split('|'); h += `<th>${esc(s)}<br><span style="font-weight:400;font-size:11px;color:#64748b">${esc(t)}</span></th>`; });
           h += '</tr>';
         } else {
-          h += '<tr><th class="col-room">考场</th>';
+          h += '<tr><th class="col-room">考场</th><th class="col-classroom">监考教室</th>';
           periods.forEach(p => { const [d, t, s] = p.split('|'); h += `<th>${esc(s)}<br><span style="font-weight:400;font-size:11px;color:#64748b">${esc(t)}</span></th>`; });
           h += '</tr>';
         }
@@ -5087,9 +5121,10 @@
         grades.forEach(g => {
           const gradeRows = rows.filter(r => r.grade === g);
           const rooms = [...new Set(gradeRows.map(r => r.className))].sort((a, b) => a.localeCompare(b, 'zh-CN', { numeric: true }));
-          h += `<tr class="grp-row"><td colspan="${periods.length + 1}">${esc(g)}（${rooms.length} 个考场）</td></tr>`;
+          h += `<tr class="grp-row"><td colspan="${periods.length + 2}">${esc(g)}（${rooms.length} 个考场）</td></tr>`;
           rooms.forEach(room => {
-            h += `<tr><th class="col-room">${esc(room)}</th>`;
+            const rc = gradeRows.find(x => x.className === room);
+            h += `<tr><th class="col-room">${esc(room)}</th><td class="col-classroom">${esc((rc && rc.classroom) || '')}</td>`;
             periods.forEach(p => {
               const [d, t, s] = p.split('|');
               const r = cell[g + '|' + room + '|' + d + '|' + t + '|' + s];
