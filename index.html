@@ -372,6 +372,7 @@
     .status-good { color: var(--brand); font-weight: 800; }
     .status-bad { color: var(--danger); font-weight: 800; }
     .reserve-mark { color: #8a5316; font-weight: 700; }
+    .patrol-mark { color: #1f5f8b; font-weight: 700; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; white-space: nowrap; }
     th { position: sticky; top: 0; z-index: 2; color: #435048; background: #eef2ef; font-size: 12px; }
@@ -3857,10 +3858,8 @@
           }).join('');
           return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th><th rowspan="2">监考教室</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
         }).join('');
-        const reserves = reserveTeachersOf(departmentKey);
         const patrol = patrolNames(departmentKey);
-        const footerParts = [`机动人员：${reserves.length ? esc(reserves.map(teacher => teacher.name).join('、')) : '暂无'}`];
-        footerParts.push(`巡考：${patrol.length ? esc(patrol.join('、')) : '暂无'}`);
+        const footerParts = [`巡考教师：${patrol.length ? esc(patrol.join('、')) : '暂无'}`];
         return `<div class="template-board"><h2 class="template-title">${esc(year)}年考试监考安排表（${department}）</h2>${blocks}<div class="template-footer">${footerParts.join('　|　')}</div></div>`;
       }
 
@@ -3927,7 +3926,7 @@
         const middleHtml = hasMiddle ? renderDepartmentTemplate('middle') : '';
         const patrolP = patrolNames('小学部'), patrolJ = patrolNames('中学部');
         const patrolLine = (patrolP.length || patrolJ.length)
-          ? `<div class="template-footer">小学巡考：${patrolP.length ? esc(patrolP.join('、')) : '暂无'}　|　初中巡考：${patrolJ.length ? esc(patrolJ.join('、')) : '暂无'}</div>`
+          ? `<div class="template-footer">巡考教师：${patrolP.length ? esc(patrolP.join('、')) : '暂无'}　|　巡考教师（中学部）：${patrolJ.length ? esc(patrolJ.join('、')) : '暂无'}</div>`
           : '';
         return `<div class="overview-board">${primaryHtml}${middleHtml}${patrolLine}</div>`;
       }
@@ -3948,18 +3947,29 @@
 
       function renderStatsPage() {
         const stats = gradeStatistics();
-        const reserves = reserveTeachersOf(null);
         const { current, cumulative } = teacherAssignmentStats();
         const summaryRows = stats.map(item => `<tr><td><span class="grade-badge">${esc(item.grade)}</span></td><td>${item.rooms}</td><td>${item.required}</td><td>${item.selected}</td><td class="${item.balance >= 0 ? 'status-good' : 'status-bad'}">${item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`}</td><td>${item.personTimes}</td></tr>`).join('');
-        const selected = state.teachers.filter(teacher => teacher.enabled);
-        const teacherRows = selected.sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).map(teacher => {
+        // ★ 巡考教师要出现在明细里：他们是没被勾选、也不参与编排的人，
+        //   但巡考是正式分工，必须在表里看得见（身份列写「巡考教师」）。
+        const patrolAll = new Set([...patrolNames('小学部'), ...patrolNames('中学部')]);
+        const selected = state.teachers.filter(teacher => teacher.enabled || patrolAll.has(teacher.name));
+        const teacherRows = selected.sort((a,b) => {
+          const pa = patrolAll.has(a.name) ? 1 : 0, pb = patrolAll.has(b.name) ? 1 : 0;
+          return pa - pb || gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN');
+        }).map(teacher => {
           const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
           const details = assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；');
           const cur = current.get(teacher.id) || 0;
           const cum = cumulative.get(teacher.id) || 0;
-          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${teacher.monitorGrade === 'reserve' ? 'reserve-mark' : ''}">${esc(teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td class="muted">${esc(details || '尚未安排')}</td></tr>`;
+          const isPatrol = patrolAll.has(teacher.name);
+          const identity = isPatrol ? '巡考教师' : (teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade);
+          const identityClass = isPatrol ? 'patrol-mark' : (teacher.monitorGrade === 'reserve' ? 'reserve-mark' : '');
+          const detailText = isPatrol ? '巡考（不占用监考场次）' : (details || '尚未安排');
+          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${identityClass}">${esc(identity)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td class="muted">${esc(detailText)}</td></tr>`;
         }).join('');
-        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">机动人员：${reserves.length ? esc(reserves.map(t => t.name).join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
+        const patrolP = patrolNames('小学部'), patrolJ = patrolNames('中学部');
+        const allPatrol = [...new Set([...patrolP, ...patrolJ])];
+        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">巡考教师：${allPatrol.length ? esc(allPatrol.join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
       }
 
       function renderWorkload() {
@@ -4413,8 +4423,21 @@
       function addDepartmentWorksheet(workbook, name, allowedGrades, department) {
         const worksheet = workbook.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 } });
         const grades = [...new Set(state.result.map(row => row.grade))].filter(grade => allowedGrades.includes(gradeNumber(grade))).sort((a,b) => gradeRank(a)-gradeRank(b));
-        const eventCounts = grades.map(grade => new Set(state.result.filter(row => row.grade === grade).map(resultEventKey)).size);
-        const totalColumns = Math.max(4, 3 + Math.max(1, ...eventCounts));
+        // ★ 全局统一列集：该部门所有年级出现过的「日期+时段+科目」汇总排序，各年级块共用同一套列。
+        //   这样各年级的日期表头落在同一列上，纵向能对齐；
+        //   某个年级没有某个时段的考试时，那一列在它自己的块里留空（中间留个空），后面的列也不会被挤歪。
+        const globalEvents = [];
+        const seenEvent = new Set();
+        grades.forEach(grade => {
+          state.result.filter(row => row.grade === grade).forEach(row => {
+            const key = resultEventKey(row);
+            if (seenEvent.has(key)) return;
+            seenEvent.add(key);
+            globalEvents.push({ date: row.date, time: row.time, subject: row.subject });
+          });
+        });
+        globalEvents.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.subject.localeCompare(b.subject,'zh-CN'));
+        const totalColumns = Math.max(4, 3 + globalEvents.length);
         const year = state.result[0]?.date?.slice(0,4) || new Date().getFullYear();
         worksheet.mergeCells(1, 1, 1, totalColumns);
         const title = worksheet.getCell(1,1); title.value = `${year}年考试监考安排表（${department}）`; title.font = { name:'微软雅黑', size:16, bold:true }; title.alignment = { horizontal:'center', vertical:'middle' };
@@ -4423,8 +4446,8 @@
         if (!grades.length) worksheet.getCell(cursor,1).value = `本次无${department}安排`;
         grades.forEach(grade => {
           const rows = state.result.filter(row => row.grade === grade);
-          const eventMap = new Map(); rows.forEach(row => eventMap.set(resultEventKey(row), { date:row.date, time:row.time, subject:row.subject }));
-          const events = [...eventMap.values()].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.subject.localeCompare(b.subject,'zh-CN'));
+          // 统一列集下，本年级没有考试的时段那一列自然留空
+          const events = globalEvents;
           const rooms = [...new Set(rows.map(row => row.className))].sort((a,b) => a.localeCompare(b,'zh-CN',{numeric:true}));
           worksheet.mergeCells(cursor,1,cursor+1,1); worksheet.getCell(cursor,1).value = '年级';
           worksheet.mergeCells(cursor,2,cursor+1,2); worksheet.getCell(cursor,2).value = '考场';
@@ -4437,8 +4460,18 @@
             worksheet.getCell(cursor,column).value = displayExamDate(date);
             column += count; index += count;
           }
-          events.forEach((event,index) => { worksheet.getCell(cursor+1,index+4).value = `${event.subject}\n${event.time}`; });
           const firstRoomRow = cursor + 2;
+          const lastRow = firstRoomRow + Math.max(rooms.length,1) - 1;
+          // 这个年级没有考试的时段 → 表头写「空」，并纵向合并到本年级块底部，一眼看出那年段没这场考试
+          events.forEach((event,index) => {
+            const col = index + 4;
+            const hasExam = rows.some(row => resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
+            if (hasExam) worksheet.getCell(cursor+1,col).value = `${event.subject}\n${event.time}`;
+            else {
+              worksheet.getCell(cursor+1,col).value = '空';
+              if (lastRow > cursor+1) worksheet.mergeCells(cursor+1,col,lastRow,col);
+            }
+          });
           rooms.forEach((room,roomIndex) => {
             const excelRow = firstRoomRow + roomIndex;
             const roomRow = rows.find(row => row.className === room);
@@ -4451,7 +4484,6 @@
           });
           if (rooms.length > 1) worksheet.mergeCells(firstRoomRow,1,firstRoomRow+rooms.length-1,1);
           worksheet.getCell(firstRoomRow,1).value = grade;
-          const lastRow = firstRoomRow + Math.max(rooms.length,1) - 1;
           for (let rowNumber = cursor; rowNumber <= lastRow; rowNumber++) {
             worksheet.getRow(rowNumber).height = rowNumber <= cursor+1 ? 34 : 28;
             for (let col = 1; col <= events.length+3; col++) styleExcelCell(worksheet.getCell(rowNumber,col), rowNumber <= cursor+1);
@@ -4459,8 +4491,10 @@
           cursor = lastRow + 2;
         });
         const departmentKey = department === '初中部' ? '中学部' : department;
-        const reserves = reserveTeachersOf(departmentKey);
-        worksheet.mergeCells(cursor,1,cursor,totalColumns); worksheet.getCell(cursor,1).value = `机动人员：${reserves.map(t => t.name).join('、') || '暂无'}`; styleExcelCell(worksheet.getCell(cursor,1), true); cursor++;
+        // ★ 页脚写「巡考教师」：机动人员是管理员内部信息，不往给老师看的表上放；
+        //   巡考名单按学部取，巡考老师在哪一部就出现在哪一部的表里。
+        const patrol = patrolNames(departmentKey);
+        worksheet.mergeCells(cursor,1,cursor,totalColumns); worksheet.getCell(cursor,1).value = `巡考教师：${patrol.length ? patrol.join('、') : '暂无'}`; styleExcelCell(worksheet.getCell(cursor,1), true); cursor++;
         worksheet.getColumn(1).width = 12; worksheet.getColumn(2).width = 15; worksheet.getColumn(3).width = 18;
         for (let column = 4; column <= totalColumns; column++) worksheet.getColumn(column).width = 24;
         worksheet.pageSetup.printArea = `A1:${excelColumnName(totalColumns)}${Math.max(cursor-1,3)}`;
@@ -4486,15 +4520,24 @@
         worksheet.addRow([]); worksheet.addRow(['年级','场次数','峰值需要','已选教师','缺口/余量','监考人次']);
         gradeStatistics().forEach(item => worksheet.addRow([item.grade,item.rooms,item.required,item.selected,item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`,item.personTimes]));
         worksheet.addRow([]);
-        const reserves = reserveTeachersOf(null);
-        worksheet.addRow(['机动人员', reserves.map(t => t.name).join('、') || '暂无']);
+        // ★ 统计表也只列巡考教师，机动人员不上表
+        const allPatrol = [...new Set([...patrolNames('小学部'), ...patrolNames('中学部')])];
+        worksheet.addRow(['巡考教师', allPatrol.length ? allPatrol.join('、') : '暂无']);
         worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','本次次数','汇总次数','具体场次']);
         const { current: curMap, cumulative: cumMap } = teacherAssignmentStats();
-        state.teachers.filter(t => t.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).forEach(teacher => {
+        // ★ 巡考教师也要列进明细（他们没被勾选，不列出来就等于表里没体现）
+        const patrolSet = new Set(allPatrol);
+        state.teachers.filter(t => t.enabled || patrolSet.has(t.name)).sort((a,b) => {
+          const pa = patrolSet.has(a.name) ? 1 : 0, pb = patrolSet.has(b.name) ? 1 : 0;
+          return pa - pb || gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN');
+        }).forEach(teacher => {
           const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
           const cur = curMap.get(teacher.id) || 0;
           const cum = cumMap.get(teacher.id) || 0;
-          worksheet.addRow([teacher.name,teacher.grades.join('、'),teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade,cur,cum,assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排']);
+          const isPatrol = patrolSet.has(teacher.name);
+          const identity = isPatrol ? '巡考教师' : (teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade);
+          const detailText = isPatrol ? '巡考（不占用监考场次）' : (assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排');
+          worksheet.addRow([teacher.name,teacher.grades.join('、'),identity,cur,cum,detailText]);
         });
         worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
         [14,24,16,12,12,60].forEach((width,index) => worksheet.getColumn(index+1).width = width);
