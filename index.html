@@ -2155,8 +2155,8 @@
     if (match) {
       const date = resolveTemplateDate(match.date, baseDate);
       display = date === baseDate ? match.time : `${date.slice(5)} ${match.time}`;
-    } else if (state.combinedTimes && (state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject])) {
-      display = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject];
+    } else if (combinedTimeOf(row.grade, subject)) {
+      display = combinedTimeOf(row.grade, subject);
     } else if (plainTimes.length) {
       const fallback = plainTimes[Math.min(fallbackIndex, plainTimes.length - 1)];
       fallbackIndex++;
@@ -2171,7 +2171,7 @@
       const gs = gradesOf(e.grade);
       if (gs === null || gs.includes(row.grade)) { const date = resolveTemplateDate(e.date, baseDate); addCand(date === baseDate ? e.time : `${date.slice(5)} ${e.time}`); }
     });
-    if (state.combinedTimes) { const c = state.combinedTimes[`${row.grade}|${subject}`] || state.combinedTimes[subject]; if (c) addCand(c); }
+    const remembered = combinedTimeOf(row.grade, subject); if (remembered) addCand(remembered);
     if (!candidates.length) plainTimes.forEach(e => { const date = resolveTemplateDate(e.date, baseDate); addCand(date === baseDate ? e.time : `${date.slice(5)} ${e.time}`); });
     if (display) addCand(display);
     let control;
@@ -2263,6 +2263,7 @@
             state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
             state.timeTemplate = raw.timeTemplate || '';
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
+            migrateCombinedTimesByBand();
             state.activeVersionId = raw.activeVersionId || null;
             state.publishedBoardId = raw.publishedBoardId || null;
             state.resultTab = raw.resultTab || 'primary';
@@ -2860,6 +2861,49 @@
         const normalized = normalizeGrade(grade);
         const match = normalized.match(/^([一二三四五六七八九])年级$/);
         return match ? CHINESE_NUM[match[1]] : null;
+      }
+
+      // ===== 时间维度 =====
+      // 同一个维度里的年级共用一套考试时间；改某个维度的时间，不会动到别的维度。
+      // 以前改时间是按「日期+时间+科目」全表联动的，五个小学年级共用同一批时段，
+      // 改一个年级就会把别的年级一起改掉，这里按维度隔开。
+      // 想换分组，只改下面这张表即可。
+      const TIME_BANDS = [
+        { key: '小学低段', label: '二～四年级', grades: ['二年级', '三年级', '四年级'] },
+        { key: '小学高段', label: '五～六年级', grades: ['五年级', '六年级'] },
+        { key: '初中', label: '七～九年级', grades: ['七年级', '八年级', '九年级'] }
+      ];
+      function timeBandOf(grade) {
+        const hit = TIME_BANDS.find(band => band.grades.includes(grade));
+        return hit ? hit.key : '';
+      }
+      // 判断两个年级是否属于同一时间维度（不在任何维度里的年级只跟自己联动）
+      function sameTimeBand(a, b) {
+        const ba = timeBandOf(a), bb = timeBandOf(b);
+        if (!ba || !bb) return a === b;
+        return ba === bb;
+      }
+      // 取某年级某科目已记下的时间：年级专属 > 维度共享 > 全科默认
+      function combinedTimeOf(grade, subject) {
+        const ct = state.combinedTimes || {};
+        const band = timeBandOf(grade);
+        return ct[`${grade}|${subject}`] || (band ? ct[`${band}|${subject}`] : '') || ct[subject] || '';
+      }
+      // 把旧的「按科目全局记时间」拆成各维度自己的时间，避免改一个维度连带别的维度
+      function migrateCombinedTimesByBand() {
+        const ct = state.combinedTimes;
+        if (!ct || typeof ct !== 'object') return;
+        const globalSubjects = Object.keys(ct).filter(key => !key.includes('|'));
+        if (!globalSubjects.length) return;
+        globalSubjects.forEach(subject => {
+          const value = ct[subject];
+          TIME_BANDS.forEach(band => {
+            const bandKey = `${band.key}|${subject}`;
+            const hasGradeKey = band.grades.some(grade => ct[`${grade}|${subject}`]);
+            if (!ct[bandKey] && !hasGradeKey) ct[bandKey] = value;
+          });
+          delete ct[subject];
+        });
       }
 
       function gradeSelectOptionsHtml(selected = '') {
@@ -3798,7 +3842,7 @@
             else dateGroups.push({ date: event.date, count: 1 });
           });
           const headDates = dateGroups.map(group => `<th colspan="${group.count}"><input class="cell-date" type="date" value="${esc(group.date)}" data-date="${esc(group.date)}" title="${esc(displayExamDate(group.date))}"></th>`).join('');
-          const headEvents = events.map(event => `<th class="exam-cell"><span class="subject-badge ${subjectBadgeClass(event.subject)}">${esc(event.subject)}</span><br><input class="cell-time" type="text" value="${esc(event.time)}" data-date="${esc(event.date)}" data-time="${esc(normalizeTime(event.time))}" data-subject="${esc(event.subject)}"></th>`).join('');
+          const headEvents = events.map(event => `<th class="exam-cell"><span class="subject-badge ${subjectBadgeClass(event.subject)}">${esc(event.subject)}</span><br><input class="cell-time" type="text" value="${esc(event.time)}" data-date="${esc(event.date)}" data-time="${esc(normalizeTime(event.time))}" data-subject="${esc(event.subject)}" data-grade="${esc(grade)}"></th>`).join('');
           const body = rooms.map((room, roomIndex) => {
             const cells = events.map(event => {
               const assignment = rows.find(row => row.className === room && resultEventKey(row) === `${event.date}|${normalizeTime(event.time)}|${event.subject}`);
@@ -3809,7 +3853,7 @@
               return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
             }).join('');
             const cr = rows.find(row => row.className === room);
-            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" placeholder="点此填教室"></td>${cells}</tr>`;
+            return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" data-grade="${esc(grade)}" placeholder="点此填教室"></td>${cells}</tr>`;
           }).join('');
           return `<div class="template-grade"><table><thead><tr><th rowspan="2">年级</th><th rowspan="2">考场</th><th rowspan="2">监考教室</th>${headDates}</tr><tr>${headEvents}</tr></thead><tbody>${body}</tbody></table></div>`;
         }).join('');
@@ -3830,10 +3874,13 @@
           if (t.classList.contains('cell-time')) {
             const newTime = normalizeTime(t.value);
             const oldDate = t.dataset.date, oldTime = t.dataset.time, subject = t.dataset.subject;
+            const grade = t.dataset.grade || '';
             const m = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(newTime);
             if (!m || +m[1] > 23 || +m[3] > 23 || +m[2] > 59 || +m[4] > 59 || newTime === oldTime) { renderSchedule(); return; }
-            state.result.forEach(r => { if (r.date === oldDate && normalizeTime(r.time) === oldTime && r.subject === subject) r.time = newTime; });
-            state.sessions.forEach(s => { if (s.date === oldDate && normalizeTime(s.time) === oldTime && s.subject === subject) s.time = newTime; });
+            // 只改同一时间维度内的年级：二～四年级一套、五～六年级一套、初中一套，互不牵连
+            const inScope = row => row.date === oldDate && normalizeTime(row.time) === oldTime && row.subject === subject && sameTimeBand(row.grade, grade);
+            state.result.forEach(r => { if (inScope(r)) r.time = newTime; });
+            state.sessions.forEach(s => { if (inScope(s)) s.time = newTime; });
             saveState(); renderSchedule();
           } else if (t.classList.contains('cell-date')) {
             const newDate = t.value, oldDate = t.dataset.date;
@@ -3843,8 +3890,11 @@
             saveState(); renderSchedule();
           } else if (t.classList.contains('cell-room')) {
             const room = t.dataset.room;
+            const grade = t.dataset.grade || '';
             const val = t.value.trim();
-            state.result.forEach(r => { if (r.className === room) r.classroom = val; });
+            // 教室按年级隔离：考场号在每个年级都从 1 重新编号，
+            // 不加年级条件的话，改七年级的教室会把八、九年级以及小学部一起改掉。
+            state.result.forEach(r => { if (r.className === room && (!grade || r.grade === grade)) r.classroom = val; });
             autoSizeRoomInput(t);
             saveState();
           }
@@ -4036,12 +4086,16 @@
           const subject = grTime.dataset.subj;
           const parsed = parseTimeInput(grTime.value, $('#examDate').value || todayString());
           if (row && subject) {
+            // 时间按「维度」记：二～四年级共用一套、五～六年级共用一套、初中一套
+            const band = timeBandOf(row.grade);
+            const bandKey = band ? `${band}|${subject}` : '';
             if (parsed.time) {
               state.combinedTimes[`${row.grade}|${subject}`] = parsed.time;
-              state.combinedTimes[subject] = parsed.time;
+              if (bandKey) state.combinedTimes[bandKey] = parsed.time;
+              delete state.combinedTimes[subject];   // 旧的全局默认会让别的维度跟着变
             } else {
               delete state.combinedTimes[`${row.grade}|${subject}`];
-              delete state.combinedTimes[subject];
+              if (bandKey) delete state.combinedTimes[bandKey];
             }
             saveState();
           }
@@ -4497,6 +4551,7 @@
             state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
             state.timeTemplate = raw.timeTemplate || '';
             state.combinedTimes = (raw.combinedTimes && typeof raw.combinedTimes === 'object') ? raw.combinedTimes : {};
+            migrateCombinedTimesByBand();
             state.activeVersionId = raw.activeVersionId || null;
             state.publishedBoardId = raw.publishedBoardId || null;
             state.workloadSeed = (raw.workloadSeed && typeof raw.workloadSeed === 'object') ? raw.workloadSeed : null;
