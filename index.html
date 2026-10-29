@@ -1375,6 +1375,11 @@
     <div class="field-row" style="margin-top:10px" data-page-node-id="LQ0TDTkummiSDIjAzuGxRz">
       <div style="flex:1" data-page-node-id="W504rgsuBnJCfJ3Dnw4zQo"><label data-page-node-id="6KPkU9PrP1FmlfhfLlNqZD">线上页面地址（发布链接用的前缀，填托管后的网址）</label><input id="sbSiteUrl" placeholder="https://yemabuye.github.io/jiankao/" data-page-node-id="PWbum20qT7ddAyBGY7vDwJ"></div>
     </div>
+    <div class="field-row" style="margin-top:10px" data-page-node-id="swapFormRow">
+      <div style="flex:1" data-page-node-id="swapFormCell"><label data-page-node-id="swapFormLbl">换班收集表单链接（国内表单，如腾讯问卷/金数据）</label><input id="swapFormUrl" placeholder="https://wj.qq.com/s/xxxxx 或 forms.xxx" data-page-node-id="swapFormInput">
+        <p class="muted" style="font-size:12px;margin:4px 0 0" data-page-node-id="swapFormHint">填了它，老师点「申请换班」就直接打开这个国内表单（不再依赖被墙的 Supabase），你在表单后台收申请、手动应用。留空则沿用原来的云端换班。</p>
+      </div>
+    </div>
     <div class="field-row" style="margin-top:10px" data-page-node-id="J1F5EfG9pYsBhq2pjoa9cn">
       <div style="flex:1" data-page-node-id="vYmLPsHL7ShsU46EHgqKxt"><label data-page-node-id="B6mOyxEQYVt6M4jQg7nAdP">默认口令（给没登记手机号的老师兜底，4 位数字）</label><input id="lcDefaultCode" inputmode="numeric" maxlength="4" placeholder="0000" data-page-node-id="CbWS2pBQRjn5j0vK3cQo8E"></div>
     </div>
@@ -1409,6 +1414,8 @@
         <button class="btn btn-primary" id="publishCopyBtn" data-page-node-id="UvhgbdlUFACDvPXGcKS7Ud"><i data-lucide="copy" data-page-node-id="t82hqWHCYJGBdQGDJBn5Jk"></i>复制</button>
       </div>
       <button class="btn btn-block" id="openOnlineBtn" style="margin-top:10px" data-page-node-id="zQDh5ER1OSaXYrfEsPhmqF"><i data-lucide="external-link" data-page-node-id="NXAOSuKCrRwUCQGIgLFZTm"></i>打开老师端预览（自己先体验）</button>
+      <button class="btn btn-block" id="downloadStaticBtn" style="margin-top:8px"><i data-lucide="download"></i>下载静态表（放到 GitHub Pages，老师免登录直看）</button>
+      <p class="muted" style="margin:6px 0 0;font-size:12px">国内部分手机连不上 Supabase。下载这个 .json 和 index.html 放一起上传，老师打开同样的链接会优先读它，不依赖云端，人人都能看。</p>
       <div id="publishCodeInfo" class="muted" style="margin:10px 0 0;font-size:12.5px" data-page-node-id="fyGMeMnPlVaaowbFOhOYZh"></div>
       <p class="muted" style="margin:8px 0 0" data-page-node-id="HdxEjdiDCP63QyiH7SxkFP">重新生成后再次点「发布在线版」会更新同一链接，老师刷新即可看到最新表。</p>
     </div>
@@ -1459,6 +1466,7 @@
   <div class="dialog-head" data-page-node-id="Z6r0TxGwDeAXXyD9XPQf94"><h2 data-page-node-id="6HOAGf5Sj7MmQUXTi9eZXe">换班记录</h2><button class="icon-btn" data-close-dialog aria-label="关闭" data-page-node-id="LGJHzNKlEuM7Dh1JRFt8cq"><i data-lucide="x" data-page-node-id="CeGHooyR2TjJE5HariIFWZ"></i></button></div>
   <div class="dialog-body" data-page-node-id="maVmzFORB2UhwPDCbsPZcd">
     <p class="muted" style="margin-top:0" data-page-node-id="zi1oiM0eREF7L0Wi9BnYng">老师自助换班的全部记录：谁和谁换了哪一场、结果如何，都在这里。打开后台即可随时查看。</p>
+    <p class="muted" style="margin:6px 0 0;font-size:12px;color:#b45309" data-page-node-id="swapLogFormNote">若「在线版设置」里填了「换班收集表单链接」，老师的换班申请会进那个国内表单，不会显示在这里——请到表单后台查看并手动应用。</p>
     <p class="muted" style="margin:8px 0 0;font-size:12px">老师在手机上换班成功后，云端的表会立刻变；你本地这张表需要点「同步到本地表」（后台开着时也会自动同步）才会跟着变。</p>
     <div id="swapLogList" style="max-height:55vh;overflow-y:auto" data-page-node-id="qtotFcIHPI3Ht9xkvFPvYU"></div>
   </div>
@@ -3891,14 +3899,17 @@
       function renderStatsPage() {
         const stats = gradeStatistics();
         const reserves = reserveTeachersOf(null);
+        const { current, cumulative } = teacherAssignmentStats();
         const summaryRows = stats.map(item => `<tr><td><span class="grade-badge">${esc(item.grade)}</span></td><td>${item.rooms}</td><td>${item.required}</td><td>${item.selected}</td><td class="${item.balance >= 0 ? 'status-good' : 'status-bad'}">${item.balance >= 0 ? `余 ${item.balance}` : `缺 ${Math.abs(item.balance)}`}</td><td>${item.personTimes}</td></tr>`).join('');
         const selected = state.teachers.filter(teacher => teacher.enabled);
         const teacherRows = selected.sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).map(teacher => {
           const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
           const details = assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；');
-          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${teacher.monitorGrade === 'reserve' ? 'reserve-mark' : ''}">${esc(teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade)}</td><td><strong>${assigned.length}</strong></td><td class="muted">${esc(details || '尚未安排')}</td></tr>`;
+          const cur = current.get(teacher.id) || 0;
+          const cum = cumulative.get(teacher.id) || 0;
+          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${teacher.monitorGrade === 'reserve' ? 'reserve-mark' : ''}">${esc(teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td class="muted">${esc(details || '尚未安排')}</td></tr>`;
         }).join('');
-        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">机动人员：${reserves.length ? esc(reserves.map(t => t.name).join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>监考次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table></div></div></div>`;
+        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">机动人员：${reserves.length ? esc(reserves.map(t => t.name).join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
       }
 
       function renderWorkload() {
@@ -4394,13 +4405,16 @@
         worksheet.addRow([]);
         const reserves = reserveTeachersOf(null);
         worksheet.addRow(['机动人员', reserves.map(t => t.name).join('、') || '暂无']);
-        worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','监考次数','具体场次']);
+        worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','本次次数','汇总次数','具体场次']);
+        const { current: curMap, cumulative: cumMap } = teacherAssignmentStats();
         state.teachers.filter(t => t.enabled).sort((a,b) => gradeRank(a.monitorGrade)-gradeRank(b.monitorGrade) || a.name.localeCompare(b.name,'zh-CN')).forEach(teacher => {
           const assigned = state.result.filter(row => rowHasTeacher(row, teacher));
-          worksheet.addRow([teacher.name,teacher.grades.join('、'),teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade,assigned.length,assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排']);
+          const cur = curMap.get(teacher.id) || 0;
+          const cum = cumMap.get(teacher.id) || 0;
+          worksheet.addRow([teacher.name,teacher.grades.join('、'),teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade,cur,cum,assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排']);
         });
         worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
-        [14,24,16,12,65,14].forEach((width,index) => worksheet.getColumn(index+1).width = width);
+        [14,24,16,12,12,60].forEach((width,index) => worksheet.getColumn(index+1).width = width);
       }
 
       function exportCsvFallback() {
@@ -4526,7 +4540,7 @@
       const ONLINE_KEY = 'invigilation-online-v2';
       // 这里只放接口地址。接口本身是公开的，真正的身份校验在服务端完成，
       // 所以把地址写在页面里是安全的（数据库钥匙不在这里）。
-      const DEFAULT_ONLINE = { fnUrl: 'https://nbstxnatuxaasvzmllpw.supabase.co/functions/v1/quick-processor', siteUrl: 'https://yemabuye.github.io/jiankao/' };
+      const DEFAULT_ONLINE = { fnUrl: 'https://nbstxnatuxaasvzmllpw.supabase.co/functions/v1/quick-processor', siteUrl: 'https://yemabuye.github.io/jiankao/', swapFormUrl: '' };
       const DEMO_KEY = 'invigilation-demo-v1';
 
       function onlineLoadConfig() {
@@ -4540,6 +4554,42 @@
       function onlineSaveConfig(cfg) { localStorage.setItem(ONLINE_KEY, JSON.stringify(cfg)); }
 
       // 所有云端操作统一走这里，由服务端判定有没有权限
+      // ===== 修掉云端接口返回的中文乱码 =====
+      // 现象：服务端的中文提示显示成「æœªçŸ¥æ'ä½œ」这类乱码。
+      // 成因：中文先按 UTF-8 编成字节，又被按 CP1252 当单字节字符读了一遍，最后再存成 UTF-8（双重编码）。
+      // 数据库里的数据（如看板标题）不受影响，只有服务端源码里的中文字面量会这样。
+      // 这里在浏览器端把它还原回来，所以不改服务端也能让提示正常显示。
+      const CP1252_REVERSE = {
+        0x20AC:0x80, 0x201A:0x82, 0x0192:0x83, 0x201E:0x84, 0x2026:0x85, 0x2020:0x86, 0x2021:0x87,
+        0x02C6:0x88, 0x2030:0x89, 0x0160:0x8A, 0x2039:0x8B, 0x0152:0x8C, 0x017D:0x8E, 0x2018:0x91,
+        0x2019:0x92, 0x201C:0x93, 0x201D:0x94, 0x2022:0x95, 0x2013:0x96, 0x2014:0x97, 0x02DC:0x98,
+        0x2122:0x99, 0x0161:0x9A, 0x203A:0x9B, 0x0153:0x9C, 0x017E:0x9E, 0x0178:0x9F
+      };
+      function repairMojibake(text) {
+        if (typeof text !== 'string' || !text) return text;
+        const bytes = [];
+        for (const ch of text) {
+          const cp = ch.codePointAt(0);
+          if (cp <= 0xFF) bytes.push(cp);                          // ASCII / Latin-1 字符：原样取字节
+          else if (CP1252_REVERSE[cp] !== undefined) bytes.push(CP1252_REVERSE[cp]); // CP1252 高位字符：查表还原
+          else return text;                                        // 出现还原不了的字符 → 不是乱码，保持原样
+        }
+        try {
+          const fixed = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes));
+          return /[\u4e00-\u9fa5]/.test(fixed) ? fixed : text;      // 还原不出中文就放弃，避免误伤正常文本
+        } catch (e) { return text; }
+      }
+      function repairMojibakeDeep(value, depth = 0) {
+        if (depth > 6) return value;
+        if (typeof value === 'string') return repairMojibake(value);
+        if (Array.isArray(value)) return value.map(v => repairMojibakeDeep(v, depth + 1));
+        if (value && typeof value === 'object') {
+          const out = {};
+          Object.keys(value).forEach(k => { out[k] = repairMojibakeDeep(value[k], depth + 1); });
+          return out;
+        }
+        return value;
+      }
       async function apiCall(action, payload = {}) {
         const cfg = onlineLoadConfig();
         if (!cfg.fnUrl) throw new Error('还没填写云端接口地址，请到「在线版设置」里配置');
@@ -4552,7 +4602,7 @@
           });
         } catch (e) { throw new Error('连不上云端服务，请检查网络或接口地址是否正确'); }
         let data = {};
-        try { data = await res.json(); } catch (e) { throw new Error('云端返回异常（HTTP ' + res.status + '）'); }
+        try { data = repairMojibakeDeep(await res.json()); } catch (e) { throw new Error('云端返回异常（HTTP ' + res.status + '）'); }
         if (!data.ok) throw new Error(data.error || '云端操作失败');
         return data;
       }
@@ -4892,6 +4942,32 @@
         } catch (e) { if (!handleAuthError(e)) toast('发布失败：' + e.message, 'error'); }
       }
 
+      // 生成「同域静态监考表」文件：老师端优先读它，不依赖 Supabase，国内手机都能打开
+      function buildBoardPayload() {
+        const rows = state.result.map(r => ({
+          sessionId: r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className),
+          date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
+          classroom: r.classroom || '', teachers: (r.teachers || []).map(t => t.name)
+        }));
+        const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
+        const workload = cumulativeByName();
+        return { title, data: { rows, workload } };
+      }
+      function downloadStaticBoard() {
+        if (!state.result.length) return toast('请先生成监考表，再下载静态表', 'error');
+        if (!state.publishedBoardId) return toast('请先点「发布在线版」拿到链接，再下载静态表（两者编号要一致）', 'error');
+        const id = state.publishedBoardId;
+        const payload = buildBoardPayload();
+        payload.boardId = id;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'board-' + id + '.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast('已下载 board-' + id + '.json —— 把它和 index.html 放同一目录上传 GitHub Pages，老师打开链接优先读它', 'success');
+      }
+
       // ---------- 云端换班结果回写本地监考表 ----------
       // 场次在本地和云端用同一个 key，才能把换班对上号
       function sessionKeyOf(r) { return r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className); }
@@ -5036,7 +5112,9 @@
         if (!boardId) { showTeacherEmpty(); return; }
         await refreshOnline();
         if (onlineView.stopPoll) onlineView.stopPoll();
-        onlineView.stopPoll = onlineBackend.poll(boardId, () => { refreshOnline().catch(() => {}); });
+        if (!onlineView.fromStatic) {
+          onlineView.stopPoll = onlineBackend.poll(boardId, () => refreshSwapsOnly());
+        }
       }
       function hideOnlineView() {
         if (onlineView.stopPoll) { onlineView.stopPoll(); onlineView.stopPoll = null; }
@@ -5046,17 +5124,41 @@
         if (!isTeacherMode()) { setBackendVisible(true); ensureBackendLogin(); }
         if (location.hash) history.replaceState(null, '', location.pathname + location.search);
       }
+      // —— 静态表优先：老师端取表先读同域 board-<id>.json（github.io 国内可直连），读不到再回退 Supabase ——
+      async function fetchBoardStatic(id) {
+        try {
+          const res = await fetch('./board-' + encodeURIComponent(id) + '.json', { cache: 'no-store' });
+          if (!res.ok) return null;
+          const j = await res.json();
+          if (j && j.data && Array.isArray(j.data.rows)) return j;
+          return null;
+        } catch (e) { return null; }
+      }
+      async function loadBoard(id) {
+        const st = await fetchBoardStatic(id);
+        if (st && st.data && st.data.rows && st.data.rows.length) { onlineView.fromStatic = true; return st; }
+        onlineView.fromStatic = false;
+        return await onlineBackend.getBoard(id);
+      }
       async function refreshOnline() {
         try {
-          const b = await onlineBackend.getBoard(onlineView.boardId);
+          const b = await loadBoard(onlineView.boardId);
           if (!b) { $('#onlineBoard').innerHTML = '<p class="muted">未找到该监考表，可能已被删除。</p>'; return; }
           onlineView.board = b;
-          onlineView.swaps = isVerified()
+          onlineView.swaps = (!onlineView.fromStatic && isVerified())
             ? await onlineBackend.listMySwaps(onlineView.boardId).catch(() => [])
             : [];
           $('#onlineTitle').textContent = b.title || '在线监考表';
           renderOnlineIdentity(); renderOnlineAuth(); renderOnlinePending(); renderOnlineMine(); renderOnlineBoard();
         } catch (e) { $('#onlineBoard').innerHTML = '<p class="muted">加载失败：' + esc(e.message) + '</p>'; }
+      }
+      // 轮询只刷新换班；静态表模式下不调用，避免反复打不通的 Supabase
+      function refreshSwapsOnly() {
+        if (onlineView.fromStatic || !isVerified()) return;
+        onlineBackend.listMySwaps(onlineView.boardId).then(swaps => {
+          onlineView.swaps = swaps || [];
+          renderOnlinePending(); renderOnlineMine();
+        }).catch(() => {});
       }
       function allTeacherNames(board) {
         const set = new Set();
@@ -5245,11 +5347,29 @@
         el.textContent = conflict || '交换后两人均无时间冲突，可发送申请。';
         el.style.color = conflict ? '#ea6668' : '#52c41a';
       }
+      function buildSwapSummary(toTeacher, toSid) {
+        const from = onlineView.identity;
+        const fromDesc = descOf(swapFromSessionId);
+        const toDesc = descOf(toSid);
+        const title = (onlineView.board && onlineView.board.title) || '';
+        return `监考换班申请\n申请人：${from}\n想与：${toTeacher} 互换\n${from} 的场次：${fromDesc}\n${toTeacher} 的场次：${toDesc}\n监考表：${title}`;
+      }
       async function sendSwap() {
         if (!isVerified()) return toast('请先填手机号后四位验证身份', 'error');
         const to = $('#swapToTeacher').value; const toSid = $('#swapToSession').value;
         const conflict = swapConflictCheck(onlineView.board, onlineView.identity, swapFromSessionId, to, toSid);
         if (conflict) return toast('无法发送：' + conflict, 'error');
+        const cfg = onlineLoadConfig();
+        // 配置了国内表单：换班走表单，彻底不依赖被墙的 Supabase
+        if (cfg.swapFormUrl) {
+          const summary = buildSwapSummary(to, toSid);
+          try { if (navigator.clipboard) await navigator.clipboard.writeText(summary); } catch (e) {}
+          window.open(cfg.swapFormUrl, '_blank');
+          $('#swapDialog').close();
+          toast('已打开换班申请表，申请摘要已复制到剪贴板，粘贴到表单即可', 'success');
+          return;
+        }
+        // 没配表单则回退云端换班（兼容旧流程）
         try {
           await onlineBackend.createSwap({ boardId: onlineView.boardId, fromTeacher: onlineView.identity, toTeacher: to, fromSessionId: swapFromSessionId, toSessionId: toSid });
           $('#swapDialog').close();
@@ -5288,7 +5408,7 @@
       // ---------- 绑定 ----------
       function bindOnline() {
         const saveOnlineCfg = () => {
-          onlineSaveConfig({ fnUrl: $('#sbUrl').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
+          onlineSaveConfig({ fnUrl: $('#sbUrl').value.trim(), siteUrl: $('#sbSiteUrl').value.trim(), swapFormUrl: $('#swapFormUrl').value.trim(), demoMode: $('#lcDemoMode').checked });
           const code = ($('#lcDefaultCode').value.trim() || '0000').replace(/\D/g, '').slice(0, 4);
           state.teacherDefaultCode = code || '0000';
           const pb = $('#lcPhoneBook');
@@ -5299,6 +5419,7 @@
           const cfg = onlineLoadConfig();
           $('#sbUrl').value = cfg.fnUrl || '';
           $('#sbSiteUrl').value = cfg.siteUrl || '';
+          $('#swapFormUrl').value = cfg.swapFormUrl || '';
           $('#lcDemoMode').checked = !!cfg.demoMode;
           $('#lcDefaultCode').value = state.teacherDefaultCode || '0000';
           $('#lcPhoneBook').value = state.phoneBook || '';
@@ -5317,6 +5438,7 @@
           $('#lcStatus').textContent = r.ok ? '连接成功：' + r.mode : '连接失败：' + (r.error || '未知错误');
         });
         $('#publishBtn').addEventListener('click', publishOnline);
+        $('#downloadStaticBtn').addEventListener('click', downloadStaticBoard);
         $('#saveBtn').addEventListener('click', saveToCloud);
         $('#searchTeacherBtn').addEventListener('click', openTeacherSearch);
         $('#teacherSearchInput').addEventListener('input', runTeacherSearch);
