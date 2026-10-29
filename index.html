@@ -4198,11 +4198,31 @@
         $$('.assignment-cell').forEach(cell => cell.classList.remove('is-dragging', 'drop-ok', 'drop-bad'));
       }
 
+      // 源格子里的人本来就"放错了"（文化课老师被排到不教的年级）时，允许直接挪走，
+      // 而不是被"对方能不能接受"卡住——错放的人本来就该挪回自己的年级。
+      function canMoveOut(rowA, rowB) {
+        const teacherA = (rowA.teachers || [])[0];
+        if (!teacherA) return false;
+        if (!monitorBlockReason(teacherA.name, rowA)) return false;   // 他在这个格子本来就合规 → 不算错放
+        if (monitorBlockReason(teacherA.name, rowB)) return false;   // 挪过去也不合规 → 不行
+        return true;
+      }
+
       function performSwap(idA, idB) {
         const rowA = state.result.find(row => row.id === idA);
         const rowB = state.result.find(row => row.id === idB);
         if (!rowA || !rowB) return;
         const reason = swapBlockReason(rowA, rowB);
+        if (reason && canMoveOut(rowA, rowB)) {
+          // 挪走：把错放的人移到目标格，原格空出来待安排
+          const teacherA = (rowA.teachers || [])[0];
+          const teacherB = (rowB.teachers || [])[0];
+          rowB.teachers = [{ ...teacherA, monitorGrade: rowB.grade }];
+          rowA.teachers = [];
+          persistAndRender();
+          toast(`已把 ${teacherA.name} 移到 ${rowB.grade}${rowB.subject}；原格空出，请安排监考老师`, 'success');
+          return;
+        }
         if (reason) { toast('不能调换：' + reason, 'error'); return; }
         const teachersA = rowA.teachers, teachersB = rowB.teachers;
         rowA.teachers = teachersB.map(item => ({ ...item, monitorGrade: rowA.grade }));
@@ -4227,8 +4247,12 @@
           const target = state.result.find(row => row.id === id);
           if (!target) return;
           const reason = swapBlockReason(source, target);
-          other.classList.add(reason ? 'drop-bad' : 'drop-ok');
-          other.title = reason ? `不能换：${reason}` : `放开即与 ${source.teachers[0].name} 互换`;
+          const movable = reason && canMoveOut(source, target);
+          other.classList.add(reason && !movable ? 'drop-bad' : 'drop-ok');
+          const who = source.teachers[0]?.name || '这位老师';
+          other.title = movable
+            ? `放开即把 ${who} 移到这里（原格会空出，需另行安排）`
+            : (reason ? `不能换：${reason}` : `放开即与 ${who} 互换`);
         });
         if (event.dataTransfer) {
           event.dataTransfer.effectAllowed = 'move';
