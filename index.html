@@ -4162,14 +4162,8 @@
       function monitorBlockReason(name, row) {
         const teacher = teacherNamed(name);
         if (!teacher) return '';
-        const isJunior = /[七八九]年级/.test(row.grade);
-        const departments = teacher.departments || [];
-        if (!(isJunior ? departments.includes('中学部') : departments.includes('小学部'))) {
-          return `${name}不属${isJunior ? '中学' : '小学'}部`;
-        }
-        if (!(teacher.grades || []).includes(row.grade) && !isFlexMonitor(teacher)) {
-          return `${name}没教${row.grade}（文化课只能本年级）`;
-        }
+        // 任教范围限制已放开：管理员手动调配时，不管教没教这个年级、属不属这个学部，都可以挪到任何年级。
+        // 这里只保留语文规则（教语文的不监考语文），且仅作提示、不硬拦。
         if ((teacher.subjects || []).includes('语文') && String(row.subject).includes('语文')) {
           return `${name}教语文，不监考语文`;
         }
@@ -4191,20 +4185,30 @@
             slotKeyOf(row) === keyA && (row.teachers || []).some(t => t.name === teacherB.name));
           if (bBusy) return `${teacherB.name}在 ${rowA.date} ${rowA.time} 已有别的考场`;
         }
-        return monitorBlockReason(teacherA.name, rowB) || monitorBlockReason(teacherB.name, rowA);
+        // 任教范围（教没教这个年级 / 属不属这个学部）不再作为拦截条件；
+        // 语文冲突也只提示不拦截，交由管理员自己判断。真正硬拦的只有"同一人同一时段两个考场"。
+        return '';
+      }
+
+      // 手动调配时的提醒（不拦截）：语文老师被放到语文场上
+      function manualSwapNotice(name, row) {
+        return monitorBlockReason(name, row);
       }
 
       function clearDragMarks() {
         $$('.assignment-cell').forEach(cell => cell.classList.remove('is-dragging', 'drop-ok', 'drop-bad'));
       }
 
-      // 源格子里的人本来就"放错了"（文化课老师被排到不教的年级）时，允许直接挪走，
-      // 而不是被"对方能不能接受"卡住——错放的人本来就该挪回自己的年级。
+      // 源格子里的人本来就"放错了"或与目标格时段冲突时，允许直接挪走，
+      // 而不是被"对方能不能接受"卡住——挪走之后原格空出来，提示重新安排即可。
       function canMoveOut(rowA, rowB) {
         const teacherA = (rowA.teachers || [])[0];
         if (!teacherA) return false;
-        if (!monitorBlockReason(teacherA.name, rowA)) return false;   // 他在这个格子本来就合规 → 不算错放
-        if (monitorBlockReason(teacherA.name, rowB)) return false;   // 挪过去也不合规 → 不行
+        // A 挪到 rowB 会不会同时段撞车（撞了就挪不了）
+        const keyB = slotKeyOf(rowB);
+        const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
+          slotKeyOf(row) === keyB && (row.teachers || []).some(t => t.name === teacherA.name));
+        if (aBusy) return false;
         return true;
       }
 
@@ -4214,13 +4218,13 @@
         if (!rowA || !rowB) return;
         const reason = swapBlockReason(rowA, rowB);
         if (reason && canMoveOut(rowA, rowB)) {
-          // 挪走：把错放的人移到目标格，原格空出来待安排
+          // 挪走：把人移到目标格，原格空出来待安排
           const teacherA = (rowA.teachers || [])[0];
-          const teacherB = (rowB.teachers || [])[0];
           rowB.teachers = [{ ...teacherA, monitorGrade: rowB.grade }];
           rowA.teachers = [];
           persistAndRender();
-          toast(`已把 ${teacherA.name} 移到 ${rowB.grade}${rowB.subject}；原格空出，请安排监考老师`, 'success');
+          const warn = manualSwapNotice(teacherA.name, rowB);
+          toast(`已把 ${teacherA.name} 移到 ${rowB.grade}${rowB.subject}；原格空出，请安排监考老师` + (warn ? `（${warn}）` : ''), warn ? 'error' : 'success');
           return;
         }
         if (reason) { toast('不能调换：' + reason, 'error'); return; }
@@ -4229,7 +4233,8 @@
         rowB.teachers = teachersA.map(item => ({ ...item, monitorGrade: rowB.grade }));
         const nameA = teachersA[0]?.name || '', nameB = teachersB[0]?.name || '';
         persistAndRender();
-        toast(`已互换：${nameA} ⇄ ${nameB}`);
+        const warn = manualSwapNotice(nameA, rowB) || manualSwapNotice(nameB, rowA);
+        toast(warn ? `已互换：${nameA} ⇄ ${nameB}（${warn}）` : `已互换：${nameA} ⇄ ${nameB}`, warn ? 'error' : 'success');
       }
 
       let dragSourceId = null;
