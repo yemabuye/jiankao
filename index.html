@@ -5303,8 +5303,10 @@
         return `${esc(r.grade)}${esc(r.subject)} ${esc(r.className)}（${esc(r.date)} ${esc(r.time)}）`;
       }
       // ---------- 监考表（小学部 / 初中部 两张表）----------
-      const GRADE_ORDER = ['三年级', '四年级', '五年级', '六年级', '七年级', '八年级', '九年级'];
-      function isPrimaryGrade(g) { return ['三年级', '四年级', '五年级', '六年级'].includes(g); }
+      const GRADE_ORDER = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级', '九年级'];
+      // ⚠ 小学部必须包含一、二年级：漏掉会让二年级的场次被误判成初中，
+      //   导致「初中部监考表」里出现小学的科目时段（空列），且二年级整块不显示。
+      function isPrimaryGrade(g) { return ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'].includes(g); }
       function formatDateLabel(d) {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || '');
         if (!m) return d || '';
