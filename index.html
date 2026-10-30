@@ -3964,12 +3964,16 @@
           const isPatrol = patrolAll.has(teacher.name);
           const identity = isPatrol ? '巡考教师' : (teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade);
           const identityClass = isPatrol ? 'patrol-mark' : (teacher.monitorGrade === 'reserve' ? 'reserve-mark' : '');
-          const detailText = isPatrol ? '巡考（不占用监考场次）' : (details || '尚未安排');
-          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${identityClass}">${esc(identity)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td class="muted">${esc(detailText)}</td></tr>`;
+          // 巡考老师若本次也安排了监考，明细要显示场次，不能只写"巡考"
+          const detailText = (isPatrol && !details) ? '巡考（不占用监考场次）' : (details || '尚未安排');
+          // 待补次数：公示免监考等原因被撤下、需要以后补回的场次
+          const owe = Number(teacher.oweCount) || 0;
+          const oweCell = owe ? `<strong style="color:#b45309">${owe}</strong>` : '0';
+          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${identityClass}">${esc(identity)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td>${oweCell}</td><td class="muted">${esc(detailText)}</td></tr>`;
         }).join('');
         const patrolP = patrolNames('小学部'), patrolJ = patrolNames('中学部');
         const allPatrol = [...new Set([...patrolP, ...patrolJ])];
-        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">巡考教师：${allPatrol.length ? esc(allPatrol.join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
+        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">巡考教师：${allPatrol.length ? esc(allPatrol.join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>待补</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
       }
 
       function renderWorkload() {
@@ -4523,7 +4527,7 @@
         // ★ 统计表也只列巡考教师，机动人员不上表
         const allPatrol = [...new Set([...patrolNames('小学部'), ...patrolNames('中学部')])];
         worksheet.addRow(['巡考教师', allPatrol.length ? allPatrol.join('、') : '暂无']);
-        worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','本次次数','汇总次数','具体场次']);
+        worksheet.addRow([]); worksheet.addRow(['教师','任教年级','本次身份','本次次数','汇总次数','待补次数','具体场次']);
         const { current: curMap, cumulative: cumMap } = teacherAssignmentStats();
         // ★ 巡考教师也要列进明细（他们没被勾选，不列出来就等于表里没体现）
         const patrolSet = new Set(allPatrol);
@@ -4536,11 +4540,11 @@
           const cum = cumMap.get(teacher.id) || 0;
           const isPatrol = patrolSet.has(teacher.name);
           const identity = isPatrol ? '巡考教师' : (teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade);
-          const detailText = isPatrol ? '巡考（不占用监考场次）' : (assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排');
-          worksheet.addRow([teacher.name,teacher.grades.join('、'),identity,cur,cum,detailText]);
+          const detailText = (isPatrol && !assigned.length) ? '巡考（不占用监考场次）' : (assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排');
+          worksheet.addRow([teacher.name,teacher.grades.join('、'),identity,cur,cum,(Number(teacher.oweCount)||0),detailText]);
         });
         worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
-        [14,24,16,12,12,60].forEach((width,index) => worksheet.getColumn(index+1).width = width);
+        [14,24,16,12,12,10,60].forEach((width,index) => worksheet.getColumn(index+1).width = width);
       }
 
       function exportCsvFallback() {
@@ -5031,15 +5035,20 @@
             }
           } catch (e) { /* 查不到记录就按正常发布处理 */ }
         }
+        const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
+        const teachers = teacherCodeList();
+        const workload = cumulativeByName();
+        // ★ 每行带上该老师的累计监考次数（历史累计 + 本次场次）。
+        //   服务端 getBoard 只回传 rows/config，workload 字段会被丢弃，
+        //   所以把累计次数写进行里，老师端才能显示「累计监考次数」。
+        const { current: curCounts, cumulative: cumCounts } = teacherAssignmentStats();
         const rows = state.result.map(r => ({
           sessionId: r.id || (r.date + '|' + r.time + '|' + r.grade + '|' + r.className),
           date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
           classroom: r.classroom || '',
-          teachers: (r.teachers || []).map(t => t.name)
+          teachers: (r.teachers || []).map(t => t.name),
+          cum: Object.fromEntries((r.teachers || []).map(t => [t.name, (cumCounts.get(t.id) || 0) + (curCounts.get(t.id) || 0)]))
         }));
-        const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
-        const teachers = teacherCodeList();
-        const workload = cumulativeByName();
         try {
           const isDemo = onlineBackend.isDemo();
           const r = await onlineBackend.publish({ boardId: state.publishedBoardId, title, rows, teachers, workload });
@@ -5377,7 +5386,14 @@
         if (primary.length) html += buildInvigTable('小学', primary);
         if (middle.length) html += buildInvigTable('初中', middle);
         // 监考表最下方：展示累计监考次数（跨考试持续累计，新建考试不清零），让老师也能看到
-        const wl = (onlineView.board && onlineView.board.data && onlineView.board.data.workload) || {};
+        // 累计次数优先取每行自带的 cum 字段（发布时随表带上，含历史+本次）；
+        // 没有 cum 的旧表再回退到服务端 workload。
+        const wl = {};
+        const wlFromServer = (onlineView.board && onlineView.board.data && onlineView.board.data.workload) || {};
+        Object.keys(wlFromServer).forEach(n => { wl[n] = wlFromServer[n]; });
+        ((onlineView.board && onlineView.board.data && onlineView.board.data.rows) || []).forEach(r => {
+          Object.entries(r.cum || {}).forEach(([n, c]) => { if (Number(c) > (wl[n] || 0)) wl[n] = Number(c); });
+        });
         const wlEntries = Object.entries(wl).sort((a, b) => b[1] - a[1]);
         if (wlEntries.length) {
           html += `<div style="margin-top:18px;border-top:1px dashed #d8d7d1;padding-top:12px">
