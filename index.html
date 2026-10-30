@@ -353,6 +353,9 @@
     .template-grade .assignment-cell.drop-ok { background: #e6f6ec !important; color: #12633a !important; outline: 2px solid #1a7f37; outline-offset: -2px; }
     .template-grade .assignment-cell.drop-bad { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; cursor: not-allowed; }
     .template-grade .assignment-cell.drop-bad::after { content: ' ✕'; font-weight: 800; }
+    /* 同一老师时间重叠（含跨学部）的格子：显示出来，提醒管理员 */
+    .template-grade .assignment-cell.time-conflict { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; }
+    .template-grade .assignment-cell .cell-warn { font-weight: 800; color: #cf222e; }
 
     .template-grade .assignment-cell.drop-ok::after { content: ' ⇄'; font-weight: 800; }
     /* 搜索老师后在监考表里高亮他监考的所有场次 */
@@ -444,6 +447,8 @@
     .muted { color: var(--muted); }
 
     .toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 80; display: grid; gap: 8px; width: min(360px, calc(100% - 36px)); }
+    /* 放在弹窗里的提示（弹窗在浏览器顶层，页面级 toast 会被盖住） */
+    .toast-stack.in-dialog { position: absolute; right: 14px; bottom: 14px; z-index: 5; width: min(340px, calc(100% - 28px)); }
     .toast { display: flex; gap: 9px; align-items: flex-start; padding: 11px 13px; color: white; border-radius: 7px; background: #24352d; box-shadow: 0 10px 30px rgba(0,0,0,.2); animation: toast-in .2s ease-out; }
     .toast.error { background: #8f3030; }
     @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
@@ -3330,7 +3335,9 @@
             if (index === slots.length) return true;
             if (++nodes > maxNodes) return false;
             const slot = slots[index];
-            const candidates = slot.eligible.filter(t => !used.has(t.id));
+            // 本组之外已排的场次，若时间与当前场次重叠，同一人不能再排（各年级时段常有细微差别）
+            const candidates = slot.eligible.filter(t => !used.has(t.id) &&
+              !(daySlots.get(t.id) || []).some(d => timeOverlap(d, slot.session)));
             candidates.sort((a,b) => candidateScore(a, slot.session, counts, daySlots, config) - candidateScore(b, slot.session, counts, daySlots, config));
             for (const teacher of candidates) {
               used.add(teacher.id); selected.set(`${slot.session.id}|${slot.seat}`, teacher);
@@ -3852,7 +3859,15 @@
               const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id || teacher.name === assigned.name)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
               const tid = assignment.teachers.map(teacher => teacher.id).join(',');
-              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
+              // ★ 显示冲突：这位老师在同一时段（含跨学部）还有别的考场 → 标出来
+              const clash = assignment.teachers.map(t => {
+                const other = state.result.find(row => row.id !== assignment.id &&
+                  (row.teachers || []).some(x => x.name === t.name) && timeOverlap(row, assignment));
+                return other ? `${t.name} 在 ${other.date} ${other.time} 还有别的考场（${other.grade}${other.classroom}${other.subject}）` : '';
+              }).filter(Boolean);
+              const cellCls = ['assignment-cell', hasReserve ? 'has-reserve' : '', clash.length ? 'time-conflict' : ''].filter(Boolean).join(' ');
+              const cellTitle = clash.length ? '⚠ ' + clash.join('；') : '点击单独换人 · 或直接拖到另一个格子上与对方互换';
+              return `<td class="${cellCls}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="${esc(cellTitle)}">${esc(cellNames)}${clash.length ? ' <span class="cell-warn">⚠</span>' : ''}</td>`;
             }).join('');
             const cr = rows.find(row => row.className === room);
             return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" data-grade="${esc(grade)}" placeholder="点此填教室"></td>${cells}</tr>`;
@@ -4173,6 +4188,20 @@
       function teacherNamed(name) { return state.teachers.find(teacher => teacher.name === name); }
       function slotKeyOf(row) { return `${row.date}|${normalizeTime(row.time)}`; }
 
+      // ★ 两个场次的时间是否真的重叠（各年级同一科目的时段常有细微差别，
+      //   例如小学二~四年级语文 08:20-10:00、小学五~六年级语文 08:20-10:20，
+      //   用"时间字符串完全相同"判断会漏掉这种撞车）。
+      function timeOverlap(a, b) {
+        if (!a || !b || a.date !== b.date) return false;
+        const toMin = t => {
+          const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(String(t || ''));
+          return m ? [+m[1] * 60 + +m[2], +m[3] * 60 + +m[4]] : null;
+        };
+        const A = toMin(a.time), B = toMin(b.time);
+        if (!A || !B) return normalizeTime(a.time) === normalizeTime(b.time);
+        return A[0] < B[1] && B[0] < A[1];
+      }
+
       // 判断某位老师能否去监考某一场，返回空字符串表示可以，否则返回原因
       function monitorBlockReason(name, row) {
         const teacher = teacherNamed(name);
@@ -4190,16 +4219,13 @@
         const teacherA = (rowA.teachers || [])[0], teacherB = (rowB.teachers || [])[0];
         if (!teacherA || !teacherB) return '该格没有教师';
 
-        const keyA = slotKeyOf(rowA), keyB = slotKeyOf(rowB);
-        if (keyA !== keyB) {
-          // 换到别的时段，要确认两人各自在新时段没有别的考场
-          const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
-            slotKeyOf(row) === keyB && (row.teachers || []).some(t => t.name === teacherA.name));
-          if (aBusy) return `${teacherA.name}在 ${rowB.date} ${rowB.time} 已有别的考场`;
-          const bBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
-            slotKeyOf(row) === keyA && (row.teachers || []).some(t => t.name === teacherB.name));
-          if (bBusy) return `${teacherB.name}在 ${rowA.date} ${rowA.time} 已有别的考场`;
-        }
+        // ★ 同一个人不能同时段看两个考场：按"真实时间重叠"判断（各年级时段常有细微差别）
+        const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
+          timeOverlap(row, rowB) && (row.teachers || []).some(t => t.name === teacherA.name));
+        if (aBusy) return `${teacherA.name} 在 ${rowB.date} ${rowB.time} 已有别的考场（时间重叠）`;
+        const bBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
+          timeOverlap(row, rowA) && (row.teachers || []).some(t => t.name === teacherB.name));
+        if (bBusy) return `${teacherB.name} 在 ${rowA.date} ${rowA.time} 已有别的考场（时间重叠）`;
         // 管理员手动调配：不限制任教年级/学部，想怎么换就怎么换；
         // 真正硬拦的只有"同一人同一时段两个考场"（否则一个人同时看两个考场）。
         // 语文冲突只提示、不拦截。（严格规则只用在自动编排上。）
@@ -4221,10 +4247,9 @@
         const teacherA = (rowA.teachers || [])[0];
         if (!teacherA) return false;
 
-        // A 挪到 rowB 会不会同时段撞车（撞了就挪不了）
-        const keyB = slotKeyOf(rowB);
+        // A 挪到 rowB 会不会撞车（时间重叠就挪不了）
         const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
-          slotKeyOf(row) === keyB && (row.teachers || []).some(t => t.name === teacherA.name));
+          timeOverlap(row, rowB) && (row.teachers || []).some(t => t.name === teacherA.name));
         if (aBusy) return false;
         return true;
       }
@@ -4234,16 +4259,7 @@
         const rowB = state.result.find(row => row.id === idB);
         if (!rowA || !rowB) return;
         const reason = swapBlockReason(rowA, rowB);
-        if (reason && canMoveOut(rowA, rowB)) {
-          // 挪走：把人移到目标格，原格空出来待安排
-          const teacherA = (rowA.teachers || [])[0];
-          rowB.teachers = [{ ...teacherA, monitorGrade: rowB.grade }];
-          rowA.teachers = [];
-          persistAndRender();
-          const warn = manualSwapNotice(teacherA.name, rowB);
-          toast(`已把 ${teacherA.name} 移到 ${rowB.grade}${rowB.subject}；原格空出，请安排监考老师` + (warn ? `（${warn}）` : ''), warn ? 'error' : 'success');
-          return;
-        }
+        // ★ 不做任何"自动挪走"：不合法就整次拒绝，两个格子都保持原样（之前会把原格清空）
         if (reason) { toast('不能调换：' + reason, 'error'); return; }
         const teachersA = rowA.teachers, teachersB = rowB.teachers;
         rowA.teachers = teachersB.map(item => ({ ...item, monitorGrade: rowA.grade }));
@@ -4330,7 +4346,8 @@
         const conflicting = ids.find(id => {
           const sel = state.teachers.find(item => item.id === id);
           if (!sel) return false;
-          return state.result.some(row => row.id !== assignment.id && timeKey(row) === timeKey(assignment) && rowHasTeacher(row, sel));
+          // ★ 用"真实时间重叠"判断：各年级同时段常有细微差别（如 08:20-10:00 与 08:20-10:20）
+          return state.result.some(row => row.id !== assignment.id && timeOverlap(row, assignment) && rowHasTeacher(row, sel));
         });
         if (conflicting) {
           const teacher = state.teachers.find(item => item.id === conflicting);
@@ -4596,8 +4613,15 @@
 
       function toast(message, type = '') {
         const item = document.createElement('div'); item.className = `toast ${type}`; item.innerHTML = `<i data-lucide="${type === 'error' ? 'circle-alert' : 'circle-check'}"></i><span>${esc(message)}</span>`;
-        $('#toastStack').appendChild(item); if (window.lucide) lucide.createIcons();
-        setTimeout(() => item.remove(), 3200);
+        // 弹窗打开时，原生 <dialog> 位于顶层，页面上的提示会被盖住 → 把提示放进弹窗里显示
+        const openDlg = document.querySelector('dialog[open]');
+        let stack = $('#toastStack');
+        if (openDlg) {
+          stack = openDlg.querySelector('.toast-stack');
+          if (!stack) { stack = document.createElement('div'); stack.className = 'toast-stack in-dialog'; openDlg.appendChild(stack); }
+        }
+        stack.appendChild(item); if (window.lucide) lucide.createIcons();
+        setTimeout(() => { item.remove(); if (stack.classList.contains('in-dialog') && !stack.children.length) stack.remove(); }, 3200);
       }
 
       function formatDateTime(iso) {
