@@ -353,6 +353,9 @@
     .template-grade .assignment-cell.drop-ok { background: #e6f6ec !important; color: #12633a !important; outline: 2px solid #1a7f37; outline-offset: -2px; }
     .template-grade .assignment-cell.drop-bad { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; cursor: not-allowed; }
     .template-grade .assignment-cell.drop-bad::after { content: ' ✕'; font-weight: 800; }
+    /* 任教年级与本场次年级不符的格子：一眼可见 */
+    .template-grade .assignment-cell.grade-mismatch { background: #fff4e0 !important; color: #b45309 !important; outline: 2px dashed #e0a800; outline-offset: -2px; }
+    .template-grade .assignment-cell .cell-warn { font-weight: 800; color: #b45309; }
     .template-grade .assignment-cell.drop-ok::after { content: ' ⇄'; font-weight: 800; }
     /* 搜索老师后在监考表里高亮他监考的所有场次 */
     .template-grade .assignment-cell.search-hit { outline: 3px solid #f59e0b; outline-offset: -3px; background: #fff7e6; color: #92400e; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
@@ -3851,7 +3854,13 @@
               const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id || teacher.name === assigned.name)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
               const tid = assignment.teachers.map(teacher => teacher.id).join(',');
-              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
+              // 把"任教年级与本场次年级不符"的格子直接标出来，一眼就能看出哪里串了
+              const mism = assignment.teachers.map(t => teacherGradeMismatch(t.name, assignment)).filter(Boolean);
+              const cellCls = ['assignment-cell', hasReserve ? 'has-reserve' : '', mism.length ? 'grade-mismatch' : ''].filter(Boolean).join(' ');
+              const cellTitle = mism.length
+                ? '⚠ ' + mism.join('；')
+                : '点击单独换人 · 或直接拖到另一个格子上与对方互换';
+              return `<td class="${cellCls}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="${esc(cellTitle)}">${esc(cellNames)}${mism.length ? ' <span class="cell-warn">⚠</span>' : ''}</td>`;
             }).join('');
             const cr = rows.find(row => row.className === room);
             return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" data-grade="${esc(grade)}" placeholder="点此填教室"></td>${cells}</tr>`;
@@ -4176,8 +4185,10 @@
       function monitorBlockReason(name, row) {
         const teacher = teacherNamed(name);
         if (!teacher) return '';
-        // 任教范围限制已放开：管理员手动调配时，不管教没教这个年级、属不属这个学部，都可以挪到任何年级。
-        // 这里只保留语文规则（教语文的不监考语文），且仅作提示、不硬拦。
+        // ① 任教年级不覆盖目标年级（与编排口径一致，拖拽时是硬拦，这里是兜底提示）
+        const g = teacherGradeMismatch(name, row);
+        if (g) return g;
+        // ② 语文规则（教语文的不监考语文）：仅作提示、不硬拦
         if ((teacher.subjects || []).includes('语文') && String(row.subject).includes('语文')) {
           return `${name}教语文，不监考语文`;
         }
@@ -4186,14 +4197,15 @@
 
       // 两格互换是否可行
       // 老师的"本次监考年级"是否覆盖这个场次的年级（'全年级'/'机动人员'/未指定 = 不限）
-      function swapGradeReason(teacherName, row) {
+      function teacherGradeMismatch(teacherName, row) {
         const t = state.teachers.find(x => x.name === teacherName);
-        if (!t) return '';
+        if (!t || !row) return '';
         const mg = t.monitorGrade || '';
         if (!mg || mg === 'reserve' || mg === '全年级') return '';
-        if (mg !== row.grade) return `${teacherName} 本次只监考${mg}，不能排到${row.grade}（${row.classroom}${row.subject}）`;
+        if (mg !== row.grade) return `${teacherName} 本次只监考${mg}，不能排到${row.grade}（${row.classroom || ''}${row.subject || ''}）`;
         return '';
       }
+      function swapGradeReason(teacherName, row) { return teacherGradeMismatch(teacherName, row); }
       function swapBlockReason(rowA, rowB) {
         if (!rowA || !rowB || rowA.id === rowB.id) return '同一个格子';
         const teacherA = (rowA.teachers || [])[0], teacherB = (rowB.teachers || [])[0];
