@@ -3969,11 +3969,11 @@
           // 待补次数：公示免监考等原因被撤下、需要以后补回的场次
           const owe = Number(teacher.oweCount) || 0;
           const oweCell = owe ? `<strong style="color:#b45309">${owe}</strong>` : '0';
-          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${identityClass}">${esc(identity)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum}</strong></td><td>${oweCell}</td><td class="muted">${esc(detailText)}</td></tr>`;
+          return `<tr><td>${esc(teacher.name)}</td><td>${esc(teacher.grades.join('、'))}</td><td class="${identityClass}">${esc(identity)}</td><td><strong>${cur}</strong></td><td><strong style="color:var(--primary,#2f7d4f)">${cum + cur}</strong></td><td>${oweCell}</td><td class="muted">${esc(detailText)}</td></tr>`;
         }).join('');
         const patrolP = patrolNames('小学部'), patrolJ = patrolNames('中学部');
         const allPatrol = [...new Set([...patrolP, ...patrolJ])];
-        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">巡考教师：${allPatrol.length ? esc(allPatrol.join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>待补</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 本次次数 + 版本记录中其余各版累计（当前共 ${state.history.length} 版）</p></div></div></div>`;
+        return `<div class="stats-board"><div class="stats-section"><h2 class="template-title">教师数量与监考次数统计</h2><h3>年级人员余量</h3><div class="modal-table"><table><thead><tr><th>年级</th><th>场次数</th><th>峰值需要</th><th>已选教师</th><th>缺口/余量</th><th>监考人次</th></tr></thead><tbody>${summaryRows}</tbody></table></div><p class="muted">巡考教师：${allPatrol.length ? esc(allPatrol.join('、')) : '暂无'}</p></div><div class="stats-section"><h3>教师明细</h3><div class="modal-table"><table><thead><tr><th>教师</th><th>任教年级</th><th>本次身份</th><th>本次次数</th><th>汇总次数</th><th>待补</th><th>具体场次</th></tr></thead><tbody>${teacherRows}</tbody></table><p class="muted" style="margin-top:8px">汇总次数 = 历史累计 + 本次次数（跨考试总次数，当前共 ${state.history.length} 版）；待补 = 3 − 汇总次数（公示免监考等欠下的场次，下次补）</p></div></div></div>`;
       }
 
       function renderWorkload() {
@@ -4541,7 +4541,7 @@
           const isPatrol = patrolSet.has(teacher.name);
           const identity = isPatrol ? '巡考教师' : (teacher.monitorGrade === 'reserve' ? '机动人员' : teacher.monitorGrade);
           const detailText = (isPatrol && !assigned.length) ? '巡考（不占用监考场次）' : (assigned.map(row => `${row.date} ${row.time} ${row.grade}${row.subject}${row.className}`).join('；') || '尚未安排');
-          worksheet.addRow([teacher.name,teacher.grades.join('、'),identity,cur,cum,(Number(teacher.oweCount)||0),detailText]);
+          worksheet.addRow([teacher.name,teacher.grades.join('、'),identity,cur,cum + cur,(Number(teacher.oweCount)||0),detailText]);
         });
         worksheet.eachRow((row,rowNumber) => row.eachCell(cell => styleExcelCell(cell, rowNumber === 3 || rowNumber === 3 + gradeStatistics().length + 4)));
         [14,24,16,12,12,10,60].forEach((width,index) => worksheet.getColumn(index+1).width = width);
@@ -5453,19 +5453,36 @@
         if (fromTeacher === toTeacher) return '不能跟自己换';
         if (fromSessionId === toSessionId) return '不能选同一场，请选对方老师的另一场';
         if (!(toRow.teachers || []).includes(toTeacher)) return `${toTeacher} 不在所选场次【${toRow.grade}${toRow.subject} ${toRow.className}】中`;
+        if (swapDeptOf(fromRow) !== swapDeptOf(toRow)) return `只能和同一学部的老师互换（不能跨小学部/中学部）`;
+        if (fromRow.grade !== toRow.grade) return `只能和同一年级的老师互换（你的是${fromRow.grade}，对方是${toRow.grade}）`;
+        if (swapSlotKey(fromRow) !== swapSlotKey(toRow)) return `只能换同一时间的场次（你的是 ${fromRow.date} ${fromRow.time}，对方的是 ${toRow.date} ${toRow.time}）`;
         const fromHasToSlot = rows.some(r => r.sessionId !== fromSessionId && r.date === toRow.date && r.time === toRow.time && (r.teachers || []).includes(fromTeacher));
         const toHasFromSlot = rows.some(r => r.sessionId !== toSessionId && r.date === fromRow.date && r.time === fromRow.time && (r.teachers || []).includes(toTeacher));
         if (fromHasToSlot) return `${fromTeacher} 在 ${toRow.date} ${toRow.time} 还有另一场监考，换不了`;
         if (toHasFromSlot) return `${toTeacher} 在 ${fromRow.date} ${fromRow.time} 还有另一场监考，换不了`;
         return null;
       }
+      // ★ 只有"同一年级 + 同一时间"的场次之间才允许互换：
+      //   否则会出现点了七年级、却和八年级（甚至小学）老师换掉的情况。
+      function swapSlotKey(r) { return r.date + '|' + r.time; }
+      function swapDeptOf(r) { return gradeNumber(r.grade) <= 6 ? '小学部' : '中学部'; }
+      function swapCandidateRows(board, fromRow) {
+        const rows = ((board && board.data && board.data.rows) || []);
+        if (!fromRow) return [];
+        const key = swapSlotKey(fromRow);
+        return rows.filter(r => swapSlotKey(r) === key && r.grade === fromRow.grade);
+      }
       function openSwapDialog(fromSessionId) {
         swapFromSessionId = fromSessionId;
         const identity = onlineView.identity;
         const fromRow = ((onlineView.board.data && onlineView.board.data.rows) || []).find(r => r.sessionId === fromSessionId);
         if (!fromRow) return toast('找不到该场次', 'error');
-        $('#swapFromInfo').textContent = `${identity} 在【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】，想和其他老师互换监考。`;
-        const others = allTeacherNames(onlineView.board).filter(n => n !== identity).sort();
+        const cand = swapCandidateRows(onlineView.board, fromRow);
+        const others = [...new Set(cand.flatMap(r => r.teachers || []))].filter(n => n !== identity).sort();
+        if (!others.length) {
+          return toast(`【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】这个时段没有可互换的老师（只能和同一年级、同一时间的老师换）`, 'warn');
+        }
+        $('#swapFromInfo').textContent = `${identity} 在【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】，想和其他老师互换监考。（只能和同一年级、同一时间的老师互换）`;
         $('#swapToTeacher').innerHTML = others.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
         fillSwapSessions();
         $('#swapDialog').showModal();
@@ -5473,7 +5490,8 @@
       function fillSwapSessions() {
         const to = $('#swapToTeacher').value;
         const rows = ((onlineView.board.data && onlineView.board.data.rows) || []);
-        const sessions = rows.filter(r => (r.teachers || []).includes(to));
+        const fromRow = rows.find(r => r.sessionId === swapFromSessionId);
+        const sessions = swapCandidateRows(onlineView.board, fromRow).filter(r => (r.teachers || []).includes(to));
         // 按考试日期分组，让"第一天 / 第二天 ……"都明确可选（本次考试全程都能换）
         const byDate = {};
         sessions.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
