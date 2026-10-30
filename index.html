@@ -4185,10 +4185,24 @@
       }
 
       // 两格互换是否可行
+      // 老师的"本次监考年级"是否覆盖这个场次的年级（'全年级'/'机动人员'/未指定 = 不限）
+      function swapGradeReason(teacherName, row) {
+        const t = state.teachers.find(x => x.name === teacherName);
+        if (!t) return '';
+        const mg = t.monitorGrade || '';
+        if (!mg || mg === 'reserve' || mg === '全年级') return '';
+        if (mg !== row.grade) return `${teacherName} 本次只监考${mg}，不能排到${row.grade}（${row.classroom}${row.subject}）`;
+        return '';
+      }
       function swapBlockReason(rowA, rowB) {
         if (!rowA || !rowB || rowA.id === rowB.id) return '同一个格子';
         const teacherA = (rowA.teachers || [])[0], teacherB = (rowB.teachers || [])[0];
         if (!teacherA || !teacherB) return '该格没有教师';
+        // ★ 硬拦：不能把老师调到Ta不监考的年级（避免拖一下就串到别的年级/学部）
+        const gA = swapGradeReason(teacherA.name, rowB);
+        if (gA) return gA;
+        const gB = swapGradeReason(teacherB.name, rowA);
+        if (gB) return gB;
         const keyA = slotKeyOf(rowA), keyB = slotKeyOf(rowB);
         if (keyA !== keyB) {
           // 换到别的时段，要确认两人各自在新时段没有别的考场
@@ -4199,8 +4213,8 @@
             slotKeyOf(row) === keyA && (row.teachers || []).some(t => t.name === teacherB.name));
           if (bBusy) return `${teacherB.name}在 ${rowA.date} ${rowA.time} 已有别的考场`;
         }
-        // 任教范围（教没教这个年级 / 属不属这个学部）不再作为拦截条件；
-        // 语文冲突也只提示不拦截，交由管理员自己判断。真正硬拦的只有"同一人同一时段两个考场"。
+        // 任教年级（monitorGrade）不匹配 = 硬拦（见 swapGradeReason）；
+        // 语文冲突仍只提示不拦截，交由管理员判断。同一人同一时段两个考场 = 硬拦。
         return '';
       }
 
@@ -4218,6 +4232,8 @@
       function canMoveOut(rowA, rowB) {
         const teacherA = (rowA.teachers || [])[0];
         if (!teacherA) return false;
+        // 挪过去也要满足"Ta监考这个年级"，否则整次操作直接拦掉
+        if (swapGradeReason(teacherA.name, rowB)) return false;
         // A 挪到 rowB 会不会同时段撞车（撞了就挪不了）
         const keyB = slotKeyOf(rowB);
         const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
