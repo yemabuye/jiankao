@@ -353,9 +353,7 @@
     .template-grade .assignment-cell.drop-ok { background: #e6f6ec !important; color: #12633a !important; outline: 2px solid #1a7f37; outline-offset: -2px; }
     .template-grade .assignment-cell.drop-bad { background: #fdecec !important; color: #a32626 !important; outline: 2px solid #cf222e; outline-offset: -2px; cursor: not-allowed; }
     .template-grade .assignment-cell.drop-bad::after { content: ' ✕'; font-weight: 800; }
-    /* 任教年级与本场次年级不符的格子：一眼可见 */
-    .template-grade .assignment-cell.grade-mismatch { background: #fff4e0 !important; color: #b45309 !important; outline: 2px dashed #e0a800; outline-offset: -2px; }
-    .template-grade .assignment-cell .cell-warn { font-weight: 800; color: #b45309; }
+
     .template-grade .assignment-cell.drop-ok::after { content: ' ⇄'; font-weight: 800; }
     /* 搜索老师后在监考表里高亮他监考的所有场次 */
     .template-grade .assignment-cell.search-hit { outline: 3px solid #f59e0b; outline-offset: -3px; background: #fff7e6; color: #92400e; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
@@ -3854,13 +3852,7 @@
               const hasReserve = assignment.teachers.some(assigned => state.teachers.find(teacher => teacher.id === assigned.id || teacher.name === assigned.name)?.monitorGrade === 'reserve');
               const cellNames = assignment.teachers.length > 1 ? `${assignment.teachers[0].name}（主） / ${assignment.teachers[1].name}（副）` : assignment.teachers.map(teacher => teacher.name).join(' / ');
               const tid = assignment.teachers.map(teacher => teacher.id).join(',');
-              // 把"任教年级与本场次年级不符"的格子直接标出来，一眼就能看出哪里串了
-              const mism = assignment.teachers.map(t => teacherGradeMismatch(t.name, assignment)).filter(Boolean);
-              const cellCls = ['assignment-cell', hasReserve ? 'has-reserve' : '', mism.length ? 'grade-mismatch' : ''].filter(Boolean).join(' ');
-              const cellTitle = mism.length
-                ? '⚠ ' + mism.join('；')
-                : '点击单独换人 · 或直接拖到另一个格子上与对方互换';
-              return `<td class="${cellCls}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="${esc(cellTitle)}">${esc(cellNames)}${mism.length ? ' <span class="cell-warn">⚠</span>' : ''}</td>`;
+              return `<td class="assignment-cell ${hasReserve ? 'has-reserve' : ''}" data-assignment-id="${assignment.id}" data-teacher-ids="${esc(tid)}" draggable="true" title="点击单独换人 · 或直接拖到另一个格子上与对方互换">${esc(cellNames)}</td>`;
             }).join('');
             const cr = rows.find(row => row.className === room);
             return `<tr>${roomIndex === 0 ? `<td class="grade-vertical" rowspan="${rooms.length}">${esc(grade)}</td>` : ''}<td class="room-column">${esc(roomDisplayName(room, departmentKey))}</td><td class="classroom-cell"><input class="cell-room" type="text" value="${esc(cr ? (cr.classroom || '') : '')}" data-room="${esc(room)}" data-grade="${esc(grade)}" placeholder="点此填教室"></td>${cells}</tr>`;
@@ -4185,10 +4177,7 @@
       function monitorBlockReason(name, row) {
         const teacher = teacherNamed(name);
         if (!teacher) return '';
-        // ① 任教年级不覆盖目标年级（与编排口径一致，拖拽时是硬拦，这里是兜底提示）
-        const g = teacherGradeMismatch(name, row);
-        if (g) return g;
-        // ② 语文规则（教语文的不监考语文）：仅作提示、不硬拦
+        // 管理员手动调配：不限制任教年级/学部（编排时才有严格规则），这里只提示语文规则
         if ((teacher.subjects || []).includes('语文') && String(row.subject).includes('语文')) {
           return `${name}教语文，不监考语文`;
         }
@@ -4196,25 +4185,11 @@
       }
 
       // 两格互换是否可行
-      // 老师的"本次监考年级"是否覆盖这个场次的年级（'全年级'/'机动人员'/未指定 = 不限）
-      function teacherGradeMismatch(teacherName, row) {
-        const t = state.teachers.find(x => x.name === teacherName);
-        if (!t || !row) return '';
-        const mg = t.monitorGrade || '';
-        if (!mg || mg === 'reserve' || mg === '全年级') return '';
-        if (mg !== row.grade) return `${teacherName} 本次只监考${mg}，不能排到${row.grade}（${row.classroom || ''}${row.subject || ''}）`;
-        return '';
-      }
-      function swapGradeReason(teacherName, row) { return teacherGradeMismatch(teacherName, row); }
       function swapBlockReason(rowA, rowB) {
         if (!rowA || !rowB || rowA.id === rowB.id) return '同一个格子';
         const teacherA = (rowA.teachers || [])[0], teacherB = (rowB.teachers || [])[0];
         if (!teacherA || !teacherB) return '该格没有教师';
-        // ★ 硬拦：不能把老师调到Ta不监考的年级（避免拖一下就串到别的年级/学部）
-        const gA = swapGradeReason(teacherA.name, rowB);
-        if (gA) return gA;
-        const gB = swapGradeReason(teacherB.name, rowA);
-        if (gB) return gB;
+
         const keyA = slotKeyOf(rowA), keyB = slotKeyOf(rowB);
         if (keyA !== keyB) {
           // 换到别的时段，要确认两人各自在新时段没有别的考场
@@ -4225,8 +4200,9 @@
             slotKeyOf(row) === keyA && (row.teachers || []).some(t => t.name === teacherB.name));
           if (bBusy) return `${teacherB.name}在 ${rowA.date} ${rowA.time} 已有别的考场`;
         }
-        // 任教年级（monitorGrade）不匹配 = 硬拦（见 swapGradeReason）；
-        // 语文冲突仍只提示不拦截，交由管理员判断。同一人同一时段两个考场 = 硬拦。
+        // 管理员手动调配：不限制任教年级/学部，想怎么换就怎么换；
+        // 真正硬拦的只有"同一人同一时段两个考场"（否则一个人同时看两个考场）。
+        // 语文冲突只提示、不拦截。（严格规则只用在自动编排上。）
         return '';
       }
 
@@ -4244,8 +4220,7 @@
       function canMoveOut(rowA, rowB) {
         const teacherA = (rowA.teachers || [])[0];
         if (!teacherA) return false;
-        // 挪过去也要满足"Ta监考这个年级"，否则整次操作直接拦掉
-        if (swapGradeReason(teacherA.name, rowB)) return false;
+
         // A 挪到 rowB 会不会同时段撞车（撞了就挪不了）
         const keyB = slotKeyOf(rowB);
         const aBusy = state.result.some(row => row.id !== rowA.id && row.id !== rowB.id &&
@@ -5477,49 +5452,37 @@
         const rows = ((board && board.data && board.data.rows) || []);
         const fromRow = rows.find(r => r.sessionId === fromSessionId);
         const toRow = rows.find(r => r.sessionId === toSessionId);
+        if (!toTeacher) return '请先选择对方老师';
+        if (!toSessionId) return '请选择对方的场次';
         if (!fromRow || !toRow) return '找不到对应场次';
         if (fromTeacher === toTeacher) return '不能跟自己换';
         if (fromSessionId === toSessionId) return '不能选同一场，请选对方老师的另一场';
         if (!(toRow.teachers || []).includes(toTeacher)) return `${toTeacher} 不在所选场次【${toRow.grade}${toRow.subject} ${toRow.className}】中`;
-        if (swapDeptOf(fromRow) !== swapDeptOf(toRow)) return `只能和同一学部的老师互换（不能跨小学部/中学部）`;
-        if (fromRow.grade !== toRow.grade) return `只能和同一年级的老师互换（你的是${fromRow.grade}，对方是${toRow.grade}）`;
-        if (swapSlotKey(fromRow) !== swapSlotKey(toRow)) return `只能换同一时间的场次（你的是 ${fromRow.date} ${fromRow.time}，对方的是 ${toRow.date} ${toRow.time}）`;
+
         const fromHasToSlot = rows.some(r => r.sessionId !== fromSessionId && r.date === toRow.date && r.time === toRow.time && (r.teachers || []).includes(fromTeacher));
         const toHasFromSlot = rows.some(r => r.sessionId !== toSessionId && r.date === fromRow.date && r.time === fromRow.time && (r.teachers || []).includes(toTeacher));
         if (fromHasToSlot) return `${fromTeacher} 在 ${toRow.date} ${toRow.time} 还有另一场监考，换不了`;
         if (toHasFromSlot) return `${toTeacher} 在 ${fromRow.date} ${fromRow.time} 还有另一场监考，换不了`;
         return null;
       }
-      // ★ 只有"同一年级 + 同一时间"的场次之间才允许互换：
-      //   否则会出现点了七年级、却和八年级（甚至小学）老师换掉的情况。
       function swapSlotKey(r) { return r.date + '|' + r.time; }
       function swapDeptOf(r) { return gradeNumber(r.grade) <= 6 ? '小学部' : '中学部'; }
-      function swapCandidateRows(board, fromRow) {
-        const rows = ((board && board.data && board.data.rows) || []);
-        if (!fromRow) return [];
-        const key = swapSlotKey(fromRow);
-        return rows.filter(r => swapSlotKey(r) === key && r.grade === fromRow.grade);
-      }
       function openSwapDialog(fromSessionId) {
         swapFromSessionId = fromSessionId;
         const identity = onlineView.identity;
         const fromRow = ((onlineView.board.data && onlineView.board.data.rows) || []).find(r => r.sessionId === fromSessionId);
         if (!fromRow) return toast('找不到该场次', 'error');
-        const cand = swapCandidateRows(onlineView.board, fromRow);
-        const others = [...new Set(cand.flatMap(r => r.teachers || []))].filter(n => n !== identity).sort();
-        if (!others.length) {
-          return toast(`【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】这个时段没有可互换的老师（只能和同一年级、同一时间的老师换）`, 'warn');
-        }
-        $('#swapFromInfo').textContent = `${identity} 在【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】，想和其他老师互换监考。（只能和同一年级、同一时间的老师互换）`;
-        $('#swapToTeacher').innerHTML = others.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        const others = allTeacherNames(onlineView.board).filter(x => x !== identity).sort();
+        $('#swapFromInfo').textContent = `${identity} 在【${fromRow.grade}${fromRow.subject} ${fromRow.className} ${fromRow.date} ${fromRow.time}】，想和其他老师互换监考。`;
+        // 不默认选中任何人，避免误换
+        $('#swapToTeacher').innerHTML = '<option value="">请选择对方老师</option>' + others.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
         fillSwapSessions();
         $('#swapDialog').showModal();
       }
       function fillSwapSessions() {
         const to = $('#swapToTeacher').value;
         const rows = ((onlineView.board.data && onlineView.board.data.rows) || []);
-        const fromRow = rows.find(r => r.sessionId === swapFromSessionId);
-        const sessions = swapCandidateRows(onlineView.board, fromRow).filter(r => (r.teachers || []).includes(to));
+        const sessions = rows.filter(r => (r.teachers || []).includes(to));
         // 按考试日期分组，让"第一天 / 第二天 ……"都明确可选（本次考试全程都能换）
         const byDate = {};
         sessions.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
