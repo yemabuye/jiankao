@@ -1306,6 +1306,14 @@
       <label for="excludedInput" data-page-node-id="4dLhgL0AkxHy3ADG8FB9Xr">不参与监考的人员（每行一个，导入岗位表时自动跳过）</label>
       <textarea id="excludedInput" style="min-height:120px"></textarea>
       <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
+        <label for="publicExemptInput">公示免监考（仍出现在「累计监考次数」名单，次数记 0；每行一个）</label>
+        <textarea id="publicExemptInput" style="min-height:64px"></textarea>
+        <label for="myNameInput" style="margin-top:10px;display:block">我的名字（从「累计监考次数」名单中隐藏，可选）</label>
+        <input id="myNameInput" style="width:100%" placeholder="例如：你的姓名">
+        <label for="statsHiddenInput" style="margin-top:10px;display:block">统计隐藏名单（中层领导等，不显示在「累计监考次数 / 教师工作量」统计；每行一个）</label>
+        <textarea id="statsHiddenInput" style="min-height:64px"></textarea>
+      </div>
+      <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px">
         <label>考场编号规则（初中 / 小学分开，按学部自动从 001 / 01 起编号；教室名可改）</label>
         <div class="field-row" style="margin-top:6px">
           <div style="flex:1"><label style="font-size:12.5px">中学部（初中）位数</label><select id="rsJuniorPad" style="width:100%"><option value="2">2 位（01 …）</option><option value="3">3 位（001 …）</option></select></div>
@@ -1730,6 +1738,12 @@
         history: [],
         plans: [],
         excludedNames: [...DEFAULT_EXCLUDED],
+        // 公示免监考的老师：仍出现在「累计监考次数」名单里（次数记 0），下场再补
+        publicExemptNames: ['杨文娇','庄分莲','赵皎','邓玲'],
+        // 统计隐藏名单：中层领导等，不出现在「累计监考次数 / 教师工作量」统计里（只影响显示，不影响排班）
+        statsHiddenNames: ['土蕊','张吉美','史维'],
+        // 操作者本人姓名：从「累计监考次数」名单中隐藏（可选）
+        myName: '',
         customRooms: [],
         gradeRows: [],
         timeTemplate: '',
@@ -2266,6 +2280,9 @@
             state.history = Array.isArray(raw.history) ? raw.history : [];
             state.plans = Array.isArray(raw.plans) ? raw.plans : [];
             state.excludedNames = Array.isArray(raw.excludedNames) && raw.excludedNames.length ? raw.excludedNames : [...DEFAULT_EXCLUDED];
+            state.publicExemptNames = Array.isArray(raw.publicExemptNames) && raw.publicExemptNames.length ? raw.publicExemptNames : ['杨文娇','庄分莲','赵皎','邓玲'];
+            state.statsHiddenNames = Array.isArray(raw.statsHiddenNames) ? raw.statsHiddenNames : ['土蕊','张吉美','史维'];
+            state.myName = raw.myName || '';
             state.customRooms = Array.isArray(raw.customRooms) ? raw.customRooms : [];
             state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
             state.timeTemplate = raw.timeTemplate || '';
@@ -2351,6 +2368,9 @@
 
       function openSettingsDialog() {
         $('#excludedInput').value = state.excludedNames.join('\n');
+        $('#publicExemptInput').value = (state.publicExemptNames || []).join('\n');
+        $('#myNameInput').value = state.myName || '';
+        $('#statsHiddenInput').value = (state.statsHiddenNames || []).join('\n');
         $('#rsJuniorPad').value = String(state.roomScheme.junior.pad || 3);
         $('#rsPrimaryPad').value = String(state.roomScheme.primary.pad || 2);
         const namesToText = names => Object.keys(names).sort().map(k => `${k}=${names[k]}`).join('\n');
@@ -2378,6 +2398,9 @@
 
       function saveSettings() {
         state.excludedNames = $('#excludedInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
+        state.publicExemptNames = $('#publicExemptInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
+        state.myName = ($('#myNameInput').value || '').trim();
+        state.statsHiddenNames = $('#statsHiddenInput').value.split(/\r?\n|[,，;]/).map(v => v.trim()).filter(Boolean);
         state.roomScheme = {
           junior: { pad: Number($('#rsJuniorPad').value) || 3, names: parseRoomNames($('#rsJuniorNames').value, Number($('#rsJuniorPad').value) || 3) },
           primary: { pad: Number($('#rsPrimaryPad').value) || 2, names: parseRoomNames($('#rsPrimaryNames').value, Number($('#rsPrimaryPad').value) || 2) }
@@ -2921,7 +2944,7 @@
 
       function monitorGradeOptionsHtml(selected = '', placeholder = '本次年级') {
         const gradeSelected = DEFAULT_GRADES.slice(0, 9).includes(selected) ? selected : '';
-        return `<option value="">${esc(placeholder)}</option>${gradeSelectOptionsHtml(gradeSelected)}<option value="全年级" ${selected === '全年级' ? 'selected' : ''}>全年级</option><option value="reserve" ${selected === 'reserve' ? 'selected' : ''}>机动人员</option>`;
+        return `<option value="">${esc(placeholder)}</option>${gradeSelectOptionsHtml(gradeSelected)}<option value="全年级" ${selected === '全年级' ? 'selected' : ''}>全年级</option><option value="小学部" ${selected === '小学部' ? 'selected' : ''}>小学部（仅小学）</option><option value="中学部" ${selected === '中学部' ? 'selected' : ''}>中学部（仅初中）</option><option value="reserve" ${selected === 'reserve' ? 'selected' : ''}>机动人员</option>`;
       }
 
       function normalizeRoomName(value) {
@@ -3304,6 +3327,7 @@
         });
         const counts = new Map(teachers.map(t => [t.id, (seedCounts && seedCounts.get(t.id)) || 0]));
         const daySlots = new Map();
+        const combinedCount = new Map();
         const assignments = [];
 
         const orderedGroups = [...groups.entries()].sort(([a],[b]) => a.localeCompare(b));
@@ -3319,7 +3343,7 @@
               eligible = teachers.filter(t => !(t.grades || []).includes(session.grade));
               if (!eligible.length) eligible = teachers;
             } else {
-              eligible = crossGrade ? teachers : teachers.filter(t => teacherMatchesGrade(t, session));
+              eligible = teachers.filter(t => teacherDeptAllowed(t, session) && (crossGrade || teacherMatchesGrade(t, session)));
             }
             for (let seat = 0; seat < perRoom; seat++) slots.push({ session, seat, eligible });
           });
@@ -3337,7 +3361,8 @@
             const slot = slots[index];
             // 本组之外已排的场次，若时间与当前场次重叠，同一人不能再排（各年级时段常有细微差别）
             const candidates = slot.eligible.filter(t => !used.has(t.id) &&
-              !(daySlots.get(t.id) || []).some(d => timeOverlap(d, slot.session)));
+              !(daySlots.get(t.id) || []).some(d => timeOverlap(d, slot.session)) &&
+              !(isCombinedSession(slot.session) && (combinedCount.get(t.id) || 0) >= 1));
             candidates.sort((a,b) => candidateScore(a, slot.session, counts, daySlots, config) - candidateScore(b, slot.session, counts, daySlots, config));
             for (const teacher of candidates) {
               used.add(teacher.id); selected.set(`${slot.session.id}|${slot.seat}`, teacher);
@@ -3353,6 +3378,7 @@
               const teacher = selected.get(`${session.id}|${seat}`);
               assigned.push({ id: teacher.id, name: teacher.name, grade: teacher.grade, monitorGrade: teacher.monitorGrade });
               counts.set(teacher.id, counts.get(teacher.id) + 1);
+              if (isCombinedSession(session)) combinedCount.set(teacher.id, (combinedCount.get(teacher.id) || 0) + 1);
               if (!daySlots.has(teacher.id)) daySlots.set(teacher.id, []);
               daySlots.get(teacher.id).push({ date: session.date, time: session.time });
             }
@@ -3363,12 +3389,37 @@
         return { ok: true, assignments };
       }
 
-      function teacherMatchesGrade(teacher, session) { return teacher.monitorGrade === session.grade || teacher.monitorGrade === '全年级'; }
+      function teacherMatchesGrade(teacher, session) {
+        const mg = teacher.monitorGrade;
+        if (mg === session.grade || mg === '全年级') return true;
+        // 学部级监考年级：仅匹配该学部下的具体年级（「小学部」只排小学，「中学部」只排初中）
+        if (mg === '小学部' || mg === '中学部') return (GRADE_SEGMENTS[mg] || []).includes(session.grade);
+        return false;
+      }
+
+      // 学部级监考年级（小学部/中学部）属于硬性限制：即便开启「跨年级协调」，也绝不突破学部边界
+      function teacherDeptAllowed(teacher, session) {
+        const mg = teacher.monitorGrade;
+        if (mg === '小学部' || mg === '中学部') return (GRADE_SEGMENTS[mg] || []).includes(session.grade);
+        return true;
+      }
+
+      // 合卷考识别：双科合一（科目含"+"）或时长 ≥ 2.5 小时，视为长时长合卷场
+      function isCombinedSession(session) {
+        const subj = session.subject || '';
+        if (/[+＋]/.test(subj)) return true;
+        const m = (session.time || '').match(/(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+        if (m) { const mins = (+m[3] * 60 + +m[4]) - (+m[1] * 60 + +m[2]); if (mins >= 150) return true; }
+        return false;
+      }
 
       function candidateScore(teacher, session, counts, daySlots, config) {
         let score = Math.random() * 18;
         if (config.balanceLoad) score += counts.get(teacher.id) * 100;
-        if (config.crossGrade && teacher.monitorGrade !== session.grade) score += 300;
+        // 学部级监考年级匹配该学部下的年级，视同同范围，不按跨年级额外加分
+        const sameGradeScope = teacher.monitorGrade === session.grade || teacher.monitorGrade === '全年级' ||
+          ((teacher.monitorGrade === '小学部' || teacher.monitorGrade === '中学部') && (GRADE_SEGMENTS[teacher.monitorGrade] || []).includes(session.grade));
+        if (config.crossGrade && !sameGradeScope) score += 300;
         if (config.sameSubjectAvoid && teacherTeachesSubject(teacher, session.subject)) score += 350;
         if (config.avoidOwnGrade && (teacher.grades || []).includes(session.grade)) score += 3000;
         if (config.avoidConsecutive) {
@@ -3496,12 +3547,15 @@
       // 把累计次数从「teacherId 维度」转成「姓名维度」，方便随发布包发给老师端展示
       function cumulativeByName() {
         const { cumulative } = teacherAssignmentStats();
+        const hide = new Set([...(state.excludedNames || []), state.myName, ...(state.statsHiddenNames || [])].filter(Boolean));
         const map = {};
         state.teachers.forEach(t => {
-          if (!t.name) return;
+          if (!t.name || hide.has(t.name)) return;
           const c = cumulative.get(t.id) || 0;
           if (c) map[t.name] = c; // 只记真正监考过的老师，避免一长串 0
         });
+        // 公示免监考的老师也要出现在累计名单里（次数记 0），否则他们像“没这个人”
+        (state.publicExemptNames || []).forEach(n => { if (n && !hide.has(n) && !(n in map)) map[n] = 0; });
         return map;
       }
 
@@ -3993,12 +4047,16 @@
       }
 
       function renderWorkload() {
-        if (!state.result.length) { $('#workloadList').innerHTML = '<div class="history-empty">暂无数据</div>'; $('#workloadRange').textContent = '0 - 0 场'; return; }
+        if (!state.result.length && !(state.publicExemptNames || []).length) { $('#workloadList').innerHTML = '<div class="history-empty">暂无数据</div>'; $('#workloadRange').textContent = '0 - 0 场'; return; }
+        const hideNames = new Set([...(state.excludedNames || []), state.myName, ...(state.statsHiddenNames || [])].filter(Boolean));
         const counts = new Map();
-        state.result.forEach(row => row.teachers.forEach(t => counts.set(t.name, (counts.get(t.name) || 0) + 1)));
-        const values = [...counts.values()]; const min = Math.min(...values), max = Math.max(...values);
+        state.result.forEach(row => row.teachers.forEach(t => { if (!hideNames.has(t.name)) counts.set(t.name, (counts.get(t.name) || 0) + 1); }));
+        (state.publicExemptNames || []).forEach(n => { if (n && !hideNames.has(n) && !counts.has(n)) counts.set(n, 0); });
+        const entries = [...counts.entries()];
+        const values = entries.map(([,c]) => c);
+        const min = Math.min(...values), max = Math.max(...values);
         $('#workloadRange').textContent = `${min} - ${max} 场`;
-        $('#workloadList').innerHTML = [...counts.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'zh-CN')).map(([name,count]) => `<div class="load-row"><span title="${esc(name)}">${esc(name)}</span><div class="load-bar"><div class="load-fill" style="width:${Math.max(8, count/max*100)}%"></div></div><span class="load-count">${count}</span></div>`).join('');
+        $('#workloadList').innerHTML = entries.sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'zh-CN')).map(([name,count]) => `<div class="load-row"><span title="${esc(name)}">${esc(name)}</span><div class="load-bar"><div class="load-fill" style="width:${Math.max(8, count/max*100)}%"></div></div><span class="load-count">${count}</span></div>`).join('');
       }
 
       function renderHistory() {
@@ -4650,6 +4708,9 @@
             state.history = Array.isArray(raw.history) ? raw.history : [];
             state.plans = Array.isArray(raw.plans) ? raw.plans : [];
             state.excludedNames = Array.isArray(raw.excludedNames) && raw.excludedNames.length ? raw.excludedNames : [...DEFAULT_EXCLUDED];
+            state.publicExemptNames = Array.isArray(raw.publicExemptNames) && raw.publicExemptNames.length ? raw.publicExemptNames : ['杨文娇','庄分莲','赵皎','邓玲'];
+            state.statsHiddenNames = Array.isArray(raw.statsHiddenNames) ? raw.statsHiddenNames : ['土蕊','张吉美','史维'];
+            state.myName = raw.myName || '';
             state.customRooms = Array.isArray(raw.customRooms) ? raw.customRooms : [];
             state.gradeRows = Array.isArray(raw.gradeRows) ? raw.gradeRows : [];
             state.timeTemplate = raw.timeTemplate || '';
@@ -5065,6 +5126,7 @@
         const title = `监考表 ${new Date().toLocaleDateString('zh-CN')}`;
         const teachers = teacherCodeList();
         const workload = cumulativeByName();
+        const hideNames = new Set([...(state.excludedNames || []), state.myName, ...(state.statsHiddenNames || [])].filter(Boolean));
         // ★ 每行带上该老师的累计监考次数（历史累计 + 本次场次）。
         //   服务端 getBoard 只回传 rows/config，workload 字段会被丢弃，
         //   所以把累计次数写进行里，老师端才能显示「累计监考次数」。
@@ -5074,7 +5136,7 @@
           date: r.date, time: r.time, grade: r.grade, subject: r.subject, className: r.className,
           classroom: r.classroom || '',
           teachers: (r.teachers || []).map(t => t.name),
-          cum: Object.fromEntries((r.teachers || []).map(t => [t.name, (cumCounts.get(t.id) || 0) + (curCounts.get(t.id) || 0)]))
+          cum: Object.fromEntries((r.teachers || []).map(t => [t.name, (cumCounts.get(t.id) || 0) + (curCounts.get(t.id) || 0)]).filter(([n]) => !hideNames.has(n)))
         }));
         try {
           const isDemo = onlineBackend.isDemo();
