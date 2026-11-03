@@ -1323,6 +1323,10 @@
           <div style="flex:1"><label style="font-size:12.5px">中学部教室名（每行一间，可写“001=一楼101室”或只写教室名）</label><textarea id="rsJuniorNames" style="min-height:60px"></textarea></div>
           <div style="flex:1"><label style="font-size:12.5px">小学部教室名（每行一间，可写“01=二楼201室”或只写教室名）</label><textarea id="rsPrimaryNames" style="min-height:60px"></textarea></div>
         </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn btn-sm" id="renumberRoomsBtn">按学部重新连续编号考场</button>
+          <span class="muted" style="font-size:12px">同学部跨年级连续（初中 001、小学 01），只改考场号、不动排班与教室名</span>
+        </div>
       </div>
       <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:14px;padding-top:12px" data-page-node-id="B79YNqtM5BiFeA9Isibbol">
         <label data-page-node-id="WPZYq63qFThDsWhPLjwZcf">后台登录密码</label>
@@ -1730,6 +1734,51 @@
         }).join('');
         return `<option value="">请选择考场</option>${opts}`;
       };
+
+      // 按学部跨年级连续重新编号所有考场：同学部内按年级从低到高累计编号，
+      // 初中 001、002…（七→八→九 连续），小学 01、02…（二→三→四→五→六 连续）。
+      // 只改考场号 className，不动监考教室 row.classroom 与实际排班。
+      // 按学部跨年级连续重新编号所有考场。物理考场 = (年级, 考场号) 组合；
+      // 同一物理考场下的多个科目/时段场次必须共享同一个新号，绝不能逐场编号（旧版 bug）。
+      // 同学部内按年级从低到高、年级内按原编号累计连续编号：初中 001…（七→八→九）、小学 01…（二→三→四→五→六）。
+      function renumberRooms() {
+        if (!state.sessions.length) return toast('当前没有场次，无法编号', 'error');
+        const deptOf = departmentForGrade;
+        const padFor = dept => dept === '小学部' ? (state.roomScheme.primary.pad || 2) : (state.roomScheme.junior.pad || 3);
+        // 收集同学部的物理考场（年级+原考场号），每个组合只计一次
+        const rooms = [];
+        const seen = new Set();
+        state.sessions.forEach(s => {
+          const key = s.grade + '|' + s.className;
+          if (!seen.has(key)) { seen.add(key); rooms.push({ grade: s.grade, old: String(s.className), dept: deptOf(s.grade) }); }
+        });
+        // 结果里的教室名（classroom）用于回填编号->教室名映射
+        const roomClassroom = {};
+        (state.result || []).forEach(r => { if (r.classroom) roomClassroom[r.grade + '|' + r.className] = r.classroom; });
+        const byDept = {};
+        rooms.forEach(r => { (byDept[r.dept] = byDept[r.dept] || []).push(r); });
+        const oldToNew = {};                 // "grade|old" -> new
+        const newNames = { primary: {}, junior: {} };
+        Object.keys(byDept).forEach(dept => {
+          const list = byDept[dept].slice().sort((a, b) => gradeRank(a.grade) - gradeRank(b.grade) || (parseInt(a.old, 10) || 0) - (parseInt(b.old, 10) || 0));
+          const pad = padFor(dept);
+          const deptKey = dept === '小学部' ? 'primary' : 'junior';
+          list.forEach((r, i) => {
+            const nw = padNumber(i + 1, pad);
+            oldToNew[r.grade + '|' + r.old] = nw;
+            const oldName = state.roomScheme[deptKey].names[String(r.old)];
+            if (oldName != null) newNames[deptKey][nw] = oldName;
+            else if (roomClassroom[r.grade + '|' + r.old]) newNames[deptKey][nw] = roomClassroom[r.grade + '|' + r.old];
+          });
+        });
+        const apply = s => { const nw = oldToNew[s.grade + '|' + s.className]; if (nw != null) s.className = nw; };
+        state.sessions.forEach(apply);
+        (state.result || []).forEach(apply);
+        state.roomScheme.primary.names = newNames.primary;
+        state.roomScheme.junior.names = newNames.junior;
+        persistAndRender();
+        toast('已按学部跨年级连续重新编号考场', '');
+      }
 
       const state = {
         teachers: [],
@@ -2670,6 +2719,7 @@
         $('#importBackupInput').addEventListener('change', e => importBackup([...e.target.files]));
         $('#settingsBtn').addEventListener('click', openSettingsDialog);
         $('#saveSettingsBtn').addEventListener('click', saveSettings);
+        $('#renumberRoomsBtn').addEventListener('click', renumberRooms);
         $('#timeMemoryBtn').addEventListener('click', openTimeMemoryDialog);
         $('#saveTimesBtn').addEventListener('click', saveTimeMemory);
         $('#clearTimesBtn').addEventListener('click', clearTimeMemory);
