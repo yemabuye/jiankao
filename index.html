@@ -1702,12 +1702,11 @@
         const deptKey = departmentKey === '小学部' ? 'primary' : 'junior';
         return padNumber(index + 1, state.roomScheme[deptKey].pad);
       };
-      // 考场显示名：编号后带教室名（如 001（一楼101室）），无教室名则原样显示
+      // 考场显示名：只显示考场号（如 001）。教室名统一由独立的「监考教室」列展示，
+      // 避免「考场」列既带教室名、旁边「监考教室」列又重复显示一遍（用户明确要求）。
       const roomDisplayName = (className, departmentKey) => {
         if (!className) return '';
-        const deptKey = departmentKey === '小学部' ? 'primary' : 'junior';
-        const name = state.roomScheme[deptKey].names[className];
-        return name ? `${className}（${name}）` : className;
+        return className;
       };
       // 把“编号=教室名”或逐行“教室名”解析成 {编号: 教室名}
       const parseRoomNames = (text, pad) => {
